@@ -4,7 +4,7 @@
 
 ## 빌드와 실행
 
-JDK 17 이상과 Maven 3.9를 사용한다. 처음 빌드할 때 Maven이 의존성을 내려받는다. 빌드한 JAR에는 Jackson과 UIA 작업 스크립트가 포함된다. Agent 실행에는 외부 서버가 필요하지 않다.
+JDK 17 이상과 Maven 3.9를 사용한다. 처음 빌드할 때 Maven이 의존성을 내려받는다. 빌드한 JAR에는 Jackson, JNA 및 UIA 작업 스크립트가 포함된다. Agent 실행에는 외부 서버가 필요하지 않다.
 
 ```sh
 mvn clean verify
@@ -62,3 +62,15 @@ mvn '-Ddesktop.windowsIT=true' '-Ddesktop.csharpIT=true' "-Ddesktop.csharpWorker
 ## Windows 실기기 및 레거시 검증
 
 Windows 10/11 테스트 데스크톱에서 프로젝트 루트의 `.\tools\Test-WindowsUia.ps1`을 실행한다. 두 워커에 대해 전용 WPF 앱의 상태·커서·장애 복구를 확인하고 Surefire 보고서와 환경 기록을 생성한다. 성능 비교는 별도 Compare-UiaWorkers.ps1에서 실행한다. [시험 결과](docs/TEST-RESULTS.md) · [레거시 실행 방법](docs/COMPATIBILITY.md)
+
+## JNA 직접 호출 PoC
+
+Windows 10/11의 대화형 데스크톱에서 다음 명령으로 Java 프로세스 안의 UI Automation COM 어댑터를 선택한다. 첫 줄은 조회 전용이다. 변경 요청에는 기존 PID 및 액션 허용 옵션이 그대로 적용된다. 옵션을 생략하면 기존 기본 백엔드를 사용한다.
+
+```powershell
+java -jar target/desktop-agent.jar --backend jna
+java -jar target/desktop-agent.jar --backend jna --allow-pid 1234 --allow-action invoke --allow-action setValue
+.\tools\Test-WindowsUia.ps1 -IncludeJna
+```
+
+마지막 명령은 Windows의 동일한 WPF 시험을 PowerShell, C#, JNA에 대해 실행한다. [JNA 설계 및 채택 기준](docs/JNA.md)

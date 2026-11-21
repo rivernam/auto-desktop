@@ -1,0 +1,5 @@
+/target/
+/workers/csharp/bin/
+/workers/csharp/obj/
+/legacy/target/
+/legacy/windows/build/
