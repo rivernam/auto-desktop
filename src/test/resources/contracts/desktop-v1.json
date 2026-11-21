@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "target": {
+    "name": "Contract window",
+    "elements": [
+      {"automationId":"window","name":"Contract window","role":"Window","actions":[]},
+      {"automationId":"save","name":"Save","role":"Button","actions":["invoke"]},
+      {"automationId":"title","name":"","role":"Edit","actions":["setValue"]}
+    ]
+  },
+  "steps": [
+    {"request":{"id":"caps","op":"getCapabilities"},"expect":{"/result/available":true,"/result/physicalInput":false,"/result/screenshot":false}},
+    {"request":{"id":"wins","op":"listWindows"},"bind":{"win":"/result/0/windowId"},"expect":{"/result/0/name":"Contract window"}},
+    {"request":{"id":"snap","op":"snapshot","windowId":"$win"},"bind":{"snap":"/result/snapshotId","first":"/result/elements/0/ref"},"expect":{"/result/windowId":"$win","/result/truncated":false}},
+    {"request":{"id":"first-info","op":"getElementInfo","ref":"$first"},"expect":{"/result/ref":"$first"}},
+    {"request":{"id":"root","op":"findElement","snapshotId":"$snap","locator":{"role":"Window"}},"bind":{"root":"/result/ref"},"expect":{"/result/parentRef":null}},
+    {"request":{"id":"button","op":"findElement","snapshotId":"$snap","locator":{"name":"Save","role":"Button"}},"bind":{"button":"/result/ref"},"expect":{"/result/parentRef":"$root","/result/automationId":"save"}},
+    {"request":{"id":"edit","op":"findElement","snapshotId":"$snap","locator":{"automationId":"title"}},"bind":{"edit":"/result/ref"},"expect":{"/result/parentRef":"$root","/result/role":"Edit"}},
+    {"request":{"id":"info","op":"getElementInfo","ref":"$button"},"expect":{"/result/ref":"$button","/result/name":"Save","/result/enabled":true,"/result/actions":["invoke"]}},
+    {"request":{"id":"click","op":"invoke","ref":"$button"},"expect":{"/result/performed":true}},
+    {"request":{"id":"write","op":"setValue","ref":"$edit","value":"résumé 2"},"expect":{"/result/performed":true}},
+    {"request":{"id":"click","op":"invoke","ref":"$button"},"error":"DUPLICATE_COMMAND"},
+    {"request":{"id":"wrong-action","op":"invoke","ref":"$edit"},"error":"PATTERN_UNSUPPORTED"},
+    {"request":{"id":"absent","op":"findElement","snapshotId":"$snap","locator":{"name":"Missing"}},"error":"ELEMENT_NOT_FOUND"},
+    {"request":{"id":"unsupported","op":"unknown"},"error":"UNKNOWN_OPERATION"},
+    {"request":{"id":"refresh","op":"snapshot","windowId":"$win"},"expect":{"/result/truncated":false}},
+    {"request":{"id":"stale","op":"setValue","ref":"$edit","value":"unexpected"},"error":"STALE_REFERENCE"}
+  ],
+  "effects":{"invoke":1,"setValue":1,"value":"résumé 2"}
+}
