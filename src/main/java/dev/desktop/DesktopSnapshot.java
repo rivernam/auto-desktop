@@ -3,12 +3,14 @@ package dev.desktop;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 /** The tree and reference store for one bounded observation of a window. */
 final class DesktopSnapshot {
@@ -19,6 +21,7 @@ final class DesktopSnapshot {
     private final boolean truncated;
     private final Map<String, Element> byRef = new LinkedHashMap<>();
     private final Map<String, String> refByKey = new HashMap<>();
+    private final Map<String, List<Element>> childrenByKey = new HashMap<>();
 
     record Element(String ref, String key, String parentKey, int processId, ObjectNode properties) {
         static Element read(String ref, JsonNode row) {
@@ -88,6 +91,7 @@ final class DesktopSnapshot {
             if (refByKey.put(element.key(), element.ref()) != null) throw malformed();
             byRef.put(element.ref(), element);
             if (element.parentKey() == null) roots++;
+            else childrenByKey.computeIfAbsent(element.parentKey(), unused -> new ArrayList<>()).add(element);
         }
         if (roots != 1) throw malformed();
         // Providers may return children before parents. Validate each path after indexing the full tree.
@@ -108,19 +112,25 @@ final class DesktopSnapshot {
         return element;
     }
 
-    ObjectNode find(String snapshotId, JsonNode query) {
+    Element resolveInWindow(String requestedWindowId, String ref) {
+        if (!windowId.equals(requestedWindowId)) throw stale();
+        return resolve(ref);
+    }
+
+    ObjectNode find(String snapshotId, String scopeRef, JsonNode query) {
         if (!id.equals(snapshotId)) throw stale();
         ElementLocator locator = ElementLocator.parse(query);
-        Element match = null;
-        for (Element element : byRef.values()) {
-            if (locator.matches(element.properties())) {
-                if (match != null) throw new AgentException("AMBIGUOUS_ELEMENT", "More than one element matches.");
-                match = element;
-            }
-        }
+        Stream<Element> candidates = scopeRef == null ? byRef.values().stream() : subtree(resolve(scopeRef));
+        List<Element> matches = candidates.filter(element -> locator.matches(element.properties())).limit(2).toList();
+        if (matches.size() == 2) throw new AgentException("AMBIGUOUS_ELEMENT", "More than one element matches.");
         if (truncated) throw new AgentException("INCOMPLETE_SNAPSHOT", "A complete snapshot is required for lookup.");
-        if (match == null) throw new AgentException("ELEMENT_NOT_FOUND", "No element matches the locator.");
-        return publicElement(match);
+        if (matches.isEmpty()) throw new AgentException("ELEMENT_NOT_FOUND", "No element matches the locator.");
+        return publicElement(matches.get(0));
+    }
+
+    private Stream<Element> subtree(Element root) {
+        return Stream.concat(Stream.of(root), childrenByKey.getOrDefault(root.key(), List.of()).stream()
+                .flatMap(this::subtree));
     }
 
     ObjectNode liveInfo(Element captured, JsonNode row) {

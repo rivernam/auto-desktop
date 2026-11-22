@@ -67,9 +67,19 @@ public final class Agent {
         int limit = integer(request, "maxElements", 500, 1, 2000);
         String windowId = string(request, "windowId", 256);
         int depth = integer(request, "maxDepth", 12, 0, 32);
+        String scopeRef = scopeRef(request);
+        DesktopSnapshot previous = scopeRef == null ? null : currentSnapshot();
+        DesktopSnapshot.Element scope = previous == null ? null : previous.resolveInWindow(windowId, scopeRef);
         // The adapter may replace its native references even when a capture fails.
         snapshot = null;
-        JsonNode captured = adapter.snapshot(windowId, depth, limit);
+        JsonNode captured;
+        try {
+            captured = scope == null ? adapter.snapshot(windowId, depth, limit)
+                    : adapter.snapshotSubtree(windowId, scope.key(), scope.processId(), depth, limit);
+        } catch (AgentException ex) {
+            if (scope != null && "SNAPSHOT_SCOPE_UNSUPPORTED".equals(ex.code())) snapshot = previous;
+            throw ex;
+        }
         snapshot = new DesktopSnapshot(windowId, captured, depth, limit, nanoTime.getAsLong());
         return snapshot.describe();
     }
@@ -84,7 +94,12 @@ public final class Agent {
 
     private ObjectNode find(ObjectNode request) {
         String snapshotId = string(request, "snapshotId", 128);
-        return currentSnapshot().find(snapshotId, request.get("locator"));
+        String scopeRef = scopeRef(request);
+        return currentSnapshot().find(snapshotId, scopeRef, request.get("locator"));
+    }
+
+    private static String scopeRef(ObjectNode request) {
+        return request.has("scopeRef") ? string(request, "scopeRef", 128) : null;
     }
 
     private ObjectNode info(ObjectNode request) {

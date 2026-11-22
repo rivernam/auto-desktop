@@ -1,6 +1,6 @@
 # Windows UI Automation 백엔드 선택
 
-**PowerShell 5.1 워커를 기본값으로 유지하고, 현대 Windows용 C# 워커(.NET Framework 4.8)를 선택형 PoC로 비교한다.** 두 방식 모두 관리형 UI Automation(UIA)을 호출하므로 같은 앱과 같은 조작으로 측정할 수 있다. C# 워커는 기존 프로세스 격리와 Java 정책을 유지하면서 PowerShell 엔진의 영향을 분리해 시험할 수 있다. Windows 실기기에서 세 방식의 지연, 메모리 및 장시간 안정성을 비교한 수치는 아직 없다. JNA 직접 연동도 선택형 Java 어댑터로 구현했다. [현재 PoC와 검증 범위](JNA.md)
+**PowerShell 5.1 워커를 기본값으로 유지한다.** C# Worker(.NET Framework 4.8)와 Java/JNA는 선택할 수 있다. Windows 11의 실제 WPF 시험에서 세 방식 모두 요소 조회와 동작을 통과했다. 동일한 19개 요소의 단기 비교에서 JNA의 지속 세션 스냅샷 중앙값은 49.7 ms, C#은 56.9 ms, PowerShell은 89.0 ms였다. 장시간 안정성, 실제 설비 공급자, x86 JVM은 추가 검증 대상이다. [시험 결과 및 원본](TEST-RESULTS.md) · [JNA 검증 범위](JNA.md)
 
 비교할 기능은 창 목록, 범위가 제한된 Control View 트리, 스냅샷 내 요소 검색, 현재 속성 조회, InvokePattern.Invoke와 쓰기 가능한 ValuePattern.SetValue다. Java가 명령 계약, 검색, 허용 정책과 참조 수명을 담당한다. 검색에는 이미 받은 스냅샷을 사용하므로 검색 시간과 OS 트리 조회 시간을 분리해 측정해야 한다. 실제 제어 범위는 앱이 공개하는 패턴에 달려 있다. [현재 API](API.md) · [Microsoft 관리형 UIA 모델](https://learn.microsoft.com/en-us/dotnet/framework/ui-automation/ui-automation-overview)
 
@@ -35,25 +35,26 @@ JNA는 내부적으로 JNI 디스패치 라이브러리를 이용한다. managed
 
 ## 실측 계획과 기본 백엔드 변경 조건
 
-다음 수치와 횟수는 **시험안**이다. 실측값과 제품 SLA는 아직 없다.
+위의 단기 실측에 이어 다음 조건을 검증한다. 반복 횟수는 추가 시험안이며 제품 SLA는 아직 정하지 않았다.
 
 1. 같은 Windows VM 이미지, 전원 설정, JDK·CLR, 앱 버전 및 권한에서 동일한 WPF 시험 창으로 시작한다. 실제 도입 대상 Win32 앱도 별도로 기록한다. 각 셀에서 트리 깊이·노드 한도와 노출 패턴을 고정하고, 결과 노드 수·잘림 여부와 액션 후 실제 상태를 비교한다. 결과가 다른 셀의 지연 차이는 성능 우위로 해석할 수 없다.
 2. 새 Java 프로세스 시작부터 첫 성공 스냅샷까지 30회 기록한다. 기존 세션에서는 예열 후 탐색·현재 정보·invoke·setValue를 종류별 100회 이상 기록한다. 동일 액션으로 되돌릴 수 있는 시험 앱을 쓰고 각 회차 결과를 관찰한다. 백엔드 실행 순서를 번갈아 배치하고 p50·p95, 실패율과 표본 수를 함께 제시한다.
 3. JVM과 워커의 private bytes, working set, CPU 시간, 핸들 수, 스레드 수, 응답 바이트 및 완료한 노드 수를 동일 시점에 기록한다. 유휴, 첫 조회 후, 반복 조회 중, 참조 폐기 후의 추세를 비교한다. working set 합계에는 프로세스 간 공유 페이지가 중복될 수 있다. JVM 힙과 CLR 힙은 원인 분석용으로 따로 기록한다.
 4. 대표 앱에서 예를 들어 8시간 연속 실행하며 스냅샷 교체, 창 닫기·재생성, 참조 만료를 반복한다. 읽기·변경 요청 도중 워커 종료, 공급자 무응답, 재시작 후 오래된 참조를 시험한다. 응답이 유실된 변경은 실행 결과 미상으로 남기고 자동 재전송하지 않는다. 오류 발생 시간과 복구 시간, 고아 워커 및 누적 핸들 증가를 기록한다.
-5. 기본값 변경은 대상 OS·비트 수별 실기기 계약 시험, 정책·민감정보 처리의 동등성, 입력 후 관찰 결과, 워커 장애 복구, 장기 자원 추세와 설치·업데이트·이전 버전 복귀 검증을 통과한 뒤 결정한다. 결과표에는 원자료·환경·측정 절차를 남긴다. 유의미한 개선과 유지보수 비용을 확인하기 전에는 선택형 C# PoC를 기본 경로로 승격할 근거가 없다. JNA 경로도 같은 실기기 시험을 통과한 뒤 수치를 비교한다.
+5. 기본값 변경은 대상 OS·비트 수별 실기기 계약 시험, 정책·민감정보 처리의 동등성, 입력 후 관찰 결과, 워커 장애 복구, 장기 자원 추세와 설치·업데이트·이전 버전 복귀 검증을 통과한 뒤 결정한다. PowerShell과 C#은 현재 회귀 기준 및 프로세스 격리 경로로 유지한다.
 
-### 두 워커의 반복 측정
+### Windows 반복 측정
 
-로그인하고 잠금을 해제한 Windows 데스크톱에서 빌드한 JAR와 C# 워커를 사용한다. 스크립트는 WPF 시험 창 하나를 열고 두 백엔드의 순서를 무작위로 정한다. 첫 예시는 백엔드마다 새 프로세스의 첫 응답을 측정하고, 이어서 한 세션에서 예열 후 100회 반복한다.
+로그인하고 잠금을 해제한 Windows 데스크톱에서 빌드한 JAR와 C# 워커를 사용한다. `-IncludeJna`는 제목 표시줄을 제외한 WPF 창에서 세 백엔드의 콘텐츠 트리와 실제 앱 상태를 대조한다. `-DecoratedWindow`는 일반 창의 트리를 기록하며 세 백엔드의 구조가 다르면 동등 조건 비교를 실패로 표시한다. 일반 창의 기능 비교는 별도의 GUI 통합 테스트가 담당한다.
 
 ```powershell
-.\tools\Compare-UiaWorkers.ps1 -CSharpWorker .\workers\csharp\bin\Release\UiaWorker.exe -ColdRuns 30 -Iterations 100 |
-    Out-File -Encoding utf8 .\windows-uia-samples.json
+.\tools\Compare-UiaWorkers.ps1 -CSharpWorker .\workers\csharp\bin\Release\UiaWorker.exe -IncludeJna `
+    -ColdRuns 30 -Iterations 100 -OutputPath .\target\windows-uia-samples.json
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(8)) -OutputPath .\target\windows-uia-jna-soak.json
 ```
 
 - **새 프로세스**. 별도의 탐색 세션이 시험 창의 HWND를 찾는다. 측정 세션은 매번 새 JVM과 워커를 띄우고 `getCapabilities` 또는 `snapshot` 하나만 호출한 뒤 종료한다. `cold[].launchMs`는 JVM 실행 호출의 소요 시간, `requestMs`는 명령을 쓰기 시작해 응답 줄을 받을 때까지의 시간, `startToReplyMs`는 JVM을 시작하기 직전부터 첫 응답 해석이 끝날 때까지의 시간이다. 매 실행 사이 운영체제 캐시는 유지된다.
 - **반복 세션**. 스냅샷이 잘리지 않았는지, 노드 수와 두 대상 컨트롤의 프로세스가 같은지 검사한다. 매회 편집 필드와 버튼을 찾고 현재 필드 정보를 조회한 뒤 값을 쓰고 버튼을 호출한다. 지연 측정 뒤 시험 앱이 기록한 문자열과 실제 카운터 증가를 확인한다. `sessions[].latencyMs`는 예열 1회를 제외한 각 연산의 평균, 최대, p50, p95를 밀리초로 나타낸다. 분위수는 정렬한 전체 반복 표본에서 해당 백분위 순위의 값을 택한다.
 - **자원과 장애**. 각 세션의 예열 직후와 반복 중에 JVM·워커의 누적 CPU 시간, private bytes, working set, 핸들·스레드 수, PID와 시작 시각을 기록한다. `samples`에는 첫 회, 마지막 회와 최대 32개 간격 표본의 원시 지연과 자원 관측값이 들어간다. 같은 프로세스의 두 표본 간 `cpuMs` 차이가 해당 구간의 CPU 사용 시간이다. 워커 식별에 실패한 표본은 `available=false`다. PID 또는 시작 시각이 바뀌면 해당 백엔드의 실행을 중단한다. 실패한 보고서는 `passed=false`, `stage`, 완료한 반복 횟수와 수집한 표본을 제공한다.
 
-더 긴 시험은 `-Sessions 5 -Iterations 1500`처럼 세션 수와 반복 수를 함께 지정한다. 세션마다 JVM·워커를 새로 시작하며 반복 한도 2,000회에 예열을 포함해도 세션당 변경 명령 4,096개 한도 안에 있다. 각 세션 안의 자원 추세와 새 세션의 기준값을 따로 비교한다. Windows 실측 결과는 이 저장소에 포함되어 있지 않다.
+비교 도구는 `-Sessions 5 -Iterations 1500`처럼 세션 수와 반복 수를 지정할 수 있다. 비교 세션마다 JVM과 해당 워커를 새로 시작한다. JNA 장시간 시험은 별도로 실패율과 p95·p99 지연, JVM 힙·Native Memory Tracking 및 Windows 프로세스 자원을 기록한다. HotSpot Native Memory Tracking은 JVM이 추적하는 할당만 보여 주므로 COM 누수 여부는 프로세스 자원 추세 및 참조 회귀 시험과 함께 판단한다.

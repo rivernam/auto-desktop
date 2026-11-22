@@ -1,4 +1,8 @@
-param([Parameter(Mandatory)][string]$StateDirectory, [Parameter(Mandatory)][string]$WindowTitle)
+param(
+    [Parameter(Mandatory)][string]$StateDirectory,
+    [Parameter(Mandatory)][string]$WindowTitle,
+    [switch]$Borderless
+)
 $ErrorActionPreference = 'Stop'
 
 Add-Type -AssemblyName PresentationFramework
@@ -20,11 +24,20 @@ public static class FixtureCursor {
 '@
 
 function Write-State([string]$FileName, [string]$Value) {
-    [IO.File]::WriteAllText((Join-Path $StateDirectory $FileName), $Value)
+    $path = Join-Path $StateDirectory $FileName
+    $pending = "$path.pending"
+    [IO.File]::WriteAllText($pending, $Value)
+    if ([IO.File]::Exists($path)) {
+        # Replace the directory entry so an existing reader sees the previous complete value.
+        [IO.File]::Replace($pending, $path, [NullString]::Value)
+    } else {
+        [IO.File]::Move($pending, $path)
+    }
 }
 
 $window = New-Object Windows.Window
 $window.Title = $WindowTitle
+if ($Borderless) { $window.WindowStyle = [Windows.WindowStyle]::None }
 $window.Width = 350
 $window.SizeToContent = [Windows.SizeToContent]::Height
 $panel = New-Object Windows.Controls.StackPanel
@@ -96,6 +109,11 @@ $readOnlyEdit.Text = 'fixed fixture value'
 $timer = New-Object Windows.Threading.DispatcherTimer
 $timer.Interval = [TimeSpan]::FromMilliseconds(25)
 $timer.Add_Tick({
+    if ([IO.File]::Exists((Join-Path $StateDirectory 'close-fixture'))) {
+        $timer.Stop()
+        $window.Close()
+        return
+    }
 
     $replace = Join-Path $StateDirectory 'replace-control'
     if ([IO.File]::Exists($replace)) {

@@ -143,6 +143,96 @@ class JnaDesktopAdapterTest {
         }
     }
 
+    @Test void interruptingQueuedCallerDoesNotRetireRunningApartment() throws Exception {
+        var entered = new CountDownLatch(1);
+        var unblock = new CountDownLatch(1);
+        var state = new AtomicReference<Session>();
+        var firstResult = new AtomicReference<JsonNode>();
+        var queuedResult = new AtomicReference<String>();
+        try (var adapter = new JnaDesktopAdapter(() -> {
+            Session created = new Session();
+            created.duringMutation = () -> { entered.countDown(); await(unblock); };
+            state.set(created);
+            return created;
+        }, Duration.ofSeconds(5))) {
+            Thread running = new Thread(() -> firstResult.set(adapter.perform(DesktopAction.INVOKE, "k", 7, null)));
+            Thread queued = new Thread(() -> {
+                try { adapter.perform(DesktopAction.INVOKE, "k", 7, null); }
+                catch (AgentException e) { queuedResult.set(e.code() + "/" + Thread.currentThread().isInterrupted()); }
+            });
+            try {
+                running.start();
+                await(entered);
+                queued.start();
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                while (queued.getState() != Thread.State.TIMED_WAITING && System.nanoTime() < deadline) {
+                    Thread.sleep(1);
+                }
+                assertEquals(Thread.State.TIMED_WAITING, queued.getState());
+                queued.interrupt();
+                queued.join(2000);
+                assertEquals("BACKEND_UNAVAILABLE/true", queuedResult.get());
+            } finally {
+                unblock.countDown();
+                running.join(2000);
+            }
+            assertNotNull(firstResult.get());
+            assertTrue(adapter.capabilities().path("available").asBoolean());
+            assertEquals(1, state.get().mutations.get());
+        }
+    }
+
+    @Test void nativeCallSurvivesCallerTimeoutButSessionNeverDispatchesAgain() {
+        var entered = new CountDownLatch(1);
+        var unblock = new CountDownLatch(1);
+        var state = new AtomicReference<Session>();
+        try (var adapter = new JnaDesktopAdapter(() -> {
+            Session created = new Session();
+            created.duringMutation = () -> { entered.countDown(); await(unblock); };
+            state.set(created);
+            return created;
+        }, Duration.ofMillis(500))) {
+            try {
+                assertEquals("ACTION_OUTCOME_UNKNOWN", assertThrows(AgentException.class,
+                        () -> adapter.perform(DesktopAction.INVOKE, "k", 7, null)).code());
+                assertEquals(0, entered.getCount());
+                assertEquals(1, state.get().closed.getCount());
+                assertFalse(adapter.capabilities().path("available").asBoolean());
+                assertEquals(1, state.get().mutations.get());
+            } finally { unblock.countDown(); }
+            await(state.get().closed);
+            assertEquals(1, state.get().threads.size());
+        }
+    }
+
+    @Test void closeAllowsTimeForRetiredApartmentToReleaseReferences() throws Exception {
+        var unblock = new CountDownLatch(1);
+        var state = new AtomicReference<Session>();
+        try (var adapter = new JnaDesktopAdapter(() -> {
+            Session created = new Session();
+            created.duringMutation = () -> await(unblock);
+            state.set(created);
+            return created;
+        }, Duration.ofMillis(800))) {
+            Thread close = new Thread(adapter::close);
+            try {
+                assertEquals("ACTION_OUTCOME_UNKNOWN", assertThrows(AgentException.class,
+                        () -> adapter.perform(DesktopAction.INVOKE, "k", 7, null)).code());
+                close.start();
+                long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(500);
+                while (close.isAlive() && close.getState() != Thread.State.TIMED_WAITING && System.nanoTime() < deadline) {
+                    Thread.sleep(1);
+                }
+                assertEquals(Thread.State.TIMED_WAITING, close.getState(), "EOF should allow the MTA to clean up.");
+            } finally {
+                unblock.countDown();
+                close.join(2000);
+            }
+            assertEquals(0, state.get().closed.getCount());
+            assertEquals(1, state.get().threads.size());
+        }
+    }
+
     @Test void nativeLoadFailureProducesUnavailableCapabilities() {
         try (var adapter = new JnaDesktopAdapter(() -> { throw new UnsatisfiedLinkError(); }, Duration.ofSeconds(2))) {
             assertFalse(adapter.capabilities().path("available").asBoolean());

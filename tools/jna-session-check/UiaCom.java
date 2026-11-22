@@ -6,7 +6,9 @@ import java.util.List;
 /** Test overlay for the native boundary. Never add to the application classpath. */
 final class UiaCom implements AutoCloseable {
     static final class ComFailure extends RuntimeException {
-        final int hresult = 0x80004005;
+        final int hresult;
+        ComFailure() { this(0x80004005); }
+        ComFailure(int hresult) { this.hresult = hresult; }
     }
 
     static final class Node {
@@ -15,9 +17,10 @@ final class UiaCom implements AutoCloseable {
         final int id, type;
         String name;
         long hwnd;
-        boolean password, writable, button, offscreen, failAfterInvoke;
-        int invoked;
+        boolean password, writable, button, offscreen, failAfterInvoke, failRuntimeId;
+        int invoked, runtimeError, invokeError;
         String value;
+        Runnable beforeInvokePattern = () -> {};
         Node(int id, int type, String name) { this.id = id; this.type = type; this.name = name; }
         Node add(Node child) { child.parent = this; children.add(child); return child; }
     }
@@ -38,6 +41,7 @@ final class UiaCom implements AutoCloseable {
     }
 
     static int references;
+    static Runnable onClose = () -> {};
     static final Node desktop = new Node(1, 50033, "Desktop");
     static Node window;
     static UiaCom open() { return new UiaCom(); }
@@ -54,10 +58,18 @@ final class UiaCom implements AutoCloseable {
         return i == children.size() ? null : new Ref(children.get(i));
     }
     Ref parent(Ref node) { return node.get().parent == null ? null : new Ref(node.node.parent); }
-    Ref invokePattern(Ref node) { return node.get().button ? new Ref(node.node) : null; }
+    Ref invokePattern(Ref node) {
+        node.get().beforeInvokePattern.run();
+        return node.node.button ? new Ref(node.node) : null;
+    }
     Ref valuePattern(Ref node) { return node.get().writable ? new Ref(node.node) : null; }
     boolean same(Ref a, Ref b) { return a.get() == b.get(); }
-    int[] runtimeId(Ref node) { return new int[] { 7, node.get().id }; }
+    int[] runtimeId(Ref node) {
+        Node current = node.get();
+        if (current.failRuntimeId) throw new ComFailure();
+        if (current.runtimeError != 0) throw new ComFailure(current.runtimeError);
+        return new int[] { 7, current.id };
+    }
     int pid(Ref node) { node.get(); return 42; }
     int controlType(Ref node) { return node.get().type; }
     long hwnd(Ref node) { return node.get().hwnd; }
@@ -72,12 +84,18 @@ final class UiaCom implements AutoCloseable {
     boolean password(Ref node) { return node.get().password; }
     boolean readOnly(Ref pattern) { return !pattern.get().writable; }
     int[] bounds(Ref node) { node.get(); return new int[] { 0, 0, 40, 20 }; }
-    void invoke(Ref pattern) {
+    void invoke(Ref pattern, Runnable beforeMutation) {
+        beforeMutation.run();
         pattern.get().invoked++;
         if (pattern.node.failAfterInvoke) throw new ComFailure();
+        if (pattern.node.invokeError != 0) throw new ComFailure(pattern.node.invokeError);
     }
-    void setValue(Ref pattern, String value) { pattern.get().value = value; }
+    void setValue(Ref pattern, String value, Runnable beforeMutation) {
+        beforeMutation.run();
+        pattern.get().value = value;
+    }
     public void close() {
         if (references != 0) throw new AssertionError("Leaked " + references + " reference(s).");
+        onClose.run();
     }
 }
