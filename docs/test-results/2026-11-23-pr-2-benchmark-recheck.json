@@ -1,0 +1,3573 @@
+{
+  "utc": "2026-11-22T21:42:10.4117533Z",
+  "environment": {
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "is64BitOS": true,
+    "interactive": true,
+    "powerShell": "7.6.9",
+    "processorCount": 20,
+    "java": "openjdk version \"21.0.11\" 2026-04-21 LTS\r\nOpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS)\r\nOpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)",
+    "jarSha256": "C0911F1FD69312FBB2E6D7D0C10832249423F8059C7F660CD17B82FF51746B35",
+    "fixtureSha256": "8B448007A24D4E198B7AF64DD3EB929BE2967DCE0D3E68A26F928E2149850D36",
+    "csharpWorkerSha256": "7F9809A37C12943FA2B010358B55DB48EA26913B3F9E11A2B3065626781097BC"
+  },
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "passed": true,
+  "stage": "complete",
+  "iterationsPerSession": 10,
+  "sessionsPerBackend": 2,
+  "coldRunsPerOperation": 2,
+  "warmupIterationsPerSession": 1,
+  "fixtureBorderless": true,
+  "results": [
+    {
+      "backend": "JNA",
+      "status": "passed",
+      "stage": "complete",
+      "elementsPerSnapshot": 19,
+      "cold": [
+        {
+          "round": 1,
+          "op": "getCapabilities",
+          "launchMs": 5.0734,
+          "requestMs": 428.6796,
+          "startToReplyMs": 434.8362,
+          "resources": {
+            "utc": "2026-11-22T21:42:13.1429007Z",
+            "java": {
+              "available": true,
+              "pid": 13640,
+              "startUtc": "2026-11-22T21:42:12.6891364Z",
+              "cpuMs": 968.75,
+              "privateBytes": 673132544,
+              "workingSetBytes": 101560320,
+              "handles": 542,
+              "threads": 43
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 968.75,
+              "privateBytes": 673132544,
+              "workingSetBytes": 101560320,
+              "handles": 542,
+              "threads": 43
+            }
+          }
+        },
+        {
+          "round": 1,
+          "op": "snapshot",
+          "launchMs": 4.7539,
+          "requestMs": 478.9172,
+          "startToReplyMs": 507.9186,
+          "resources": {
+            "utc": "2026-11-22T21:42:13.8862323Z",
+            "java": {
+              "available": true,
+              "pid": 35272,
+              "startUtc": "2026-11-22T21:42:13.3703105Z",
+              "cpuMs": 812.5,
+              "privateBytes": 675295232,
+              "workingSetBytes": 105103360,
+              "handles": 547,
+              "threads": 44
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 812.5,
+              "privateBytes": 675295232,
+              "workingSetBytes": 105103360,
+              "handles": 547,
+              "threads": 44
+            }
+          }
+        },
+        {
+          "round": 2,
+          "op": "getCapabilities",
+          "launchMs": 4.6566,
+          "requestMs": 416.1284,
+          "startToReplyMs": 421.2756,
+          "resources": {
+            "utc": "2026-11-22T21:42:14.5612040Z",
+            "java": {
+              "available": true,
+              "pid": 21604,
+              "startUtc": "2026-11-22T21:42:14.1375636Z",
+              "cpuMs": 750.0,
+              "privateBytes": 674193408,
+              "workingSetBytes": 103247872,
+              "handles": 542,
+              "threads": 43
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 750.0,
+              "privateBytes": 674193408,
+              "workingSetBytes": 103247872,
+              "handles": 542,
+              "threads": 43
+            }
+          }
+        },
+        {
+          "round": 2,
+          "op": "snapshot",
+          "launchMs": 4.5011,
+          "requestMs": 521.1832,
+          "startToReplyMs": 526.7285,
+          "resources": {
+            "utc": "2026-11-22T21:42:15.3547345Z",
+            "java": {
+              "available": true,
+              "pid": 19304,
+              "startUtc": "2026-11-22T21:42:14.8243687Z",
+              "cpuMs": 921.875,
+              "privateBytes": 676319232,
+              "workingSetBytes": 106356736,
+              "handles": 547,
+              "threads": 44
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 921.875,
+              "privateBytes": 676319232,
+              "workingSetBytes": 106356736,
+              "handles": 547,
+              "threads": 44
+            }
+          }
+        }
+      ],
+      "sessions": [
+        {
+          "session": 1,
+          "completedIterations": 10,
+          "elapsedMs": 1420.8339,
+          "baseline": {
+            "utc": "2026-11-22T21:42:16.3114321Z",
+            "java": {
+              "available": true,
+              "pid": 30708,
+              "startUtc": "2026-11-22T21:42:15.6040876Z",
+              "cpuMs": 1000.0,
+              "privateBytes": 675229696,
+              "workingSetBytes": 107536384,
+              "handles": 557,
+              "threads": 42
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 1000.0,
+              "privateBytes": 675229696,
+              "workingSetBytes": 107536384,
+              "handles": 557,
+              "threads": 42
+            }
+          },
+          "samples": [
+            {
+              "iteration": 1,
+              "elapsedMs": 131.2195,
+              "latencyMs": {
+                "snapshot": 56.0807,
+                "findEdit": 0.5529,
+                "findButton": 0.5178,
+                "elementInfo": 5.0665,
+                "setValue": 18.8764,
+                "invoke": 15.0231
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:16.4475641Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1109.375,
+                  "privateBytes": 675426304,
+                  "workingSetBytes": 108195840,
+                  "handles": 557,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1109.375,
+                  "privateBytes": 675426304,
+                  "workingSetBytes": 108195840,
+                  "handles": 557,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 2,
+              "elapsedMs": 280.8343,
+              "latencyMs": {
+                "snapshot": 66.2315,
+                "findEdit": 0.6079,
+                "findButton": 0.5319,
+                "elementInfo": 5.0171,
+                "setValue": 18.2239,
+                "invoke": 20.4356
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:16.5965021Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1171.875,
+                  "privateBytes": 675561472,
+                  "workingSetBytes": 108445696,
+                  "handles": 557,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1171.875,
+                  "privateBytes": 675561472,
+                  "workingSetBytes": 108445696,
+                  "handles": 557,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 3,
+              "elapsedMs": 415.6371,
+              "latencyMs": {
+                "snapshot": 51.9992,
+                "findEdit": 0.6962,
+                "findButton": 0.515,
+                "elementInfo": 4.6819,
+                "setValue": 18.6772,
+                "invoke": 19.885
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:16.7311903Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1296.875,
+                  "privateBytes": 676204544,
+                  "workingSetBytes": 108449792,
+                  "handles": 558,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1296.875,
+                  "privateBytes": 676204544,
+                  "workingSetBytes": 108449792,
+                  "handles": 558,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 4,
+              "elapsedMs": 595.6329,
+              "latencyMs": {
+                "snapshot": 60.0772,
+                "findEdit": 0.6273,
+                "findButton": 0.388,
+                "elementInfo": 7.4556,
+                "setValue": 22.3284,
+                "invoke": 13.4801
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:16.9102090Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1328.125,
+                  "privateBytes": 676294656,
+                  "workingSetBytes": 109248512,
+                  "handles": 558,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1328.125,
+                  "privateBytes": 676294656,
+                  "workingSetBytes": 109248512,
+                  "handles": 558,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 5,
+              "elapsedMs": 749.3202,
+              "latencyMs": {
+                "snapshot": 49.7967,
+                "findEdit": 0.5698,
+                "findButton": 0.4694,
+                "elementInfo": 5.7069,
+                "setValue": 17.4329,
+                "invoke": 25.9031
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:17.0647666Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1359.375,
+                  "privateBytes": 676425728,
+                  "workingSetBytes": 109400064,
+                  "handles": 558,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1359.375,
+                  "privateBytes": 676425728,
+                  "workingSetBytes": 109400064,
+                  "handles": 558,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 6,
+              "elapsedMs": 880.6759,
+              "latencyMs": {
+                "snapshot": 56.5423,
+                "findEdit": 0.561,
+                "findButton": 0.5186,
+                "elementInfo": 4.4559,
+                "setValue": 18.3585,
+                "invoke": 9.1926
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:17.1961377Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1359.375,
+                  "privateBytes": 676757504,
+                  "workingSetBytes": 109748224,
+                  "handles": 558,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1359.375,
+                  "privateBytes": 676757504,
+                  "workingSetBytes": 109748224,
+                  "handles": 558,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 7,
+              "elapsedMs": 1015.6522,
+              "latencyMs": {
+                "snapshot": 47.7124,
+                "findEdit": 0.5695,
+                "findButton": 0.2951,
+                "elementInfo": 4.2751,
+                "setValue": 17.5937,
+                "invoke": 26.1166
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:17.3302466Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1390.625,
+                  "privateBytes": 676823040,
+                  "workingSetBytes": 109764608,
+                  "handles": 558,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1390.625,
+                  "privateBytes": 676823040,
+                  "workingSetBytes": 109764608,
+                  "handles": 558,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 8,
+              "elapsedMs": 1150.8584,
+              "latencyMs": {
+                "snapshot": 47.149,
+                "findEdit": 0.4586,
+                "findButton": 0.3698,
+                "elementInfo": 4.7272,
+                "setValue": 17.8715,
+                "invoke": 25.9433
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:17.4660129Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1453.125,
+                  "privateBytes": 676962304,
+                  "workingSetBytes": 109969408,
+                  "handles": 558,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1453.125,
+                  "privateBytes": 676962304,
+                  "workingSetBytes": 109969408,
+                  "handles": 558,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 9,
+              "elapsedMs": 1285.5348,
+              "latencyMs": {
+                "snapshot": 48.1186,
+                "findEdit": 0.5449,
+                "findButton": 0.347,
+                "elementInfo": 4.183,
+                "setValue": 21.1682,
+                "invoke": 19.9536
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:17.6000936Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1468.75,
+                  "privateBytes": 677670912,
+                  "workingSetBytes": 110346240,
+                  "handles": 558,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1468.75,
+                  "privateBytes": 677670912,
+                  "workingSetBytes": 110346240,
+                  "handles": 558,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 10,
+              "elapsedMs": 1420.8339,
+              "latencyMs": {
+                "snapshot": 50.0802,
+                "findEdit": 0.5052,
+                "findButton": 0.3934,
+                "elementInfo": 4.2592,
+                "setValue": 17.7426,
+                "invoke": 20.4867
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:17.7357856Z",
+                "java": {
+                  "available": true,
+                  "pid": 30708,
+                  "startUtc": "2026-11-22T21:42:15.6040876Z",
+                  "cpuMs": 1515.625,
+                  "privateBytes": 677736448,
+                  "workingSetBytes": 110419968,
+                  "handles": 558,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1515.625,
+                  "privateBytes": 677736448,
+                  "workingSetBytes": 110419968,
+                  "handles": 558,
+                  "threads": 42
+                }
+              }
+            }
+          ],
+          "workerIdentity": "in-process",
+          "latencyMs": {
+            "snapshot": {
+              "count": 10,
+              "mean": 53.37877999999999,
+              "max": 66.2315,
+              "p50": 50.0802,
+              "p95": 66.2315,
+              "p99": 66.2315
+            },
+            "findEdit": {
+              "count": 10,
+              "mean": 0.5693300000000001,
+              "max": 0.6962,
+              "p50": 0.561,
+              "p95": 0.6962,
+              "p99": 0.6962
+            },
+            "findButton": {
+              "count": 10,
+              "mean": 0.4346,
+              "max": 0.5319,
+              "p50": 0.3934,
+              "p95": 0.5319,
+              "p99": 0.5319
+            },
+            "elementInfo": {
+              "count": 10,
+              "mean": 4.9828399999999995,
+              "max": 7.4556,
+              "p50": 4.6819,
+              "p95": 7.4556,
+              "p99": 7.4556
+            },
+            "setValue": {
+              "count": 10,
+              "mean": 18.827329999999996,
+              "max": 22.3284,
+              "p50": 18.2239,
+              "p95": 22.3284,
+              "p99": 22.3284
+            },
+            "invoke": {
+              "count": 10,
+              "mean": 19.64197,
+              "max": 26.1166,
+              "p50": 19.9536,
+              "p95": 26.1166,
+              "p99": 26.1166
+            }
+          }
+        },
+        {
+          "session": 2,
+          "completedIterations": 10,
+          "elapsedMs": 1348.6115,
+          "baseline": {
+            "utc": "2026-11-22T21:42:18.7115357Z",
+            "java": {
+              "available": true,
+              "pid": 35804,
+              "startUtc": "2026-11-22T21:42:17.9853084Z",
+              "cpuMs": 1000.0,
+              "privateBytes": 675467264,
+              "workingSetBytes": 107626496,
+              "handles": 556,
+              "threads": 43
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 1000.0,
+              "privateBytes": 675467264,
+              "workingSetBytes": 107626496,
+              "handles": 556,
+              "threads": 43
+            }
+          },
+          "samples": [
+            {
+              "iteration": 1,
+              "elapsedMs": 132.1261,
+              "latencyMs": {
+                "snapshot": 53.2215,
+                "findEdit": 0.4522,
+                "findButton": 0.5084,
+                "elementInfo": 5.1164,
+                "setValue": 18.1313,
+                "invoke": 21.8914
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:18.8474226Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1015.625,
+                  "privateBytes": 675667968,
+                  "workingSetBytes": 107806720,
+                  "handles": 556,
+                  "threads": 43
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1015.625,
+                  "privateBytes": 675667968,
+                  "workingSetBytes": 107806720,
+                  "handles": 556,
+                  "threads": 43
+                }
+              }
+            },
+            {
+              "iteration": 2,
+              "elapsedMs": 268.1726,
+              "latencyMs": {
+                "snapshot": 49.9458,
+                "findEdit": 0.4722,
+                "findButton": 0.4613,
+                "elementInfo": 5.1052,
+                "setValue": 18.4579,
+                "invoke": 22.2
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:18.9823763Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1015.625,
+                  "privateBytes": 675741696,
+                  "workingSetBytes": 107995136,
+                  "handles": 554,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1015.625,
+                  "privateBytes": 675741696,
+                  "workingSetBytes": 107995136,
+                  "handles": 554,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 3,
+              "elapsedMs": 418.2827,
+              "latencyMs": {
+                "snapshot": 61.4193,
+                "findEdit": 0.8,
+                "findButton": 0.4847,
+                "elementInfo": 4.8457,
+                "setValue": 19.1271,
+                "invoke": 22.9674
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:19.1327757Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1078.125,
+                  "privateBytes": 675827712,
+                  "workingSetBytes": 108032000,
+                  "handles": 555,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1078.125,
+                  "privateBytes": 675827712,
+                  "workingSetBytes": 108032000,
+                  "handles": 555,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 4,
+              "elapsedMs": 553.148,
+              "latencyMs": {
+                "snapshot": 48.1005,
+                "findEdit": 0.569,
+                "findButton": 0.3636,
+                "elementInfo": 4.8042,
+                "setValue": 18.5321,
+                "invoke": 21.9517
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:19.2678250Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1125.0,
+                  "privateBytes": 676282368,
+                  "workingSetBytes": 108974080,
+                  "handles": 555,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1125.0,
+                  "privateBytes": 676282368,
+                  "workingSetBytes": 108974080,
+                  "handles": 555,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 5,
+              "elapsedMs": 688.2281,
+              "latencyMs": {
+                "snapshot": 46.6596,
+                "findEdit": 0.5215,
+                "findButton": 0.3763,
+                "elementInfo": 4.7417,
+                "setValue": 19.3384,
+                "invoke": 20.4218
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:19.4026638Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1125.0,
+                  "privateBytes": 676413440,
+                  "workingSetBytes": 109137920,
+                  "handles": 555,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1125.0,
+                  "privateBytes": 676413440,
+                  "workingSetBytes": 109137920,
+                  "handles": 555,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 6,
+              "elapsedMs": 823.5252,
+              "latencyMs": {
+                "snapshot": 50.5944,
+                "findEdit": 0.5194,
+                "findButton": 0.5411,
+                "elementInfo": 4.4274,
+                "setValue": 17.5368,
+                "invoke": 17.9246
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:19.5386524Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1140.625,
+                  "privateBytes": 676749312,
+                  "workingSetBytes": 109920256,
+                  "handles": 555,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1140.625,
+                  "privateBytes": 676749312,
+                  "workingSetBytes": 109920256,
+                  "handles": 555,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 7,
+              "elapsedMs": 943.5351,
+              "latencyMs": {
+                "snapshot": 47.1383,
+                "findEdit": 0.505,
+                "findButton": 0.2455,
+                "elementInfo": 4.211,
+                "setValue": 17.0034,
+                "invoke": 10.3553
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:19.6580742Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1203.125,
+                  "privateBytes": 676880384,
+                  "workingSetBytes": 110047232,
+                  "handles": 555,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1203.125,
+                  "privateBytes": 676880384,
+                  "workingSetBytes": 110047232,
+                  "handles": 555,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 8,
+              "elapsedMs": 1078.528,
+              "latencyMs": {
+                "snapshot": 47.5306,
+                "findEdit": 0.4182,
+                "findButton": 0.3137,
+                "elementInfo": 4.3313,
+                "setValue": 16.8588,
+                "invoke": 16.3521
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:19.7928274Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1234.375,
+                  "privateBytes": 676945920,
+                  "workingSetBytes": 110112768,
+                  "handles": 555,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1234.375,
+                  "privateBytes": 676945920,
+                  "workingSetBytes": 110112768,
+                  "handles": 555,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 9,
+              "elapsedMs": 1198.5709,
+              "latencyMs": {
+                "snapshot": 47.2276,
+                "findEdit": 0.5883,
+                "findButton": 0.3724,
+                "elementInfo": 4.6777,
+                "setValue": 17.8096,
+                "invoke": 9.3989
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:19.9139890Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1265.625,
+                  "privateBytes": 676945920,
+                  "workingSetBytes": 110481408,
+                  "handles": 555,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1265.625,
+                  "privateBytes": 676945920,
+                  "workingSetBytes": 110481408,
+                  "handles": 555,
+                  "threads": 42
+                }
+              }
+            },
+            {
+              "iteration": 10,
+              "elapsedMs": 1348.6115,
+              "latencyMs": {
+                "snapshot": 73.9995,
+                "findEdit": 0.6447,
+                "findButton": 0.4217,
+                "elementInfo": 5.6262,
+                "setValue": 18.5787,
+                "invoke": 14.314
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:20.0633055Z",
+                "java": {
+                  "available": true,
+                  "pid": 35804,
+                  "startUtc": "2026-11-22T21:42:17.9853084Z",
+                  "cpuMs": 1296.875,
+                  "privateBytes": 677011456,
+                  "workingSetBytes": 110747648,
+                  "handles": 555,
+                  "threads": 42
+                },
+                "worker": {
+                  "available": false
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1296.875,
+                  "privateBytes": 677011456,
+                  "workingSetBytes": 110747648,
+                  "handles": 555,
+                  "threads": 42
+                }
+              }
+            }
+          ],
+          "workerIdentity": "in-process",
+          "latencyMs": {
+            "snapshot": {
+              "count": 10,
+              "mean": 52.583709999999996,
+              "max": 73.9995,
+              "p50": 48.1005,
+              "p95": 73.9995,
+              "p99": 73.9995
+            },
+            "findEdit": {
+              "count": 10,
+              "mean": 0.54905,
+              "max": 0.8,
+              "p50": 0.5194,
+              "p95": 0.8,
+              "p99": 0.8
+            },
+            "findButton": {
+              "count": 10,
+              "mean": 0.40887,
+              "max": 0.5411,
+              "p50": 0.3763,
+              "p95": 0.5411,
+              "p99": 0.5411
+            },
+            "elementInfo": {
+              "count": 10,
+              "mean": 4.788679999999999,
+              "max": 5.6262,
+              "p50": 4.7417,
+              "p95": 5.6262,
+              "p99": 5.6262
+            },
+            "setValue": {
+              "count": 10,
+              "mean": 18.137410000000003,
+              "max": 19.3384,
+              "p50": 18.1313,
+              "p95": 19.3384,
+              "p99": 19.3384
+            },
+            "invoke": {
+              "count": 10,
+              "mean": 17.77772,
+              "max": 22.9674,
+              "p50": 17.9246,
+              "p95": 22.9674,
+              "p99": 22.9674
+            }
+          }
+        }
+      ],
+      "snapshotShape": [
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]/[\"Text\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]/[\"Text\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureDisabled\",\"Disabled action\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureDisabled\",\"Disabled action\"]/[\"Text\",\"\",\"Disabled action\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureIncrement\",\"Increment fixture counter\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureIncrement\",\"Increment fixture counter\"]/[\"Text\",\"\",\"Increment fixture counter\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"CheckBox\",\"fixtureCheck\",\"Fixture check box\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"CheckBox\",\"fixtureCheck\",\"Fixture check box\"]/[\"Text\",\"\",\"Fixture check box\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"ComboBox\",\"fixtureCombo\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Edit\",\"fixtureEdit\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Edit\",\"fixtureReadOnly\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item one\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item one\"]/[\"Text\",\"\",\"Item one\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item two\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item two\"]/[\"Text\",\"\",\"Item two\"]"
+      ],
+      "coldStartToReplyMs": {
+        "getCapabilities": {
+          "count": 2,
+          "mean": 428.0559,
+          "max": 434.8362,
+          "p50": 421.2756,
+          "p95": 434.8362,
+          "p99": 434.8362
+        },
+        "snapshot": {
+          "count": 2,
+          "mean": 517.3235500000001,
+          "max": 526.7285,
+          "p50": 507.9186,
+          "p95": 526.7285,
+          "p99": 526.7285
+        }
+      }
+    },
+    {
+      "backend": "CSharp",
+      "status": "passed",
+      "stage": "complete",
+      "elementsPerSnapshot": 19,
+      "cold": [
+        {
+          "round": 1,
+          "op": "getCapabilities",
+          "launchMs": 5.4003,
+          "requestMs": 493.483,
+          "startToReplyMs": 499.1107,
+          "resources": {
+            "utc": "2026-11-22T21:42:21.8679484Z",
+            "java": {
+              "available": true,
+              "pid": 15980,
+              "startUtc": "2026-11-22T21:42:21.1893178Z",
+              "cpuMs": 468.75,
+              "privateBytes": 665255936,
+              "workingSetBytes": 77148160,
+              "handles": 410,
+              "threads": 26
+            },
+            "worker": {
+              "available": true,
+              "pid": 35068,
+              "startUtc": "2026-11-22T21:42:21.4610796Z",
+              "cpuMs": 234.375,
+              "privateBytes": 34029568,
+              "workingSetBytes": 42692608,
+              "handles": 409,
+              "threads": 10
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 703.125,
+              "privateBytes": 699285504,
+              "workingSetBytes": 119840768,
+              "handles": 819,
+              "threads": 36
+            }
+          }
+        },
+        {
+          "round": 1,
+          "op": "snapshot",
+          "launchMs": 5.2802,
+          "requestMs": 612.5091,
+          "startToReplyMs": 618.1466,
+          "resources": {
+            "utc": "2026-11-22T21:42:22.7978242Z",
+            "java": {
+              "available": true,
+              "pid": 13832,
+              "startUtc": "2026-11-22T21:42:22.1137313Z",
+              "cpuMs": 578.125,
+              "privateBytes": 666689536,
+              "workingSetBytes": 80035840,
+              "handles": 432,
+              "threads": 26
+            },
+            "worker": {
+              "available": true,
+              "pid": 24920,
+              "startUtc": "2026-11-22T21:42:22.3861364Z",
+              "cpuMs": 296.875,
+              "privateBytes": 34471936,
+              "workingSetBytes": 44519424,
+              "handles": 419,
+              "threads": 11
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 875.0,
+              "privateBytes": 701161472,
+              "workingSetBytes": 124555264,
+              "handles": 851,
+              "threads": 37
+            }
+          }
+        },
+        {
+          "round": 2,
+          "op": "getCapabilities",
+          "launchMs": 4.7879,
+          "requestMs": 495.6447,
+          "startToReplyMs": 500.6935,
+          "resources": {
+            "utc": "2026-11-22T21:42:23.6123453Z",
+            "java": {
+              "available": true,
+              "pid": 23560,
+              "startUtc": "2026-11-22T21:42:23.0256518Z",
+              "cpuMs": 375.0,
+              "privateBytes": 665653248,
+              "workingSetBytes": 77660160,
+              "handles": 410,
+              "threads": 26
+            },
+            "worker": {
+              "available": true,
+              "pid": 30708,
+              "startUtc": "2026-11-22T21:42:23.3008811Z",
+              "cpuMs": 265.625,
+              "privateBytes": 34013184,
+              "workingSetBytes": 42676224,
+              "handles": 409,
+              "threads": 10
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 640.625,
+              "privateBytes": 699666432,
+              "workingSetBytes": 120336384,
+              "handles": 819,
+              "threads": 36
+            }
+          }
+        },
+        {
+          "round": 2,
+          "op": "snapshot",
+          "launchMs": 4.5519,
+          "requestMs": 600.0885,
+          "startToReplyMs": 605.0115,
+          "resources": {
+            "utc": "2026-11-22T21:42:24.5849993Z",
+            "java": {
+              "available": true,
+              "pid": 19636,
+              "startUtc": "2026-11-22T21:42:23.8781421Z",
+              "cpuMs": 687.5,
+              "privateBytes": 667111424,
+              "workingSetBytes": 80412672,
+              "handles": 432,
+              "threads": 26
+            },
+            "worker": {
+              "available": true,
+              "pid": 35564,
+              "startUtc": "2026-11-22T21:42:24.1511671Z",
+              "cpuMs": 250.0,
+              "privateBytes": 34516992,
+              "workingSetBytes": 44560384,
+              "handles": 419,
+              "threads": 11
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 937.5,
+              "privateBytes": 701628416,
+              "workingSetBytes": 124973056,
+              "handles": 851,
+              "threads": 37
+            }
+          }
+        }
+      ],
+      "sessions": [
+        {
+          "session": 1,
+          "completedIterations": 10,
+          "elapsedMs": 2176.2514,
+          "baseline": {
+            "utc": "2026-11-22T21:42:25.6405404Z",
+            "java": {
+              "available": true,
+              "pid": 5324,
+              "startUtc": "2026-11-22T21:42:24.8369100Z",
+              "cpuMs": 562.5,
+              "privateBytes": 666730496,
+              "workingSetBytes": 80474112,
+              "handles": 436,
+              "threads": 27
+            },
+            "worker": {
+              "available": true,
+              "pid": 6264,
+              "startUtc": "2026-11-22T21:42:25.1028682Z",
+              "cpuMs": 296.875,
+              "privateBytes": 35426304,
+              "workingSetBytes": 45842432,
+              "handles": 427,
+              "threads": 11
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 859.375,
+              "privateBytes": 702156800,
+              "workingSetBytes": 126316544,
+              "handles": 863,
+              "threads": 38
+            }
+          },
+          "samples": [
+            {
+              "iteration": 1,
+              "elapsedMs": 166.8218,
+              "latencyMs": {
+                "snapshot": 70.5532,
+                "findEdit": 0.414,
+                "findButton": 0.528,
+                "elementInfo": 7.548,
+                "setValue": 17.6936,
+                "invoke": 23.2117
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:25.8684039Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 609.375,
+                  "privateBytes": 666779648,
+                  "workingSetBytes": 80941056,
+                  "handles": 429,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 328.125,
+                  "privateBytes": 36306944,
+                  "workingSetBytes": 46755840,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 937.5,
+                  "privateBytes": 703086592,
+                  "workingSetBytes": 127696896,
+                  "handles": 856,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 2,
+              "elapsedMs": 376.6357,
+              "latencyMs": {
+                "snapshot": 60.8664,
+                "findEdit": 0.5458,
+                "findButton": 0.4949,
+                "elementInfo": 8.5331,
+                "setValue": 17.4571,
+                "invoke": 19.8527
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:26.0800475Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 640.625,
+                  "privateBytes": 666783744,
+                  "workingSetBytes": 81342464,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 359.375,
+                  "privateBytes": 37273600,
+                  "workingSetBytes": 47677440,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1000.0,
+                  "privateBytes": 704057344,
+                  "workingSetBytes": 129019904,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 3,
+              "elapsedMs": 586.5408,
+              "latencyMs": {
+                "snapshot": 75.3739,
+                "findEdit": 0.5408,
+                "findButton": 0.393,
+                "elementInfo": 8.0242,
+                "setValue": 18.8932,
+                "invoke": 11.1543
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:26.3140779Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 640.625,
+                  "privateBytes": 666783744,
+                  "workingSetBytes": 81629184,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 375.0,
+                  "privateBytes": 38170624,
+                  "workingSetBytes": 48603136,
+                  "handles": 428,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1015.625,
+                  "privateBytes": 704954368,
+                  "workingSetBytes": 130232320,
+                  "handles": 858,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 4,
+              "elapsedMs": 811.4164,
+              "latencyMs": {
+                "snapshot": 51.037,
+                "findEdit": 0.741,
+                "findButton": 0.4419,
+                "elementInfo": 7.5294,
+                "setValue": 17.6837,
+                "invoke": 10.1598
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:26.5537546Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 656.25,
+                  "privateBytes": 666783744,
+                  "workingSetBytes": 81895424,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 375.0,
+                  "privateBytes": 39153664,
+                  "workingSetBytes": 49545216,
+                  "handles": 428,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1031.25,
+                  "privateBytes": 705937408,
+                  "workingSetBytes": 131440640,
+                  "handles": 858,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 5,
+              "elapsedMs": 1051.6407,
+              "latencyMs": {
+                "snapshot": 54.7087,
+                "findEdit": 0.5993,
+                "findButton": 0.4455,
+                "elementInfo": 7.8952,
+                "setValue": 19.651,
+                "invoke": 23.1851
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:26.7608994Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 656.25,
+                  "privateBytes": 666849280,
+                  "workingSetBytes": 82243584,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 390.625,
+                  "privateBytes": 39800832,
+                  "workingSetBytes": 50442240,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1046.875,
+                  "privateBytes": 706650112,
+                  "workingSetBytes": 132685824,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 6,
+              "elapsedMs": 1261.3411,
+              "latencyMs": {
+                "snapshot": 55.4532,
+                "findEdit": 0.8951,
+                "findButton": 0.5791,
+                "elementInfo": 8.9659,
+                "setValue": 18.5777,
+                "invoke": 14.8509
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:27.0016294Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 671.875,
+                  "privateBytes": 666914816,
+                  "workingSetBytes": 82710528,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 437.5,
+                  "privateBytes": 39821312,
+                  "workingSetBytes": 50462720,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1109.375,
+                  "privateBytes": 706736128,
+                  "workingSetBytes": 133173248,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 7,
+              "elapsedMs": 1501.3693,
+              "latencyMs": {
+                "snapshot": 55.616,
+                "findEdit": 0.4078,
+                "findButton": 0.3061,
+                "elementInfo": 7.6279,
+                "setValue": 19.0879,
+                "invoke": 24.9807
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:27.2282788Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 671.875,
+                  "privateBytes": 666914816,
+                  "workingSetBytes": 82980864,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 500.0,
+                  "privateBytes": 39854080,
+                  "workingSetBytes": 50495488,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1171.875,
+                  "privateBytes": 706768896,
+                  "workingSetBytes": 133476352,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 8,
+              "elapsedMs": 1726.5627,
+              "latencyMs": {
+                "snapshot": 56.6059,
+                "findEdit": 0.5319,
+                "findButton": 0.3384,
+                "elementInfo": 7.8785,
+                "setValue": 19.1851,
+                "invoke": 14.4331
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:27.4331914Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 687.5,
+                  "privateBytes": 667049984,
+                  "workingSetBytes": 83677184,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 515.625,
+                  "privateBytes": 39976960,
+                  "workingSetBytes": 50614272,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1203.125,
+                  "privateBytes": 707026944,
+                  "workingSetBytes": 134291456,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 9,
+              "elapsedMs": 1921.2761,
+              "latencyMs": {
+                "snapshot": 58.9031,
+                "findEdit": 0.5059,
+                "findButton": 0.344,
+                "elementInfo": 8.7014,
+                "setValue": 18.7098,
+                "invoke": 9.6022
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:27.6730116Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 718.75,
+                  "privateBytes": 666095616,
+                  "workingSetBytes": 82980864,
+                  "handles": 427,
+                  "threads": 24
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 515.625,
+                  "privateBytes": 40009728,
+                  "workingSetBytes": 50647040,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1234.375,
+                  "privateBytes": 706105344,
+                  "workingSetBytes": 133627904,
+                  "handles": 854,
+                  "threads": 35
+                }
+              }
+            },
+            {
+              "iteration": 10,
+              "elapsedMs": 2176.2514,
+              "latencyMs": {
+                "snapshot": 52.6037,
+                "findEdit": 0.5475,
+                "findButton": 0.3937,
+                "elementInfo": 7.6317,
+                "setValue": 18.1961,
+                "invoke": 24.9265
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:27.9196659Z",
+                "java": {
+                  "available": true,
+                  "pid": 5324,
+                  "startUtc": "2026-11-22T21:42:24.8369100Z",
+                  "cpuMs": 718.75,
+                  "privateBytes": 666169344,
+                  "workingSetBytes": 83316736,
+                  "handles": 427,
+                  "threads": 24
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 6264,
+                  "startUtc": "2026-11-22T21:42:25.1028682Z",
+                  "cpuMs": 531.25,
+                  "privateBytes": 40079360,
+                  "workingSetBytes": 50720768,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1250.0,
+                  "privateBytes": 706248704,
+                  "workingSetBytes": 134037504,
+                  "handles": 854,
+                  "threads": 35
+                }
+              }
+            }
+          ],
+          "workerIdentity": "observed",
+          "latencyMs": {
+            "snapshot": {
+              "count": 10,
+              "mean": 59.17211000000001,
+              "max": 75.3739,
+              "p50": 55.616,
+              "p95": 75.3739,
+              "p99": 75.3739
+            },
+            "findEdit": {
+              "count": 10,
+              "mean": 0.57291,
+              "max": 0.8951,
+              "p50": 0.5408,
+              "p95": 0.8951,
+              "p99": 0.8951
+            },
+            "findButton": {
+              "count": 10,
+              "mean": 0.42645999999999995,
+              "max": 0.5791,
+              "p50": 0.3937,
+              "p95": 0.5791,
+              "p99": 0.5791
+            },
+            "elementInfo": {
+              "count": 10,
+              "mean": 8.033530000000003,
+              "max": 8.9659,
+              "p50": 7.8785,
+              "p95": 8.9659,
+              "p99": 8.9659
+            },
+            "setValue": {
+              "count": 10,
+              "mean": 18.513520000000003,
+              "max": 19.651,
+              "p50": 18.5777,
+              "p95": 19.651,
+              "p99": 19.651
+            },
+            "invoke": {
+              "count": 10,
+              "mean": 17.635700000000003,
+              "max": 24.9807,
+              "p50": 14.8509,
+              "p95": 24.9807,
+              "p99": 24.9807
+            }
+          }
+        },
+        {
+          "session": 2,
+          "completedIterations": 10,
+          "elapsedMs": 2293.1119,
+          "baseline": {
+            "utc": "2026-11-22T21:42:29.0051002Z",
+            "java": {
+              "available": true,
+              "pid": 13492,
+              "startUtc": "2026-11-22T21:42:28.1626597Z",
+              "cpuMs": 578.125,
+              "privateBytes": 666796032,
+              "workingSetBytes": 80375808,
+              "handles": 432,
+              "threads": 26
+            },
+            "worker": {
+              "available": true,
+              "pid": 34592,
+              "startUtc": "2026-11-22T21:42:28.4337507Z",
+              "cpuMs": 296.875,
+              "privateBytes": 35479552,
+              "workingSetBytes": 45899776,
+              "handles": 427,
+              "threads": 11
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 875.0,
+              "privateBytes": 702275584,
+              "workingSetBytes": 126275584,
+              "handles": 859,
+              "threads": 37
+            }
+          },
+          "samples": [
+            {
+              "iteration": 1,
+              "elapsedMs": 148.0602,
+              "latencyMs": {
+                "snapshot": 57.4387,
+                "findEdit": 0.5675,
+                "findButton": 0.6034,
+                "elementInfo": 8.8445,
+                "setValue": 19.7062,
+                "invoke": 18.4117
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:29.2582866Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 593.75,
+                  "privateBytes": 666906624,
+                  "workingSetBytes": 81018880,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 328.125,
+                  "privateBytes": 36356096,
+                  "workingSetBytes": 46809088,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 921.875,
+                  "privateBytes": 703262720,
+                  "workingSetBytes": 127827968,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 2,
+              "elapsedMs": 388.001,
+              "latencyMs": {
+                "snapshot": 52.9153,
+                "findEdit": 0.539,
+                "findButton": 0.3928,
+                "elementInfo": 8.2771,
+                "setValue": 18.5419,
+                "invoke": 21.1101
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:29.4733201Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 593.75,
+                  "privateBytes": 666910720,
+                  "workingSetBytes": 81285120,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 328.125,
+                  "privateBytes": 37335040,
+                  "workingSetBytes": 47751168,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 921.875,
+                  "privateBytes": 704245760,
+                  "workingSetBytes": 129036288,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 3,
+              "elapsedMs": 613.2194,
+              "latencyMs": {
+                "snapshot": 62.8281,
+                "findEdit": 0.7122,
+                "findButton": 0.4581,
+                "elementInfo": 8.0296,
+                "setValue": 18.5239,
+                "invoke": 13.5401
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:29.6981986Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 609.375,
+                  "privateBytes": 666914816,
+                  "workingSetBytes": 81633280,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 375.0,
+                  "privateBytes": 38232064,
+                  "workingSetBytes": 48680960,
+                  "handles": 428,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 984.375,
+                  "privateBytes": 705146880,
+                  "workingSetBytes": 130314240,
+                  "handles": 858,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 4,
+              "elapsedMs": 823.0319,
+              "latencyMs": {
+                "snapshot": 55.4678,
+                "findEdit": 0.643,
+                "findButton": 0.3962,
+                "elementInfo": 7.7011,
+                "setValue": 18.8374,
+                "invoke": 13.072
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:29.8902616Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 625.0,
+                  "privateBytes": 666914816,
+                  "workingSetBytes": 81874944,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 421.875,
+                  "privateBytes": 39206912,
+                  "workingSetBytes": 49618944,
+                  "handles": 428,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1046.875,
+                  "privateBytes": 706121728,
+                  "workingSetBytes": 131493888,
+                  "handles": 858,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 5,
+              "elapsedMs": 1033.0495,
+              "latencyMs": {
+                "snapshot": 53.5124,
+                "findEdit": 0.6355,
+                "findButton": 0.5135,
+                "elementInfo": 7.9658,
+                "setValue": 18.9753,
+                "invoke": 21.888
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:30.1312233Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 703.125,
+                  "privateBytes": 666980352,
+                  "workingSetBytes": 82214912,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 437.5,
+                  "privateBytes": 39849984,
+                  "workingSetBytes": 50491392,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1140.625,
+                  "privateBytes": 706830336,
+                  "workingSetBytes": 132706304,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 6,
+              "elapsedMs": 1332.9489,
+              "latencyMs": {
+                "snapshot": 57.4565,
+                "findEdit": 0.5636,
+                "findButton": 0.5397,
+                "elementInfo": 7.6973,
+                "setValue": 78.4032,
+                "invoke": 16.9754
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:30.4022337Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 703.125,
+                  "privateBytes": 667045888,
+                  "workingSetBytes": 82665472,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 468.75,
+                  "privateBytes": 39882752,
+                  "workingSetBytes": 50520064,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1171.875,
+                  "privateBytes": 706928640,
+                  "workingSetBytes": 133185536,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 7,
+              "elapsedMs": 1558.0651,
+              "latencyMs": {
+                "snapshot": 67.8392,
+                "findEdit": 0.6856,
+                "findButton": 0.4127,
+                "elementInfo": 10.1873,
+                "setValue": 20.6365,
+                "invoke": 23.8215
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:30.6716055Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 703.125,
+                  "privateBytes": 667045888,
+                  "workingSetBytes": 83001344,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 500.0,
+                  "privateBytes": 39915520,
+                  "workingSetBytes": 50552832,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1203.125,
+                  "privateBytes": 706961408,
+                  "workingSetBytes": 133554176,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 8,
+              "elapsedMs": 1812.8828,
+              "latencyMs": {
+                "snapshot": 60.7867,
+                "findEdit": 0.4137,
+                "findButton": 0.2703,
+                "elementInfo": 8.8268,
+                "setValue": 20.3384,
+                "invoke": 15.2264
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:30.9073925Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 718.75,
+                  "privateBytes": 667045888,
+                  "workingSetBytes": 83685376,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 515.625,
+                  "privateBytes": 40017920,
+                  "workingSetBytes": 50651136,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1234.375,
+                  "privateBytes": 707063808,
+                  "workingSetBytes": 134336512,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 9,
+              "elapsedMs": 2053.0133,
+              "latencyMs": {
+                "snapshot": 58.0463,
+                "findEdit": 0.7081,
+                "findButton": 0.3978,
+                "elementInfo": 7.4167,
+                "setValue": 19.9939,
+                "invoke": 15.0088
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:31.1567677Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 734.375,
+                  "privateBytes": 666214400,
+                  "workingSetBytes": 83193856,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 515.625,
+                  "privateBytes": 40062976,
+                  "workingSetBytes": 50700288,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1250.0,
+                  "privateBytes": 706277376,
+                  "workingSetBytes": 133894144,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            },
+            {
+              "iteration": 10,
+              "elapsedMs": 2293.1119,
+              "latencyMs": {
+                "snapshot": 59.0552,
+                "findEdit": 0.4908,
+                "findButton": 0.381,
+                "elementInfo": 7.3624,
+                "setValue": 19.8282,
+                "invoke": 16.7226
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:31.3957811Z",
+                "java": {
+                  "available": true,
+                  "pid": 13492,
+                  "startUtc": "2026-11-22T21:42:28.1626597Z",
+                  "cpuMs": 734.375,
+                  "privateBytes": 666255360,
+                  "workingSetBytes": 83410944,
+                  "handles": 430,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 34592,
+                  "startUtc": "2026-11-22T21:42:28.4337507Z",
+                  "cpuMs": 546.875,
+                  "privateBytes": 40128512,
+                  "workingSetBytes": 50769920,
+                  "handles": 427,
+                  "threads": 11
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1281.25,
+                  "privateBytes": 706383872,
+                  "workingSetBytes": 134180864,
+                  "handles": 857,
+                  "threads": 36
+                }
+              }
+            }
+          ],
+          "workerIdentity": "observed",
+          "latencyMs": {
+            "snapshot": {
+              "count": 10,
+              "mean": 58.53462,
+              "max": 67.8392,
+              "p50": 57.4565,
+              "p95": 67.8392,
+              "p99": 67.8392
+            },
+            "findEdit": {
+              "count": 10,
+              "mean": 0.5959000000000001,
+              "max": 0.7122,
+              "p50": 0.5675,
+              "p95": 0.7122,
+              "p99": 0.7122
+            },
+            "findButton": {
+              "count": 10,
+              "mean": 0.43655,
+              "max": 0.6034,
+              "p50": 0.3978,
+              "p95": 0.6034,
+              "p99": 0.6034
+            },
+            "elementInfo": {
+              "count": 10,
+              "mean": 8.230860000000002,
+              "max": 10.1873,
+              "p50": 7.9658,
+              "p95": 10.1873,
+              "p99": 10.1873
+            },
+            "setValue": {
+              "count": 10,
+              "mean": 25.378490000000003,
+              "max": 78.4032,
+              "p50": 19.7062,
+              "p95": 78.4032,
+              "p99": 78.4032
+            },
+            "invoke": {
+              "count": 10,
+              "mean": 17.577659999999998,
+              "max": 23.8215,
+              "p50": 16.7226,
+              "p95": 23.8215,
+              "p99": 23.8215
+            }
+          }
+        }
+      ],
+      "snapshotShape": [
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]/[\"Text\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]/[\"Text\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureDisabled\",\"Disabled action\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureDisabled\",\"Disabled action\"]/[\"Text\",\"\",\"Disabled action\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureIncrement\",\"Increment fixture counter\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureIncrement\",\"Increment fixture counter\"]/[\"Text\",\"\",\"Increment fixture counter\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"CheckBox\",\"fixtureCheck\",\"Fixture check box\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"CheckBox\",\"fixtureCheck\",\"Fixture check box\"]/[\"Text\",\"\",\"Fixture check box\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"ComboBox\",\"fixtureCombo\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Edit\",\"fixtureEdit\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Edit\",\"fixtureReadOnly\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item one\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item one\"]/[\"Text\",\"\",\"Item one\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item two\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item two\"]/[\"Text\",\"\",\"Item two\"]"
+      ],
+      "coldStartToReplyMs": {
+        "getCapabilities": {
+          "count": 2,
+          "mean": 499.9021,
+          "max": 500.6935,
+          "p50": 499.1107,
+          "p95": 500.6935,
+          "p99": 500.6935
+        },
+        "snapshot": {
+          "count": 2,
+          "mean": 611.57905,
+          "max": 618.1466,
+          "p50": 605.0115,
+          "p95": 618.1466,
+          "p99": 618.1466
+        }
+      }
+    },
+    {
+      "backend": "PowerShell",
+      "status": "passed",
+      "stage": "complete",
+      "elementsPerSnapshot": 19,
+      "cold": [
+        {
+          "round": 1,
+          "op": "getCapabilities",
+          "launchMs": 5.0157,
+          "requestMs": 776.4456,
+          "startToReplyMs": 781.6772,
+          "resources": {
+            "utc": "2026-11-22T21:42:33.8602429Z",
+            "java": {
+              "available": true,
+              "pid": 8768,
+              "startUtc": "2026-11-22T21:42:32.9937464Z",
+              "cpuMs": 515.625,
+              "privateBytes": 666112000,
+              "workingSetBytes": 79937536,
+              "handles": 430,
+              "threads": 25
+            },
+            "worker": {
+              "available": true,
+              "pid": 34568,
+              "startUtc": "2026-11-22T21:42:33.3036696Z",
+              "cpuMs": 546.875,
+              "privateBytes": 80531456,
+              "workingSetBytes": 101814272,
+              "handles": 762,
+              "threads": 30
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 1062.5,
+              "privateBytes": 746643456,
+              "workingSetBytes": 181751808,
+              "handles": 1192,
+              "threads": 55
+            }
+          }
+        },
+        {
+          "round": 1,
+          "op": "snapshot",
+          "launchMs": 5.4972,
+          "requestMs": 1023.2483,
+          "startToReplyMs": 1029.1406,
+          "resources": {
+            "utc": "2026-11-22T21:42:35.2329538Z",
+            "java": {
+              "available": true,
+              "pid": 35708,
+              "startUtc": "2026-11-22T21:42:34.1189001Z",
+              "cpuMs": 484.375,
+              "privateBytes": 667385856,
+              "workingSetBytes": 81477632,
+              "handles": 431,
+              "threads": 25
+            },
+            "worker": {
+              "available": true,
+              "pid": 19304,
+              "startUtc": "2026-11-22T21:42:34.4369471Z",
+              "cpuMs": 750.0,
+              "privateBytes": 102174720,
+              "workingSetBytes": 126242816,
+              "handles": 772,
+              "threads": 31
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 1234.375,
+              "privateBytes": 769560576,
+              "workingSetBytes": 207720448,
+              "handles": 1203,
+              "threads": 56
+            }
+          }
+        },
+        {
+          "round": 2,
+          "op": "getCapabilities",
+          "launchMs": 4.6495,
+          "requestMs": 758.1681,
+          "startToReplyMs": 763.0217,
+          "resources": {
+            "utc": "2026-11-22T21:42:36.3160341Z",
+            "java": {
+              "available": true,
+              "pid": 12728,
+              "startUtc": "2026-11-22T21:42:35.4848857Z",
+              "cpuMs": 750.0,
+              "privateBytes": 667160576,
+              "workingSetBytes": 80670720,
+              "handles": 430,
+              "threads": 25
+            },
+            "worker": {
+              "available": true,
+              "pid": 34680,
+              "startUtc": "2026-11-22T21:42:35.7995555Z",
+              "cpuMs": 562.5,
+              "privateBytes": 80584704,
+              "workingSetBytes": 99770368,
+              "handles": 766,
+              "threads": 29
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 1312.5,
+              "privateBytes": 747745280,
+              "workingSetBytes": 180441088,
+              "handles": 1196,
+              "threads": 54
+            }
+          }
+        },
+        {
+          "round": 2,
+          "op": "snapshot",
+          "launchMs": 4.9371,
+          "requestMs": 972.2893,
+          "startToReplyMs": 977.6207,
+          "resources": {
+            "utc": "2026-11-22T21:42:37.6364245Z",
+            "java": {
+              "available": true,
+              "pid": 32872,
+              "startUtc": "2026-11-22T21:42:36.5582129Z",
+              "cpuMs": 546.875,
+              "privateBytes": 667348992,
+              "workingSetBytes": 81272832,
+              "handles": 433,
+              "threads": 26
+            },
+            "worker": {
+              "available": true,
+              "pid": 35504,
+              "startUtc": "2026-11-22T21:42:36.8684032Z",
+              "cpuMs": 656.25,
+              "privateBytes": 102191104,
+              "workingSetBytes": 126562304,
+              "handles": 772,
+              "threads": 31
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 1203.125,
+              "privateBytes": 769540096,
+              "workingSetBytes": 207835136,
+              "handles": 1205,
+              "threads": 57
+            }
+          }
+        }
+      ],
+      "sessions": [
+        {
+          "session": 1,
+          "completedIterations": 10,
+          "elapsedMs": 2673.7864,
+          "baseline": {
+            "utc": "2026-11-22T21:42:39.1705674Z",
+            "java": {
+              "available": true,
+              "pid": 21868,
+              "startUtc": "2026-11-22T21:42:37.8924778Z",
+              "cpuMs": 531.25,
+              "privateBytes": 667590656,
+              "workingSetBytes": 81981440,
+              "handles": 437,
+              "threads": 27
+            },
+            "worker": {
+              "available": true,
+              "pid": 576,
+              "startUtc": "2026-11-22T21:42:38.2005174Z",
+              "cpuMs": 796.875,
+              "privateBytes": 108969984,
+              "workingSetBytes": 132898816,
+              "handles": 780,
+              "threads": 31
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 1328.125,
+              "privateBytes": 776560640,
+              "workingSetBytes": 214880256,
+              "handles": 1217,
+              "threads": 58
+            }
+          },
+          "samples": [
+            {
+              "iteration": 1,
+              "elapsedMs": 198.4969,
+              "latencyMs": {
+                "snapshot": 105.6776,
+                "findEdit": 0.5274,
+                "findButton": 0.6407,
+                "elementInfo": 10.3026,
+                "setValue": 22.1382,
+                "invoke": 17.1165
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:39.4633639Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 531.25,
+                  "privateBytes": 667914240,
+                  "workingSetBytes": 82542592,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 968.75,
+                  "privateBytes": 140181504,
+                  "workingSetBytes": 164122624,
+                  "handles": 781,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1500.0,
+                  "privateBytes": 808095744,
+                  "workingSetBytes": 246665216,
+                  "handles": 1212,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 2,
+              "elapsedMs": 498.9544,
+              "latencyMs": {
+                "snapshot": 95.9965,
+                "findEdit": 0.5295,
+                "findButton": 0.5535,
+                "elementInfo": 27.9756,
+                "setValue": 22.706,
+                "invoke": 16.239
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:39.7580752Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 531.25,
+                  "privateBytes": 667914240,
+                  "workingSetBytes": 82878464,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 1062.5,
+                  "privateBytes": 122527744,
+                  "workingSetBytes": 146972672,
+                  "handles": 775,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1593.75,
+                  "privateBytes": 790441984,
+                  "workingSetBytes": 229851136,
+                  "handles": 1206,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 3,
+              "elapsedMs": 783.8483,
+              "latencyMs": {
+                "snapshot": 94.0778,
+                "findEdit": 0.6185,
+                "findButton": 0.4955,
+                "elementInfo": 11.7168,
+                "setValue": 22.8187,
+                "invoke": 20.6239
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:40.0392015Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 546.875,
+                  "privateBytes": 667914240,
+                  "workingSetBytes": 83206144,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 1171.875,
+                  "privateBytes": 122650624,
+                  "workingSetBytes": 147103744,
+                  "handles": 775,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1718.75,
+                  "privateBytes": 790564864,
+                  "workingSetBytes": 230309888,
+                  "handles": 1206,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 4,
+              "elapsedMs": 1038.8613,
+              "latencyMs": {
+                "snapshot": 84.6652,
+                "findEdit": 0.5394,
+                "findButton": 0.4065,
+                "elementInfo": 9.9892,
+                "setValue": 22.3254,
+                "invoke": 12.804
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:40.3087888Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 546.875,
+                  "privateBytes": 667914240,
+                  "workingSetBytes": 83406848,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 1234.375,
+                  "privateBytes": 122671104,
+                  "workingSetBytes": 147124224,
+                  "handles": 775,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1781.25,
+                  "privateBytes": 790585344,
+                  "workingSetBytes": 230531072,
+                  "handles": 1206,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 5,
+              "elapsedMs": 1323.8863,
+              "latencyMs": {
+                "snapshot": 99.9617,
+                "findEdit": 0.4592,
+                "findButton": 0.4147,
+                "elementInfo": 9.8371,
+                "setValue": 20.7889,
+                "invoke": 19.7196
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:40.5792537Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 562.5,
+                  "privateBytes": 668049408,
+                  "workingSetBytes": 83849216,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 1265.625,
+                  "privateBytes": 122695680,
+                  "workingSetBytes": 147152896,
+                  "handles": 775,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1828.125,
+                  "privateBytes": 790745088,
+                  "workingSetBytes": 231002112,
+                  "handles": 1206,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 6,
+              "elapsedMs": 1593.9309,
+              "latencyMs": {
+                "snapshot": 92.3845,
+                "findEdit": 1.0011,
+                "findButton": 1.0621,
+                "elementInfo": 9.4152,
+                "setValue": 20.4181,
+                "invoke": 21.2007
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:40.8527482Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 562.5,
+                  "privateBytes": 668049408,
+                  "workingSetBytes": 84275200,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 1343.75,
+                  "privateBytes": 91332608,
+                  "workingSetBytes": 115945472,
+                  "handles": 775,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1906.25,
+                  "privateBytes": 759382016,
+                  "workingSetBytes": 200220672,
+                  "handles": 1206,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 7,
+              "elapsedMs": 1863.6718,
+              "latencyMs": {
+                "snapshot": 84.0921,
+                "findEdit": 0.4708,
+                "findButton": 0.3409,
+                "elementInfo": 9.7244,
+                "setValue": 21.6915,
+                "invoke": 24.1299
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:41.1150166Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 562.5,
+                  "privateBytes": 668049408,
+                  "workingSetBytes": 84467712,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 1390.625,
+                  "privateBytes": 91389952,
+                  "workingSetBytes": 116006912,
+                  "handles": 775,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1953.125,
+                  "privateBytes": 759439360,
+                  "workingSetBytes": 200474624,
+                  "handles": 1206,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 8,
+              "elapsedMs": 2133.8134,
+              "latencyMs": {
+                "snapshot": 92.9217,
+                "findEdit": 0.3778,
+                "findButton": 0.2834,
+                "elementInfo": 10.5661,
+                "setValue": 21.0053,
+                "invoke": 19.9248
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:41.3843508Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 578.125,
+                  "privateBytes": 668622848,
+                  "workingSetBytes": 85176320,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 1437.5,
+                  "privateBytes": 91435008,
+                  "workingSetBytes": 116117504,
+                  "handles": 775,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 2015.625,
+                  "privateBytes": 760057856,
+                  "workingSetBytes": 201293824,
+                  "handles": 1206,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 9,
+              "elapsedMs": 2418.7262,
+              "latencyMs": {
+                "snapshot": 90.175,
+                "findEdit": 0.3738,
+                "findButton": 0.2951,
+                "elementInfo": 27.3707,
+                "setValue": 23.5687,
+                "invoke": 14.7501
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:41.6644489Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 625.0,
+                  "privateBytes": 668622848,
+                  "workingSetBytes": 85471232,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 1515.625,
+                  "privateBytes": 91553792,
+                  "workingSetBytes": 116252672,
+                  "handles": 775,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 2140.625,
+                  "privateBytes": 760176640,
+                  "workingSetBytes": 201723904,
+                  "handles": 1206,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 10,
+              "elapsedMs": 2673.7864,
+              "latencyMs": {
+                "snapshot": 87.3606,
+                "findEdit": 0.4379,
+                "findButton": 0.378,
+                "elementInfo": 10.4692,
+                "setValue": 21.4425,
+                "invoke": 26.1599
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:41.9179610Z",
+                "java": {
+                  "available": true,
+                  "pid": 21868,
+                  "startUtc": "2026-11-22T21:42:37.8924778Z",
+                  "cpuMs": 640.625,
+                  "privateBytes": 667770880,
+                  "workingSetBytes": 84963328,
+                  "handles": 431,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 576,
+                  "startUtc": "2026-11-22T21:42:38.2005174Z",
+                  "cpuMs": 1671.875,
+                  "privateBytes": 91701248,
+                  "workingSetBytes": 116436992,
+                  "handles": 775,
+                  "threads": 31
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 2312.5,
+                  "privateBytes": 759472128,
+                  "workingSetBytes": 201400320,
+                  "handles": 1206,
+                  "threads": 56
+                }
+              }
+            }
+          ],
+          "workerIdentity": "observed",
+          "latencyMs": {
+            "snapshot": {
+              "count": 10,
+              "mean": 92.73127,
+              "max": 105.6776,
+              "p50": 92.3845,
+              "p95": 105.6776,
+              "p99": 105.6776
+            },
+            "findEdit": {
+              "count": 10,
+              "mean": 0.5335400000000001,
+              "max": 1.0011,
+              "p50": 0.4708,
+              "p95": 1.0011,
+              "p99": 1.0011
+            },
+            "findButton": {
+              "count": 10,
+              "mean": 0.48704000000000003,
+              "max": 1.0621,
+              "p50": 0.4065,
+              "p95": 1.0621,
+              "p99": 1.0621
+            },
+            "elementInfo": {
+              "count": 10,
+              "mean": 13.73669,
+              "max": 27.9756,
+              "p50": 10.3026,
+              "p95": 27.9756,
+              "p99": 27.9756
+            },
+            "setValue": {
+              "count": 10,
+              "mean": 21.89033,
+              "max": 23.5687,
+              "p50": 21.6915,
+              "p95": 23.5687,
+              "p99": 23.5687
+            },
+            "invoke": {
+              "count": 10,
+              "mean": 19.26684,
+              "max": 26.1599,
+              "p50": 19.7196,
+              "p95": 26.1599,
+              "p99": 26.1599
+            }
+          }
+        },
+        {
+          "session": 2,
+          "completedIterations": 10,
+          "elapsedMs": 2968.8667,
+          "baseline": {
+            "utc": "2026-11-22T21:42:43.3475808Z",
+            "java": {
+              "available": true,
+              "pid": 35604,
+              "startUtc": "2026-11-22T21:42:42.1336356Z",
+              "cpuMs": 593.75,
+              "privateBytes": 667295744,
+              "workingSetBytes": 81154048,
+              "handles": 430,
+              "threads": 26
+            },
+            "worker": {
+              "available": true,
+              "pid": 14424,
+              "startUtc": "2026-11-22T21:42:42.4357262Z",
+              "cpuMs": 765.625,
+              "privateBytes": 109129728,
+              "workingSetBytes": 132190208,
+              "handles": 792,
+              "threads": 33
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 1359.375,
+              "privateBytes": 776425472,
+              "workingSetBytes": 213344256,
+              "handles": 1222,
+              "threads": 59
+            }
+          },
+          "samples": [
+            {
+              "iteration": 1,
+              "elapsedMs": 221.7037,
+              "latencyMs": {
+                "snapshot": 117.6478,
+                "findEdit": 0.5523,
+                "findButton": 0.4922,
+                "elementInfo": 11.3933,
+                "setValue": 21.9861,
+                "invoke": 26.8621
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:43.6684481Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 593.75,
+                  "privateBytes": 667303936,
+                  "workingSetBytes": 81575936,
+                  "handles": 428,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 968.75,
+                  "privateBytes": 140288000,
+                  "workingSetBytes": 163356672,
+                  "handles": 793,
+                  "threads": 33
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1562.5,
+                  "privateBytes": 807591936,
+                  "workingSetBytes": 244932608,
+                  "handles": 1221,
+                  "threads": 58
+                }
+              }
+            },
+            {
+              "iteration": 2,
+              "elapsedMs": 536.7862,
+              "latencyMs": {
+                "snapshot": 102.1894,
+                "findEdit": 0.6352,
+                "findButton": 0.4906,
+                "elementInfo": 27.0394,
+                "setValue": 21.474,
+                "invoke": 23.7481
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:43.9634565Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 609.375,
+                  "privateBytes": 667303936,
+                  "workingSetBytes": 81895424,
+                  "handles": 428,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 1093.75,
+                  "privateBytes": 122540032,
+                  "workingSetBytes": 146104320,
+                  "handles": 787,
+                  "threads": 33
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1703.125,
+                  "privateBytes": 789843968,
+                  "workingSetBytes": 227999744,
+                  "handles": 1215,
+                  "threads": 58
+                }
+              }
+            },
+            {
+              "iteration": 3,
+              "elapsedMs": 806.6852,
+              "latencyMs": {
+                "snapshot": 90.0149,
+                "findEdit": 0.7035,
+                "findButton": 0.4756,
+                "elementInfo": 10.6857,
+                "setValue": 22.7195,
+                "invoke": 22.6658
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:44.2680918Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 640.625,
+                  "privateBytes": 667303936,
+                  "workingSetBytes": 82223104,
+                  "handles": 428,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 1250.0,
+                  "privateBytes": 122662912,
+                  "workingSetBytes": 146231296,
+                  "handles": 787,
+                  "threads": 33
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1890.625,
+                  "privateBytes": 789966848,
+                  "workingSetBytes": 228454400,
+                  "handles": 1215,
+                  "threads": 58
+                }
+              }
+            },
+            {
+              "iteration": 4,
+              "elapsedMs": 1106.8458,
+              "latencyMs": {
+                "snapshot": 87.6719,
+                "findEdit": 0.5764,
+                "findButton": 0.3235,
+                "elementInfo": 11.1959,
+                "setValue": 24.1277,
+                "invoke": 18.1865
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:44.5759771Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 640.625,
+                  "privateBytes": 667303936,
+                  "workingSetBytes": 82419712,
+                  "handles": 428,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 1343.75,
+                  "privateBytes": 122707968,
+                  "workingSetBytes": 146272256,
+                  "handles": 787,
+                  "threads": 33
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 1984.375,
+                  "privateBytes": 790011904,
+                  "workingSetBytes": 228691968,
+                  "handles": 1215,
+                  "threads": 58
+                }
+              }
+            },
+            {
+              "iteration": 5,
+              "elapsedMs": 1436.7454,
+              "latencyMs": {
+                "snapshot": 116.6822,
+                "findEdit": 0.4667,
+                "findButton": 0.438,
+                "elementInfo": 10.345,
+                "setValue": 21.7956,
+                "invoke": 17.8165
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:44.8900287Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 640.625,
+                  "privateBytes": 667369472,
+                  "workingSetBytes": 82837504,
+                  "handles": 428,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 1437.5,
+                  "privateBytes": 122740736,
+                  "workingSetBytes": 146321408,
+                  "handles": 787,
+                  "threads": 33
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 2078.125,
+                  "privateBytes": 790110208,
+                  "workingSetBytes": 229158912,
+                  "handles": 1215,
+                  "threads": 58
+                }
+              }
+            },
+            {
+              "iteration": 6,
+              "elapsedMs": 1736.7267,
+              "latencyMs": {
+                "snapshot": 98.0777,
+                "findEdit": 0.6354,
+                "findButton": 0.3994,
+                "elementInfo": 11.4005,
+                "setValue": 21.3966,
+                "invoke": 21.676
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:45.1924829Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 671.875,
+                  "privateBytes": 667435008,
+                  "workingSetBytes": 83300352,
+                  "handles": 428,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 1515.625,
+                  "privateBytes": 91488256,
+                  "workingSetBytes": 115265536,
+                  "handles": 787,
+                  "threads": 33
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 2187.5,
+                  "privateBytes": 758923264,
+                  "workingSetBytes": 198565888,
+                  "handles": 1215,
+                  "threads": 58
+                }
+              }
+            },
+            {
+              "iteration": 7,
+              "elapsedMs": 2022.7906,
+              "latencyMs": {
+                "snapshot": 89.3241,
+                "findEdit": 0.3636,
+                "findButton": 0.2184,
+                "elementInfo": 9.3453,
+                "setValue": 20.5348,
+                "invoke": 14.9033
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:45.4762310Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 671.875,
+                  "privateBytes": 667435008,
+                  "workingSetBytes": 83542016,
+                  "handles": 428,
+                  "threads": 25
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 1578.125,
+                  "privateBytes": 91496448,
+                  "workingSetBytes": 115273728,
+                  "handles": 787,
+                  "threads": 33
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 2250.0,
+                  "privateBytes": 758931456,
+                  "workingSetBytes": 198815744,
+                  "handles": 1215,
+                  "threads": 58
+                }
+              }
+            },
+            {
+              "iteration": 8,
+              "elapsedMs": 2383.1239,
+              "latencyMs": {
+                "snapshot": 83.2073,
+                "findEdit": 0.4852,
+                "findButton": 0.3146,
+                "elementInfo": 27.0843,
+                "setValue": 80.6705,
+                "invoke": 23.1196
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:45.8469066Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 703.125,
+                  "privateBytes": 666746880,
+                  "workingSetBytes": 83288064,
+                  "handles": 423,
+                  "threads": 23
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 1656.25,
+                  "privateBytes": 91557888,
+                  "workingSetBytes": 115453952,
+                  "handles": 787,
+                  "threads": 33
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 2359.375,
+                  "privateBytes": 758304768,
+                  "workingSetBytes": 198742016,
+                  "handles": 1210,
+                  "threads": 56
+                }
+              }
+            },
+            {
+              "iteration": 9,
+              "elapsedMs": 2683.2172,
+              "latencyMs": {
+                "snapshot": 88.2499,
+                "findEdit": 0.3761,
+                "findButton": 0.3754,
+                "elementInfo": 10.9478,
+                "setValue": 21.8749,
+                "invoke": 25.0367
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:46.1429216Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 703.125,
+                  "privateBytes": 666804224,
+                  "workingSetBytes": 83619840,
+                  "handles": 423,
+                  "threads": 23
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 1734.375,
+                  "privateBytes": 91672576,
+                  "workingSetBytes": 115589120,
+                  "handles": 786,
+                  "threads": 32
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 2437.5,
+                  "privateBytes": 758476800,
+                  "workingSetBytes": 199208960,
+                  "handles": 1209,
+                  "threads": 55
+                }
+              }
+            },
+            {
+              "iteration": 10,
+              "elapsedMs": 2968.8667,
+              "latencyMs": {
+                "snapshot": 81.7925,
+                "findEdit": 0.4356,
+                "findButton": 0.3833,
+                "elementInfo": 9.9284,
+                "setValue": 20.8242,
+                "invoke": 19.4409
+              },
+              "resources": {
+                "utc": "2026-11-22T21:42:46.3890770Z",
+                "java": {
+                  "available": true,
+                  "pid": 35604,
+                  "startUtc": "2026-11-22T21:42:42.1336356Z",
+                  "cpuMs": 718.75,
+                  "privateBytes": 666804224,
+                  "workingSetBytes": 83947520,
+                  "handles": 423,
+                  "threads": 23
+                },
+                "worker": {
+                  "available": true,
+                  "pid": 14424,
+                  "startUtc": "2026-11-22T21:42:42.4357262Z",
+                  "cpuMs": 1859.375,
+                  "privateBytes": 91856896,
+                  "workingSetBytes": 115793920,
+                  "handles": 787,
+                  "threads": 33
+                },
+                "total": {
+                  "available": true,
+                  "cpuMs": 2578.125,
+                  "privateBytes": 758661120,
+                  "workingSetBytes": 199741440,
+                  "handles": 1210,
+                  "threads": 56
+                }
+              }
+            }
+          ],
+          "workerIdentity": "observed",
+          "latencyMs": {
+            "snapshot": {
+              "count": 10,
+              "mean": 95.48576999999997,
+              "max": 117.6478,
+              "p50": 89.3241,
+              "p95": 117.6478,
+              "p99": 117.6478
+            },
+            "findEdit": {
+              "count": 10,
+              "mean": 0.5229999999999999,
+              "max": 0.7035,
+              "p50": 0.4852,
+              "p95": 0.7035,
+              "p99": 0.7035
+            },
+            "findButton": {
+              "count": 10,
+              "mean": 0.3911,
+              "max": 0.4922,
+              "p50": 0.3833,
+              "p95": 0.4922,
+              "p99": 0.4922
+            },
+            "elementInfo": {
+              "count": 10,
+              "mean": 13.93656,
+              "max": 27.0843,
+              "p50": 10.9478,
+              "p95": 27.0843,
+              "p99": 27.0843
+            },
+            "setValue": {
+              "count": 10,
+              "mean": 27.74039,
+              "max": 80.6705,
+              "p50": 21.7956,
+              "p95": 80.6705,
+              "p99": 80.6705
+            },
+            "invoke": {
+              "count": 10,
+              "mean": 21.34555,
+              "max": 26.8621,
+              "p50": 21.676,
+              "p95": 26.8621,
+              "p99": 26.8621
+            }
+          }
+        }
+      ],
+      "snapshotShape": [
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]/[\"Text\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"\",\"Duplicate label\"]/[\"Text\",\"\",\"Duplicate label\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureDisabled\",\"Disabled action\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureDisabled\",\"Disabled action\"]/[\"Text\",\"\",\"Disabled action\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureIncrement\",\"Increment fixture counter\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Button\",\"fixtureIncrement\",\"Increment fixture counter\"]/[\"Text\",\"\",\"Increment fixture counter\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"CheckBox\",\"fixtureCheck\",\"Fixture check box\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"CheckBox\",\"fixtureCheck\",\"Fixture check box\"]/[\"Text\",\"\",\"Fixture check box\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"ComboBox\",\"fixtureCombo\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Edit\",\"fixtureEdit\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"Edit\",\"fixtureReadOnly\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item one\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item one\"]/[\"Text\",\"\",\"Item one\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item two\"]",
+        "[\"Window\",\"\",\"UIA fixture 93bdc2aa-8c85-4532-814f-def92200e074\"]/[\"List\",\"fixtureList\",\"\"]/[\"ListItem\",\"\",\"Item two\"]/[\"Text\",\"\",\"Item two\"]"
+      ],
+      "coldStartToReplyMs": {
+        "getCapabilities": {
+          "count": 2,
+          "mean": 772.3494499999999,
+          "max": 781.6772,
+          "p50": 763.0217,
+          "p95": 781.6772,
+          "p99": 781.6772
+        },
+        "snapshot": {
+          "count": 2,
+          "mean": 1003.3806500000001,
+          "max": 1029.1406,
+          "p50": 977.6207,
+          "p95": 1029.1406,
+          "p99": 1029.1406
+        }
+      }
+    }
+  ],
+  "checkpointUtc": "2026-11-22T21:42:46.5931660Z",
+  "order": [
+    "JNA",
+    "CSharp",
+    "PowerShell"
+  ],
+  "treeParity": true,
+  "completeResources": true,
+  "fixture": {
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "finishedUtc": "2026-11-22T21:42:47.3067240Z"
+}

@@ -1,0 +1,345 @@
+{
+  "utc": "2026-11-22T21:42:47.3768433Z",
+  "environment": {
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "is64BitOS": true,
+    "interactive": true,
+    "powerShell": "7.6.9",
+    "processorCount": 20,
+    "java": "openjdk version \"21.0.11\" 2026-04-21 LTS\r\nOpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS)\r\nOpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)",
+    "jarSha256": "C0911F1FD69312FBB2E6D7D0C10832249423F8059C7F660CD17B82FF51746B35",
+    "fixtureSha256": "8B448007A24D4E198B7AF64DD3EB929BE2967DCE0D3E68A26F928E2149850D36"
+  },
+  "passed": true,
+  "stage": "complete",
+  "durationLimitSeconds": 60.0,
+  "sampleIntervalSeconds": 10,
+  "mutateEvery": 0,
+  "mutationIntervalSeconds": 5,
+  "iterationLimit": 0,
+  "attemptedIterations": 992,
+  "completedIterations": 992,
+  "mutationIterations": 11,
+  "comReleaseObservation": "Indirect: JVM exit, process counters and HotSpot NMT. NMT does not count COM references or all native allocations.",
+  "sessions": [
+    {
+      "pid": 28820,
+      "completedIterations": 992,
+      "mutationIterations": 11,
+      "samples": [
+        {
+          "iteration": 0,
+          "elapsedMs": 813.6553,
+          "resources": {
+            "utc": "2026-11-22T21:42:49.4325713Z",
+            "java": {
+              "available": true,
+              "pid": 28820,
+              "startUtc": "2026-11-22T21:42:48.6164367Z",
+              "cpuMs": 781.25,
+              "privateBytes": 675999744,
+              "workingSetBytes": 108781568,
+              "handles": 556,
+              "threads": 42
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 781.25,
+              "privateBytes": 675999744,
+              "workingSetBytes": 108781568,
+              "handles": 556,
+              "threads": 42
+            }
+          },
+          "heap": "28820:\r\n garbage-first heap   total 524288K, used 7281K [0x0000000603800000, 0x0000000800000000)\n  region size 4096K, 2 young (8192K), 1 survivors (4096K)\n Metaspace       used 8009K, committed 8192K, reserved 1114112K\n  class space    used 824K, committed 896K, reserved 1048576K",
+          "nativeMemory": "28820:\r\n\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=9985043KB, committed=643523KB\n       malloc: 43979KB #49622\n       mmap:   reserved=9941064KB, committed=599544KB\n\n-                 Java Heap (reserved=8331264KB, committed=524288KB)\n                            (mmap: reserved=8331264KB, committed=524288KB, at peak) \n \n-                     Class (reserved=1048858KB, committed=1178KB)\n                            (classes #2536)\n                            (  instance classes #2269, array classes #267)\n                            (malloc=282KB #6982) (at peak) \n                            (mmap: reserved=1048576KB, committed=896KB, at peak) \n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=7296KB)\n                            (    used=7185KB)\n                            (    waste=111KB =1.52%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=896KB)\n                            (    used=824KB)\n                            (    waste=72KB =7.98%)\n \n-                    Thread (reserved=34903KB, committed=1471KB)\n                            (threads #34)\n                            (stack: reserved=34816KB, committed=1384KB, peak=1384KB)\n                            (malloc=52KB #209) (peak=64KB #225) \n                            (arena=35KB #63) (peak=1589KB #43)\n \n-                      Code (reserved=248108KB, committed=9076KB)\n                            (malloc=364KB #2925) (peak=364KB #2925) \n                            (mmap: reserved=247744KB, committed=8712KB, at peak) \n                            (arena=0KB #0) (peak=33KB #1)\n \n-                        GC (reserved=228727KB, committed=76151KB)\n                            (malloc=32055KB #1794) (peak=32109KB #2101) \n                            (mmap: reserved=196672KB, committed=44096KB, at peak) \n \n-                 GCCardSet (reserved=29KB, committed=29KB)\n                            (malloc=29KB #387) (at peak) \n \n-                  Compiler (reserved=205KB, committed=205KB)\n                            (malloc=38KB #124) (peak=53KB #141) \n                            (arena=167KB #7) (peak=5981KB #17)\n \n-                  Internal (reserved=1322KB, committed=1322KB)\n                            (malloc=1258KB #2928) (at peak) \n                            (mmap: reserved=64KB, committed=64KB, at peak) \n \n-                     Other (reserved=8KB, committed=8KB)\n                            (malloc=8KB #4) (at peak) \n \n-                    Symbol (reserved=3847KB, committed=3847KB)\n                            (malloc=3296KB #31095) (at peak) \n                            (arena=552KB #1) (at peak)\n \n-    Native Memory Tracking (reserved=789KB, committed=789KB)\n                            (malloc=13KB #213) (at peak) \n                            (tracking overhead=775KB)\n \n-        Shared class space (reserved=16384KB, committed=12800KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=12800KB, peak=13056KB) \n \n-               Arena Chunk (reserved=4777KB, committed=4777KB)\n                            (malloc=4777KB #247) (peak=7094KB #267) \n \n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB #2183) (at peak) \n \n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak) \n \n-           Synchronization (reserved=30KB, committed=30KB)\n                            (malloc=30KB #443) (at peak) \n \n-            Serviceability (reserved=17KB, committed=17KB)\n                            (malloc=17KB #12) (peak=17KB #14) \n \n-                 Metaspace (reserved=65586KB, committed=7346KB)\n                            (malloc=50KB #49) (at peak) \n                            (mmap: reserved=65536KB, committed=7296KB, at peak) \n \n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB #8) (at peak) \n \n-           Object Monitors (reserved=1KB, committed=1KB)\n                            (malloc=1KB #3) (at peak) \n \n-                   Unknown (reserved=0KB, committed=0KB)\n                            (mmap: reserved=0KB, committed=0KB, peak=20KB)",
+          "nmtReservedBytes": 10224684032,
+          "nmtCommittedBytes": 658967552,
+          "heapCommittedBytes": 536870912,
+          "heapUsedBytes": 7455744
+        },
+        {
+          "iteration": 181,
+          "elapsedMs": 11749.7134,
+          "resources": {
+            "utc": "2026-11-22T21:43:00.3674122Z",
+            "java": {
+              "available": true,
+              "pid": 28820,
+              "startUtc": "2026-11-22T21:42:48.6164367Z",
+              "cpuMs": 4796.875,
+              "privateBytes": 689627136,
+              "workingSetBytes": 158400512,
+              "handles": 555,
+              "threads": 39
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 4796.875,
+              "privateBytes": 689627136,
+              "workingSetBytes": 158400512,
+              "handles": 555,
+              "threads": 39
+            }
+          },
+          "heap": "28820:\r\n garbage-first heap   total 524288K, used 59513K [0x0000000603800000, 0x0000000800000000)\n  region size 4096K, 14 young (57344K), 1 survivors (4096K)\n Metaspace       used 8756K, committed 8960K, reserved 1114112K\n  class space    used 827K, committed 896K, reserved 1048576K",
+          "nativeMemory": "28820:\r\n\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=9990521KB, committed=655265KB\n       malloc: 52529KB #54677\n       mmap:   reserved=9937992KB, committed=602736KB\n\n-                 Java Heap (reserved=8331264KB, committed=524288KB)\n                            (mmap: reserved=8331264KB, committed=524288KB, at peak) \n \n-                     Class (reserved=1048884KB, committed=1204KB)\n                            (classes #2541)\n                            (  instance classes #2274, array classes #267)\n                            (malloc=308KB #7962) (peak=309KB #7966) \n                            (mmap: reserved=1048576KB, committed=896KB, at peak) \n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=8064KB)\n                            (    used=7929KB)\n                            (    waste=135KB =1.67%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=896KB)\n                            (    used=827KB)\n                            (    waste=69KB =7.70%)\n \n-                    Thread (reserved=31825KB, committed=1309KB)\n                            (threads #31)\n                            (stack: reserved=31744KB, committed=1228KB, peak=1400KB)\n                            (malloc=46KB #191) (peak=70KB #243) \n                            (arena=34KB #60) (peak=1589KB #43)\n \n-                      Code (reserved=248456KB, committed=12004KB)\n                            (malloc=712KB #4097) (at peak) \n                            (mmap: reserved=247744KB, committed=11292KB, at peak) \n                            (arena=0KB #0) (peak=33KB #1)\n \n-                        GC (reserved=228793KB, committed=76217KB)\n                            (malloc=32121KB #2666) (peak=32163KB #3500) \n                            (mmap: reserved=196672KB, committed=44096KB, at peak) \n \n-                 GCCardSet (reserved=29KB, committed=29KB)\n                            (malloc=29KB #387) (at peak) \n \n-                  Compiler (reserved=230KB, committed=230KB)\n                            (malloc=66KB #135) (peak=81KB #148) \n                            (arena=164KB #4) (peak=19124KB #17)\n \n-                  Internal (reserved=1343KB, committed=1343KB)\n                            (malloc=1279KB #4112) (at peak) \n                            (mmap: reserved=64KB, committed=64KB, at peak) \n \n-                     Other (reserved=8KB, committed=8KB)\n                            (malloc=8KB #4) (at peak) \n \n-                    Symbol (reserved=3860KB, committed=3860KB)\n                            (malloc=3309KB #31598) (at peak) \n                            (arena=552KB #1) (at peak)\n \n-    Native Memory Tracking (reserved=872KB, committed=872KB)\n                            (malloc=18KB #294) (peak=18KB #303) \n                            (tracking overhead=854KB)\n \n-        Shared class space (reserved=16384KB, committed=12800KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=12800KB, peak=13056KB) \n \n-               Arena Chunk (reserved=12747KB, committed=12747KB)\n                            (malloc=12747KB #501) (peak=19825KB #549) \n \n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB #2183) (at peak) \n \n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak) \n \n-           Synchronization (reserved=30KB, committed=30KB)\n                            (malloc=30KB #447) (at peak) \n \n-            Serviceability (reserved=17KB, committed=17KB)\n                            (malloc=17KB #12) (peak=17KB #14) \n \n-                 Metaspace (reserved=65589KB, committed=8117KB)\n                            (malloc=53KB #59) (at peak) \n                            (mmap: reserved=65536KB, committed=8064KB, at peak) \n \n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB #8) (at peak) \n \n-           Object Monitors (reserved=1KB, committed=1KB)\n                            (malloc=1KB #5) (at peak) \n \n-                   Unknown (reserved=0KB, committed=0KB)\n                            (mmap: reserved=0KB, committed=0KB, peak=20KB)",
+          "nmtReservedBytes": 10230293504,
+          "nmtCommittedBytes": 670991360,
+          "heapCommittedBytes": 536870912,
+          "heapUsedBytes": 60941312
+        },
+        {
+          "iteration": 363,
+          "elapsedMs": 22519.0223,
+          "resources": {
+            "utc": "2026-11-22T21:43:11.1367005Z",
+            "java": {
+              "available": true,
+              "pid": 28820,
+              "startUtc": "2026-11-22T21:42:48.6164367Z",
+              "cpuMs": 7765.625,
+              "privateBytes": 682725376,
+              "workingSetBytes": 227532800,
+              "handles": 554,
+              "threads": 39
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 7765.625,
+              "privateBytes": 682725376,
+              "workingSetBytes": 227532800,
+              "handles": 554,
+              "threads": 39
+            }
+          },
+          "heap": "28820:\r\n garbage-first heap   total 524288K, used 40065K [0x0000000603800000, 0x0000000800000000)\n  region size 4096K, 9 young (36864K), 4 survivors (16384K)\n Metaspace       used 8841K, committed 9024K, reserved 1114112K\n  class space    used 827K, committed 896K, reserved 1048576K",
+          "nativeMemory": "28820:\r\n\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=9980458KB, committed=645546KB\n       malloc: 42466KB #55040\n       mmap:   reserved=9937992KB, committed=603080KB\n\n-                 Java Heap (reserved=8331264KB, committed=524288KB)\n                            (mmap: reserved=8331264KB, committed=524288KB, at peak) \n \n-                     Class (reserved=1048887KB, committed=1207KB)\n                            (classes #2542)\n                            (  instance classes #2275, array classes #267)\n                            (malloc=311KB #8098) (peak=312KB #8099) \n                            (mmap: reserved=1048576KB, committed=896KB, at peak) \n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=8128KB)\n                            (    used=8014KB)\n                            (    waste=114KB =1.41%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=896KB)\n                            (    used=828KB)\n                            (    waste=68KB =7.63%)\n \n-                    Thread (reserved=31825KB, committed=1329KB)\n                            (threads #31)\n                            (stack: reserved=31744KB, committed=1248KB, peak=1400KB)\n                            (malloc=46KB #191) (peak=70KB #243) \n                            (arena=34KB #60) (peak=1589KB #43)\n \n-                      Code (reserved=248513KB, committed=12321KB)\n                            (malloc=769KB #4260) (at peak) \n                            (mmap: reserved=247744KB, committed=11552KB, at peak) \n                            (arena=0KB #0) (peak=33KB #1)\n \n-                        GC (reserved=228817KB, committed=76241KB)\n                            (malloc=32145KB #2785) (peak=32200KB #3080) \n                            (mmap: reserved=196672KB, committed=44096KB, at peak) \n \n-                 GCCardSet (reserved=29KB, committed=29KB)\n                            (malloc=29KB #387) (at peak) \n \n-                  Compiler (reserved=230KB, committed=230KB)\n                            (malloc=66KB #131) (peak=81KB #148) \n                            (arena=164KB #4) (peak=27098KB #12)\n \n-                  Internal (reserved=1349KB, committed=1349KB)\n                            (malloc=1285KB #4289) (at peak) \n                            (mmap: reserved=64KB, committed=64KB, at peak) \n \n-                     Other (reserved=8KB, committed=8KB)\n                            (malloc=8KB #4) (at peak) \n \n-                    Symbol (reserved=3866KB, committed=3866KB)\n                            (malloc=3314KB #31695) (at peak) \n                            (arena=552KB #1) (at peak)\n \n-    Native Memory Tracking (reserved=878KB, committed=878KB)\n                            (malloc=18KB #300) (peak=18KB #303) \n                            (tracking overhead=860KB)\n \n-        Shared class space (reserved=16384KB, committed=12800KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=12800KB, peak=13056KB) \n \n-               Arena Chunk (reserved=2581KB, committed=2581KB)\n                            (malloc=2581KB #169) (peak=27815KB #698) \n \n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB #2183) (at peak) \n \n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak) \n \n-           Synchronization (reserved=30KB, committed=30KB)\n                            (malloc=30KB #447) (at peak) \n \n-            Serviceability (reserved=17KB, committed=17KB)\n                            (malloc=17KB #12) (peak=17KB #14) \n \n-                 Metaspace (reserved=65590KB, committed=8182KB)\n                            (malloc=54KB #60) (at peak) \n                            (mmap: reserved=65536KB, committed=8128KB, at peak) \n \n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB #8) (at peak) \n \n-           Object Monitors (reserved=1KB, committed=1KB)\n                            (malloc=1KB #5) (at peak) \n \n-                   Unknown (reserved=0KB, committed=0KB)\n                            (mmap: reserved=0KB, committed=0KB, peak=20KB)",
+          "nmtReservedBytes": 10219988992,
+          "nmtCommittedBytes": 661039104,
+          "heapCommittedBytes": 536870912,
+          "heapUsedBytes": 41026560
+        },
+        {
+          "iteration": 548,
+          "elapsedMs": 33420.0598,
+          "resources": {
+            "utc": "2026-11-22T21:43:22.0378822Z",
+            "java": {
+              "available": true,
+              "pid": 28820,
+              "startUtc": "2026-11-22T21:42:48.6164367Z",
+              "cpuMs": 10218.75,
+              "privateBytes": 694558720,
+              "workingSetBytes": 240508928,
+              "handles": 556,
+              "threads": 39
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 10218.75,
+              "privateBytes": 694558720,
+              "workingSetBytes": 240508928,
+              "handles": 556,
+              "threads": 39
+            }
+          },
+          "heap": "28820:\r\n garbage-first heap   total 524288K, used 112475K [0x0000000603800000, 0x0000000800000000)\n  region size 4096K, 27 young (110592K), 4 survivors (16384K)\n Metaspace       used 8842K, committed 9024K, reserved 1114112K\n  class space    used 827K, committed 896K, reserved 1048576K",
+          "nativeMemory": "28820:\r\n\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=9992184KB, committed=657336KB\n       malloc: 54192KB #55520\n       mmap:   reserved=9937992KB, committed=603144KB\n\n-                 Java Heap (reserved=8331264KB, committed=524288KB)\n                            (mmap: reserved=8331264KB, committed=524288KB, at peak) \n \n-                     Class (reserved=1048888KB, committed=1208KB)\n                            (classes #2542)\n                            (  instance classes #2275, array classes #267)\n                            (malloc=312KB #8128) (at peak) \n                            (mmap: reserved=1048576KB, committed=896KB, at peak) \n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=8128KB)\n                            (    used=8015KB)\n                            (    waste=113KB =1.39%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=896KB)\n                            (    used=828KB)\n                            (    waste=68KB =7.63%)\n \n-                    Thread (reserved=31825KB, committed=1329KB)\n                            (threads #31)\n                            (stack: reserved=31744KB, committed=1248KB, peak=1400KB)\n                            (malloc=46KB #191) (peak=70KB #243) \n                            (arena=34KB #60) (peak=1589KB #43)\n \n-                      Code (reserved=248531KB, committed=12403KB)\n                            (malloc=787KB #4284) (at peak) \n                            (mmap: reserved=247744KB, committed=11616KB, at peak) \n                            (arena=0KB #0) (peak=33KB #1)\n \n-                        GC (reserved=228820KB, committed=76244KB)\n                            (malloc=32148KB #2806) (peak=32200KB #3080) \n                            (mmap: reserved=196672KB, committed=44096KB, at peak) \n \n-                 GCCardSet (reserved=29KB, committed=29KB)\n                            (malloc=29KB #387) (at peak) \n \n-                  Compiler (reserved=229KB, committed=229KB)\n                            (malloc=66KB #131) (peak=81KB #148) \n                            (arena=164KB #4) (peak=27098KB #12)\n \n-                  Internal (reserved=1349KB, committed=1349KB)\n                            (malloc=1285KB #4292) (at peak) \n                            (mmap: reserved=64KB, committed=64KB, at peak) \n \n-                     Other (reserved=8KB, committed=8KB)\n                            (malloc=8KB #4) (at peak) \n \n-                    Symbol (reserved=3867KB, committed=3867KB)\n                            (malloc=3315KB #31737) (at peak) \n                            (arena=552KB #1) (at peak)\n \n-    Native Memory Tracking (reserved=885KB, committed=885KB)\n                            (malloc=18KB #301) (peak=18KB #303) \n                            (tracking overhead=868KB)\n \n-        Shared class space (reserved=16384KB, committed=12800KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=12800KB, peak=13056KB) \n \n-               Arena Chunk (reserved=14279KB, committed=14279KB)\n                            (malloc=14279KB #528) (peak=27815KB #698) \n \n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB #2183) (at peak) \n \n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak) \n \n-           Synchronization (reserved=30KB, committed=30KB)\n                            (malloc=30KB #447) (at peak) \n \n-            Serviceability (reserved=17KB, committed=17KB)\n                            (malloc=17KB #12) (peak=17KB #14) \n \n-                 Metaspace (reserved=65590KB, committed=8182KB)\n                            (malloc=54KB #60) (at peak) \n                            (mmap: reserved=65536KB, committed=8128KB, at peak) \n \n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB #8) (at peak) \n \n-           Object Monitors (reserved=1KB, committed=1KB)\n                            (malloc=1KB #5) (at peak) \n \n-                   Unknown (reserved=0KB, committed=0KB)\n                            (mmap: reserved=0KB, committed=0KB, peak=20KB)",
+          "nmtReservedBytes": 10231996416,
+          "nmtCommittedBytes": 673112064,
+          "heapCommittedBytes": 536870912,
+          "heapUsedBytes": 115174400
+        },
+        {
+          "iteration": 734,
+          "elapsedMs": 44074.9726,
+          "resources": {
+            "utc": "2026-11-22T21:43:32.6925417Z",
+            "java": {
+              "available": true,
+              "pid": 28820,
+              "startUtc": "2026-11-22T21:42:48.6164367Z",
+              "cpuMs": 12750.0,
+              "privateBytes": 682618880,
+              "workingSetBytes": 248823808,
+              "handles": 556,
+              "threads": 39
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 12750.0,
+              "privateBytes": 682618880,
+              "workingSetBytes": 248823808,
+              "handles": 556,
+              "threads": 39
+            }
+          },
+          "heap": "28820:\r\n garbage-first heap   total 524288K, used 77493K [0x0000000603800000, 0x0000000800000000)\n  region size 4096K, 18 young (73728K), 4 survivors (16384K)\n Metaspace       used 8842K, committed 9024K, reserved 1114112K\n  class space    used 827K, committed 896K, reserved 1048576K",
+          "nativeMemory": "28820:\r\n\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=9982976KB, committed=648128KB\n       malloc: 44984KB #55213\n       mmap:   reserved=9937992KB, committed=603144KB\n\n-                 Java Heap (reserved=8331264KB, committed=524288KB)\n                            (mmap: reserved=8331264KB, committed=524288KB, at peak) \n \n-                     Class (reserved=1048889KB, committed=1209KB)\n                            (classes #2542)\n                            (  instance classes #2275, array classes #267)\n                            (malloc=313KB #8156) (at peak) \n                            (mmap: reserved=1048576KB, committed=896KB, at peak) \n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=8128KB)\n                            (    used=8015KB)\n                            (    waste=113KB =1.39%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=896KB)\n                            (    used=828KB)\n                            (    waste=68KB =7.63%)\n \n-                    Thread (reserved=31825KB, committed=1329KB)\n                            (threads #31)\n                            (stack: reserved=31744KB, committed=1248KB, peak=1400KB)\n                            (malloc=46KB #191) (peak=70KB #243) \n                            (arena=34KB #60) (peak=1589KB #43)\n \n-                      Code (reserved=248537KB, committed=12409KB)\n                            (malloc=793KB #4310) (at peak) \n                            (mmap: reserved=247744KB, committed=11616KB, at peak) \n                            (arena=0KB #0) (peak=33KB #1)\n \n-                        GC (reserved=228849KB, committed=76273KB)\n                            (malloc=32177KB #2672) (peak=32228KB #2959) \n                            (mmap: reserved=196672KB, committed=44096KB, at peak) \n \n-                 GCCardSet (reserved=29KB, committed=29KB)\n                            (malloc=29KB #387) (at peak) \n \n-                  Compiler (reserved=229KB, committed=229KB)\n                            (malloc=66KB #131) (peak=81KB #148) \n                            (arena=164KB #4) (peak=27098KB #12)\n \n-                  Internal (reserved=1349KB, committed=1349KB)\n                            (malloc=1285KB #4294) (at peak) \n                            (mmap: reserved=64KB, committed=64KB, at peak) \n \n-                     Other (reserved=8KB, committed=8KB)\n                            (malloc=8KB #4) (at peak) \n \n-                    Symbol (reserved=3868KB, committed=3868KB)\n                            (malloc=3317KB #31797) (at peak) \n                            (arena=552KB #1) (at peak)\n \n-    Native Memory Tracking (reserved=881KB, committed=881KB)\n                            (malloc=18KB #301) (peak=18KB #303) \n                            (tracking overhead=863KB)\n \n-        Shared class space (reserved=16384KB, committed=12800KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=12800KB, peak=13056KB) \n \n-               Arena Chunk (reserved=5037KB, committed=5037KB)\n                            (malloc=5037KB #239) (peak=27815KB #698) \n \n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB #2183) (at peak) \n \n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak) \n \n-           Synchronization (reserved=30KB, committed=30KB)\n                            (malloc=30KB #447) (at peak) \n \n-            Serviceability (reserved=17KB, committed=17KB)\n                            (malloc=17KB #12) (peak=17KB #14) \n \n-                 Metaspace (reserved=65590KB, committed=8182KB)\n                            (malloc=54KB #60) (at peak) \n                            (mmap: reserved=65536KB, committed=8128KB, at peak) \n \n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB #8) (at peak) \n \n-           Object Monitors (reserved=1KB, committed=1KB)\n                            (malloc=1KB #5) (at peak) \n \n-                   Unknown (reserved=0KB, committed=0KB)\n                            (mmap: reserved=0KB, committed=0KB, peak=20KB)",
+          "nmtReservedBytes": 10222567424,
+          "nmtCommittedBytes": 663683072,
+          "heapCommittedBytes": 536870912,
+          "heapUsedBytes": 79352832
+        },
+        {
+          "iteration": 918,
+          "elapsedMs": 54959.1292,
+          "resources": {
+            "utc": "2026-11-22T21:43:43.5769803Z",
+            "java": {
+              "available": true,
+              "pid": 28820,
+              "startUtc": "2026-11-22T21:42:48.6164367Z",
+              "cpuMs": 14828.125,
+              "privateBytes": 681848832,
+              "workingSetBytes": 247189504,
+              "handles": 556,
+              "threads": 39
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 14828.125,
+              "privateBytes": 681848832,
+              "workingSetBytes": 247189504,
+              "handles": 556,
+              "threads": 39
+            }
+          },
+          "heap": "28820:\r\n garbage-first heap   total 524288K, used 148701K [0x0000000603800000, 0x0000000800000000)\n  region size 4096K, 35 young (143360K), 4 survivors (16384K)\n Metaspace       used 8842K, committed 9024K, reserved 1114112K\n  class space    used 827K, committed 896K, reserved 1048576K",
+          "nativeMemory": "28820:\r\n\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=9979307KB, committed=644459KB\n       malloc: 41315KB #55159\n       mmap:   reserved=9937992KB, committed=603144KB\n\n-                 Java Heap (reserved=8331264KB, committed=524288KB)\n                            (mmap: reserved=8331264KB, committed=524288KB, at peak) \n \n-                     Class (reserved=1048890KB, committed=1210KB)\n                            (classes #2542)\n                            (  instance classes #2275, array classes #267)\n                            (malloc=314KB #8188) (at peak) \n                            (mmap: reserved=1048576KB, committed=896KB, at peak) \n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=8128KB)\n                            (    used=8015KB)\n                            (    waste=113KB =1.39%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=896KB)\n                            (    used=828KB)\n                            (    waste=68KB =7.63%)\n \n-                    Thread (reserved=31825KB, committed=1329KB)\n                            (threads #31)\n                            (stack: reserved=31744KB, committed=1248KB, peak=1400KB)\n                            (malloc=46KB #191) (peak=70KB #243) \n                            (arena=34KB #60) (peak=1589KB #43)\n \n-                      Code (reserved=248545KB, committed=12417KB)\n                            (malloc=801KB #4321) (at peak) \n                            (mmap: reserved=247744KB, committed=11616KB, at peak) \n                            (arena=0KB #0) (peak=33KB #1)\n \n-                        GC (reserved=228849KB, committed=76273KB)\n                            (malloc=32177KB #2681) (peak=32228KB #2959) \n                            (mmap: reserved=196672KB, committed=44096KB, at peak) \n \n-                 GCCardSet (reserved=29KB, committed=29KB)\n                            (malloc=29KB #387) (at peak) \n \n-                  Compiler (reserved=229KB, committed=229KB)\n                            (malloc=66KB #131) (peak=81KB #148) \n                            (arena=164KB #4) (peak=27098KB #12)\n \n-                  Internal (reserved=1349KB, committed=1349KB)\n                            (malloc=1285KB #4294) (at peak) \n                            (mmap: reserved=64KB, committed=64KB, at peak) \n \n-                     Other (reserved=8KB, committed=8KB)\n                            (malloc=8KB #4) (at peak) \n \n-                    Symbol (reserved=3869KB, committed=3869KB)\n                            (malloc=3317KB #31805) (at peak) \n                            (arena=552KB #1) (at peak)\n \n-    Native Memory Tracking (reserved=880KB, committed=880KB)\n                            (malloc=18KB #301) (peak=18KB #303) \n                            (tracking overhead=862KB)\n \n-        Shared class space (reserved=16384KB, committed=12800KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=12800KB, peak=13056KB) \n \n-               Arena Chunk (reserved=1360KB, committed=1360KB)\n                            (malloc=1360KB #124) (peak=27815KB #698) \n \n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB #2183) (at peak) \n \n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak) \n \n-           Synchronization (reserved=30KB, committed=30KB)\n                            (malloc=30KB #447) (at peak) \n \n-            Serviceability (reserved=17KB, committed=17KB)\n                            (malloc=17KB #12) (peak=17KB #14) \n \n-                 Metaspace (reserved=65590KB, committed=8182KB)\n                            (malloc=54KB #60) (at peak) \n                            (mmap: reserved=65536KB, committed=8128KB, at peak) \n \n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB #8) (at peak) \n \n-           Object Monitors (reserved=1KB, committed=1KB)\n                            (malloc=1KB #6) (at peak) \n \n-                   Unknown (reserved=0KB, committed=0KB)\n                            (mmap: reserved=0KB, committed=0KB, peak=20KB)",
+          "nmtReservedBytes": 10218810368,
+          "nmtCommittedBytes": 659926016,
+          "heapCommittedBytes": 536870912,
+          "heapUsedBytes": 152269824
+        },
+        {
+          "iteration": 992,
+          "elapsedMs": 60042.2763,
+          "resources": {
+            "utc": "2026-11-22T21:43:48.6602702Z",
+            "java": {
+              "available": true,
+              "pid": 28820,
+              "startUtc": "2026-11-22T21:42:48.6164367Z",
+              "cpuMs": 15968.75,
+              "privateBytes": 692600832,
+              "workingSetBytes": 282836992,
+              "handles": 556,
+              "threads": 39
+            },
+            "worker": {
+              "available": false
+            },
+            "total": {
+              "available": true,
+              "cpuMs": 15968.75,
+              "privateBytes": 692600832,
+              "workingSetBytes": 282836992,
+              "handles": 556,
+              "threads": 39
+            }
+          },
+          "heap": "28820:\r\n garbage-first heap   total 524288K, used 177402K [0x0000000603800000, 0x0000000800000000)\n  region size 4096K, 42 young (172032K), 4 survivors (16384K)\n Metaspace       used 8842K, committed 9024K, reserved 1114112K\n  class space    used 827K, committed 896K, reserved 1048576K",
+          "nativeMemory": "28820:\r\n\nNative Memory Tracking:\n\n(Omitting categories weighting less than 1KB)\n\nTotal: reserved=9989973KB, committed=655125KB\n       malloc: 51981KB #55508\n       mmap:   reserved=9937992KB, committed=603144KB\n\n-                 Java Heap (reserved=8331264KB, committed=524288KB)\n                            (mmap: reserved=8331264KB, committed=524288KB, at peak) \n \n-                     Class (reserved=1048890KB, committed=1210KB)\n                            (classes #2542)\n                            (  instance classes #2275, array classes #267)\n                            (malloc=314KB #8201) (at peak) \n                            (mmap: reserved=1048576KB, committed=896KB, at peak) \n                            (  Metadata:   )\n                            (    reserved=65536KB, committed=8128KB)\n                            (    used=8015KB)\n                            (    waste=113KB =1.39%)\n                            (  Class space:)\n                            (    reserved=1048576KB, committed=896KB)\n                            (    used=828KB)\n                            (    waste=68KB =7.63%)\n \n-                    Thread (reserved=31825KB, committed=1329KB)\n                            (threads #31)\n                            (stack: reserved=31744KB, committed=1248KB, peak=1400KB)\n                            (malloc=46KB #191) (peak=70KB #243) \n                            (arena=34KB #60) (peak=1589KB #43)\n \n-                      Code (reserved=248556KB, committed=12428KB)\n                            (malloc=812KB #4325) (peak=812KB #4325) \n                            (mmap: reserved=247744KB, committed=11616KB, at peak) \n                            (arena=0KB #0) (peak=33KB #1)\n \n-                        GC (reserved=228851KB, committed=76275KB)\n                            (malloc=32179KB #2685) (peak=32228KB #2959) \n                            (mmap: reserved=196672KB, committed=44096KB, at peak) \n \n-                 GCCardSet (reserved=29KB, committed=29KB)\n                            (malloc=29KB #387) (at peak) \n \n-                  Compiler (reserved=229KB, committed=229KB)\n                            (malloc=66KB #131) (peak=81KB #148) \n                            (arena=164KB #4) (peak=27098KB #12)\n \n-                  Internal (reserved=1349KB, committed=1349KB)\n                            (malloc=1285KB #4294) (at peak) \n                            (mmap: reserved=64KB, committed=64KB, at peak) \n \n-                     Other (reserved=8KB, committed=8KB)\n                            (malloc=8KB #4) (at peak) \n \n-                    Symbol (reserved=3869KB, committed=3869KB)\n                            (malloc=3317KB #31805) (at peak) \n                            (arena=552KB #1) (at peak)\n \n-    Native Memory Tracking (reserved=885KB, committed=885KB)\n                            (malloc=18KB #301) (peak=18KB #303) \n                            (tracking overhead=867KB)\n \n-        Shared class space (reserved=16384KB, committed=12800KB, readonly=0KB)\n                            (mmap: reserved=16384KB, committed=12800KB, peak=13056KB) \n \n-               Arena Chunk (reserved=12008KB, committed=12008KB)\n                            (malloc=12008KB #457) (peak=27815KB #698) \n \n-                    Module (reserved=180KB, committed=180KB)\n                            (malloc=180KB #2183) (at peak) \n \n-                 Safepoint (reserved=8KB, committed=8KB)\n                            (mmap: reserved=8KB, committed=8KB, at peak) \n \n-           Synchronization (reserved=30KB, committed=30KB)\n                            (malloc=30KB #447) (at peak) \n \n-            Serviceability (reserved=17KB, committed=17KB)\n                            (malloc=17KB #12) (peak=17KB #14) \n \n-                 Metaspace (reserved=65590KB, committed=8182KB)\n                            (malloc=54KB #60) (at peak) \n                            (mmap: reserved=65536KB, committed=8128KB, at peak) \n \n-      String Deduplication (reserved=1KB, committed=1KB)\n                            (malloc=1KB #8) (at peak) \n \n-           Object Monitors (reserved=0KB, committed=0KB)\n                            (malloc=0KB #1) (peak=1KB #6) \n \n-                   Unknown (reserved=0KB, committed=0KB)\n                            (mmap: reserved=0KB, committed=0KB, peak=20KB)",
+          "nmtReservedBytes": 10229732352,
+          "nmtCommittedBytes": 670848000,
+          "heapCommittedBytes": 536870912,
+          "heapUsedBytes": 181659648
+        }
+      ],
+      "exitedNormally": true,
+      "resourceChange": {
+        "intervalSeconds": 59.228621,
+        "privateBytes": 16601088,
+        "workingSetBytes": 174055424,
+        "cpuMs": 15187.5,
+        "handles": 0,
+        "threads": -3,
+        "nmtReservedBytes": 5048320,
+        "nmtCommittedBytes": 11880448,
+        "heapCommittedBytes": 0,
+        "heapUsedBytes": 174203904
+      }
+    }
+  ],
+  "checkpointUtc": "2026-11-22T21:43:44.4514651Z",
+  "elementsPerSnapshot": 20,
+  "fixture": {
+    "exitCode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "finishedUtc": "2026-11-22T21:43:50.4389093Z",
+  "elapsedMs": 61824.063,
+  "failedIterations": 0,
+  "failureRate": 0,
+  "latencyMs": {
+    "snapshot": {
+      "count": 992,
+      "mean": 47.628163004032274,
+      "max": 89.7294,
+      "p50": 46.1661,
+      "p95": 58.0017,
+      "p99": 72.3233
+    },
+    "findEdit": {
+      "count": 992,
+      "mean": 0.2030987903225806,
+      "max": 0.7219,
+      "p50": 0.1744,
+      "p95": 0.3748,
+      "p99": 0.522
+    },
+    "findButton": {
+      "count": 992,
+      "mean": 0.14338064516129026,
+      "max": 0.6871,
+      "p50": 0.1238,
+      "p95": 0.2837,
+      "p99": 0.4237
+    },
+    "elementInfo": {
+      "count": 992,
+      "mean": 4.365291935483869,
+      "max": 22.0099,
+      "p50": 4.2176,
+      "p95": 5.2913,
+      "p99": 6.5228
+    },
+    "setValue": {
+      "count": 11,
+      "mean": 18.52810909090909,
+      "max": 25.1482,
+      "p50": 18.0835,
+      "p95": 25.1482,
+      "p99": 25.1482
+    },
+    "invoke": {
+      "count": 11,
+      "mean": 15.194354545454546,
+      "max": 27.0797,
+      "p50": 13.4724,
+      "p95": 27.0797,
+      "p99": 27.0797
+    }
+  }
+}
