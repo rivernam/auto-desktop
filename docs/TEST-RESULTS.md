@@ -38,7 +38,7 @@
 .\target\Compare-UiaBackends-Matched.ps1 -CSharpWorker .\workers\csharp\bin\Release\UiaWorker.exe -ColdRuns 5 -Sessions 3 -Iterations 20
 ```
 
-GUI 결과는 `target/surefire-reports/TEST-dev.desktop.WindowsGuiTest.xml`, 실행 환경은 `target/windows-uia-run.json`에 있다. 3종 벤치마크는 `tools/Compare-UiaWorkers.ps1`을 확장한 로컬 시험용 사본으로 실행했다. 성능 원본은 `target/windows-uia-benchmark-matched-retry.json`, 기존 WPF 창의 트리 비교는 `target/windows-uia-tree-comparison.json`에 있다. 레거시 빌드는 JDK 11 환경에서 `mvn -f legacy/pom.xml clean verify`로 실행했다.
+GUI 결과는 `target/surefire-reports/TEST-dev.desktop.WindowsGuiTest.xml`, 실행 환경은 `target/windows-uia-run.json`에 있다. 3종 벤치마크는 `tools/Compare-UiaWorkers.ps1`을 확장한 로컬 시험용 사본으로 실행했다. 기존 WPF 창의 트리 비교는 `target/windows-uia-tree-comparison.json`에 있다. 레거시 빌드는 JDK 11 환경에서 `mvn -f legacy/pom.xml clean verify`로 실행했다. [성능 측정 원본 JSON](test-results/2026-11-22-windows-uia-benchmark.json)
 
 ## JNA 직접 COM 어댑터 추가 후 검증
 
