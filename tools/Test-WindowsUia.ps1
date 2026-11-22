@@ -26,14 +26,14 @@ try {
     $tests = $suite.testsuite
     $expected = @('operatesDedicatedWpfWindowWithoutMovingPhysicalCursor',
         'csharpWorkerOperatesDedicatedWpfWindowWithoutMovingPhysicalCursor')
-    $jnaCase = 'jnaOperatesDedicatedWpfWindowWithoutMovingPhysicalCursor'
-    if ($IncludeJna) { $expected += $jnaCase }
+    $jnaCases = @('jnaOperatesDedicatedWpfWindowWithoutMovingPhysicalCursor', 'comparesDecoratedWpfTreeAcrossBackends')
+    if ($IncludeJna) { $expected += $jnaCases }
+    $expectedSkipped = if ($IncludeJna) { @() } else { $jnaCases }
     $passed = @($tests.SelectNodes('testcase[not(skipped or error or failure)]') | ForEach-Object { $_.name })
     $skipped = @($tests.SelectNodes('testcase[skipped]') | ForEach-Object { $_.name })
     if ([int]$tests.failures -ne 0 -or [int]$tests.errors -ne 0 -or
         @(Compare-Object $expected $passed).Count -ne 0 -or
-        ($IncludeJna -and $skipped.Count -ne 0) -or
-        (!$IncludeJna -and ($skipped.Count -ne 1 -or $skipped[0] -ne $jnaCase))) {
+        (($skipped | Sort-Object) -join ',') -cne (($expectedSkipped | Sort-Object) -join ',')) {
         throw 'The GUI test report does not match the selected backends.'
     }
     [ordered]@{

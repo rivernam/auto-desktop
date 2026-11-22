@@ -261,16 +261,22 @@ final class UiaCom implements AutoCloseable {
     Ref invokePattern(Ref node) { return pattern(node, 10000, INVOKE); }
     Ref valuePattern(Ref node) { return pattern(node, 10002, VALUE); }
     boolean readOnly(Ref pattern) { return integer(pattern, 5) != 0; }
-    void invoke(Ref pattern) { checked(vcall(pattern.pointer(), 3)); }
+    void invoke(Ref pattern, Runnable beforeMutation) {
+        beforeMutation.run();
+        checked(vcall(pattern.pointer(), 3));
+    }
 
-    void setValue(Ref pattern, String value) {
+    void setValue(Ref pattern, String value, Runnable beforeMutation) {
         var api = AutomationApi.INSTANCE;
         try (Memory text = new Memory((value.length() + 1L) * 2)) {
             try {
                 for (int i = 0; i < value.length(); i++) text.setShort(2L * i, (short) value.charAt(i));
                 Pointer bstr = api.SysAllocStringLen(text, value.length());
                 if (bstr == null) throw new ComFailure(0x8007000e);
-                try { checked(vcall(pattern.pointer(), 3, bstr)); }
+                try {
+                    beforeMutation.run();
+                    checked(vcall(pattern.pointer(), 3, bstr));
+                }
                 finally { api.SysFreeString(bstr); }
             } finally { text.clear(); }
         }

@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class WindowsGuiTest {
     @TempDir Path directory;
+    private FixtureOutput fixtureOutput;
+
+    private record TreeNode(String role, String automationId, String name) {}
+    private record TreeShape(Map<List<TreeNode>, Integer> content, Map<List<TreeNode>, Integer> chrome) {}
 
     @Test
     @EnabledIfSystemProperty(named = "desktop.windowsIT", matches = "true")
@@ -35,12 +40,17 @@ class WindowsGuiTest {
     @Test
     @EnabledIfSystemProperty(named = "desktop.csharpIT", matches = "true")
     void csharpWorkerOperatesDedicatedWpfWindowWithoutMovingPhysicalCursor() throws Exception {
+        Path executable = csharpWorker();
+        verifyWpfWindow(() -> WindowsAdapter.forCSharpWorker(executable), executable);
+    }
+
+    private static Path csharpWorker() {
         String configured = System.getProperty("desktop.csharpWorker");
         assertTrue(configured != null && !configured.isBlank(), "Specify -Ddesktop.csharpWorker=<absolute exe path>.");
         Path executable = Path.of(configured);
         assertTrue(executable.isAbsolute() && Files.isRegularFile(executable),
                 "desktop.csharpWorker must be the absolute path of a published worker executable.");
-        verifyWpfWindow(() -> WindowsAdapter.forCSharpWorker(executable), executable);
+        return executable;
     }
 
     @Test
@@ -49,7 +59,61 @@ class WindowsGuiTest {
         verifyWpfWindow(JnaDesktopAdapter::new, null);
     }
 
-    private void verifyWpfWindow(Supplier<DesktopAdapter> factory, Path csharpWorker) throws Exception {
+    @Test
+    @EnabledIfSystemProperty(named = "desktop.jnaIT", matches = "true")
+    @EnabledIfSystemProperty(named = "desktop.windowsIT", matches = "true")
+    @EnabledIfSystemProperty(named = "desktop.csharpIT", matches = "true")
+    void comparesDecoratedWpfTreeAcrossBackends() throws Exception {
+        String title = "Desktop automation tree fixture " + UUID.randomUUID();
+        Process fixture = startFixture(title);
+        try {
+            int pid = Math.toIntExact(fixture.pid());
+            awaitFile(fixture, "ready", Integer.toString(pid));
+            try (var powershell = new WindowsAdapter();
+                 var csharp = WindowsAdapter.forCSharpWorker(csharpWorker());
+                 var jna = new JnaDesktopAdapter()) {
+                TreeShape shell = treeShape(capture(powershell, pid, title));
+                TreeShape managed = treeShape(capture(csharp, pid, title));
+                TreeShape nativeTree = treeShape(capture(jna, pid, title));
+                assertFalse(shell.chrome().isEmpty(), "The decorated fixture should expose a title bar.");
+                assertEquals(shell, managed, "Managed clients disagree on the decorated tree.");
+                assertEquals(shell.content(), nativeTree.content(), "Native UIA lost WPF content or its parent path.");
+                System.out.println("Managed title-bar paths: " + shell.chrome().keySet());
+                System.out.println("Native title-bar paths: " + nativeTree.chrome().keySet());
+            }
+        } finally { stopFixture(fixture); }
+    }
+
+    private static JsonNode capture(DesktopAdapter adapter, int pid, String title) {
+        Agent agent = new Agent(adapter, Set.of(), Set.of());
+        String windowId = fixtureWindow(agent, pid, title);
+        return result(agent, request("snapshot").put("windowId", windowId));
+    }
+
+    private static TreeShape treeShape(JsonNode snapshot) {
+        assertFalse(snapshot.path("truncated").asBoolean(true));
+        Map<String, List<TreeNode>> paths = new HashMap<>();
+        Map<List<TreeNode>, Integer> content = new HashMap<>();
+        Map<List<TreeNode>, Integer> chrome = new HashMap<>();
+        for (JsonNode element : snapshot.path("elements")) {
+            var parent = element.path("parentRef");
+            var path = new ArrayList<TreeNode>();
+            if (parent.isTextual()) {
+                var ancestors = paths.get(parent.asText());
+                assertNotNull(ancestors, "Control View traversal must report parents before their children.");
+                path.addAll(ancestors);
+            }
+            path.add(new TreeNode(element.path("role").asText(), element.path("automationId").asText(),
+                    element.path("name").asText()));
+            var signature = List.copyOf(path);
+            paths.put(element.path("ref").asText(), signature);
+            var part = path.size() > 1 && path.get(1).role().equals("TitleBar") ? chrome : content;
+            part.merge(signature, 1, Integer::sum);
+        }
+        return new TreeShape(content, chrome);
+    }
+
+    private Process startFixture(String title) throws IOException {
         String os = System.getProperty("os.name");
         assertTrue(Set.of("Windows 10", "Windows 11").contains(os),
                 "This test requires an interactive Windows 10 or 11 desktop. Detected " + os);
@@ -59,12 +123,36 @@ class WindowsGuiTest {
             assertNotNull(resource);
             Files.copy(resource, script);
         }
-        String title = "Desktop agent fixture " + UUID.randomUUID();
-        Path powershell = Path.of(System.getenv("SystemRoot"), "System32", "WindowsPowerShell",
-                "v1.0", "powershell.exe");
-        Process fixture = new ProcessBuilder(powershell.toString(), "-NoProfile", "-NonInteractive", "-STA",
+        Process fixture = new ProcessBuilder(powershell().toString(), "-NoProfile", "-NonInteractive", "-STA",
                 "-ExecutionPolicy", "RemoteSigned", "-File", script.toString(), directory.toString(), title)
-                .redirectErrorStream(true).redirectOutput(directory.resolve("fixture.log").toFile()).start();
+                .redirectErrorStream(true).start();
+        fixtureOutput = new FixtureOutput(fixture);
+        return fixture;
+    }
+
+    private static Path powershell() {
+        return Path.of(System.getenv("SystemRoot"), "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+    }
+
+    private void stopFixture(Process fixture) throws Exception {
+        try {
+            if (fixture.isAlive()) {
+                Files.createFile(directory.resolve("close-fixture"));
+                assertTrue(fixture.waitFor(5, TimeUnit.SECONDS), "Fixture did not close gracefully.");
+                assertEquals(0, fixture.exitValue(), fixtureOutput::current);
+            }
+        } finally {
+            if (fixture.isAlive()) {
+                fixture.destroyForcibly();
+                assertTrue(fixture.waitFor(10, TimeUnit.SECONDS), "Fixture did not exit.");
+            }
+            fixtureOutput.afterExit();
+        }
+    }
+
+    private void verifyWpfWindow(Supplier<DesktopAdapter> factory, Path csharpWorker) throws Exception {
+        String title = "Desktop agent fixture " + UUID.randomUUID();
+        Process fixture = startFixture(title);
         try {
             int pid = Math.toIntExact(fixture.pid());
             awaitFile(fixture, "ready", Integer.toString(pid));
@@ -75,18 +163,7 @@ class WindowsGuiTest {
                 assertEquals("UIA", capabilities.path("backend").asText());
                 assertFalse(capabilities.path("physicalInput").asBoolean(true));
 
-                JsonNode windows = result(agent, request("listWindows"));
-                assertTrue(windows.isArray());
-                String windowId = null;
-                for (JsonNode window : windows) {
-                    if (window.path("processId").asInt() == pid && title.equals(window.path("name").asText())) {
-                        assertNull(windowId, "Multiple windows claim the fixture identity.");
-                        windowId = window.path("windowId").textValue();
-                    }
-                }
-                assertNotNull(windowId, "Dedicated fixture window was absent from listWindows.");
-                assertFalse(windowId.isBlank());
-
+                String windowId = fixtureWindow(agent, pid, title);
                 JsonNode snapshot = result(agent, request("snapshot").put("windowId", windowId));
                 assertTrue(snapshot.path("elements").isArray());
                 assertFalse(snapshot.path("elements").isEmpty());
@@ -154,16 +231,54 @@ class WindowsGuiTest {
                         "automationId", "fixtureEdit", "Edit")).get("ref").asText();
                 result(agent, request("getElementInfo").put("ref", freshEdit));
                 if (adapter instanceof WindowsAdapter) {
-                    verifyWorkerFailures(fixture, windowId, powershell, csharpWorker);
+                    verifyWorkerFailures(fixture, windowId, powershell(), csharpWorker);
+                } else {
+                    freshEdit = verifyScopedCapture(agent, windowId, refreshed, freshEdit);
                 }
                 fixture.destroyForcibly();
                 assertTrue(fixture.waitFor(10, TimeUnit.SECONDS), "Fixture did not exit.");
                 error(agent, request("getElementInfo").put("ref", freshEdit), "STALE_REFERENCE");
             }
-        } finally {
-            fixture.destroyForcibly();
-            assertTrue(fixture.waitFor(10, TimeUnit.SECONDS), "Fixture did not exit.");
+        } finally { stopFixture(fixture); }
+    }
+
+    private static String verifyScopedCapture(Agent agent, String windowId, JsonNode original, String oldEdit) {
+        String list = result(agent, find(original.path("snapshotId").asText(), "automationId", "fixtureList", "List"))
+                .path("ref").asText();
+        JsonNode scope = result(agent, request("snapshot").put("windowId", windowId).put("scopeRef", list));
+        assertFalse(scope.path("truncated").asBoolean(true));
+        JsonNode root = scope.path("elements").get(0);
+        assertEquals("fixtureList", root.path("automationId").asText());
+        assertTrue(root.path("parentRef").isNull());
+        error(agent, request("getElementInfo").put("ref", oldEdit), "STALE_REFERENCE");
+        String scopeId = scope.path("snapshotId").asText();
+        String scopeRef = root.path("ref").asText();
+        error(agent, find(scopeId, "automationId", "fixtureEdit", "Edit").put("scopeRef", scopeRef),
+                "ELEMENT_NOT_FOUND");
+        String item = result(agent, find(scopeId, "name", "Item one", "ListItem").put("scopeRef", scopeRef))
+                .path("ref").asText();
+        result(agent, request("getElementInfo").put("ref", item));
+        JsonNode limited = result(agent, request("snapshot").put("windowId", windowId).put("scopeRef", scopeRef)
+                .put("maxDepth", 0));
+        assertTrue(limited.path("truncated").asBoolean());
+        error(agent, find(limited.path("snapshotId").asText(), "name", "Item one", "ListItem"),
+                "INCOMPLETE_SNAPSHOT");
+        return limited.path("elements").get(0).path("ref").asText();
+    }
+
+    private static String fixtureWindow(Agent agent, int pid, String title) {
+        JsonNode windows = result(agent, request("listWindows"));
+        assertTrue(windows.isArray());
+        String windowId = null;
+        for (JsonNode window : windows) {
+            if (window.path("processId").asInt() == pid && title.equals(window.path("name").asText())) {
+                assertNull(windowId, "Multiple windows claim the fixture identity.");
+                windowId = window.path("windowId").textValue();
+            }
         }
+        assertNotNull(windowId, "Dedicated fixture window was absent from listWindows.");
+        assertFalse(windowId.isBlank());
+        return windowId;
     }
 
     private void verifyWorkerFailures(Process fixture, String windowId, Path powershell, Path csharpWorker)
@@ -251,7 +366,7 @@ class WindowsGuiTest {
             }
             Thread.sleep(40);
         }
-        throw new IOException("Fixture failed while waiting for " + name + ". Output: "
-                + Files.readString(directory.resolve("fixture.log")));
+        String output = fixture.isAlive() ? fixtureOutput.current() : fixtureOutput.afterExit();
+        throw new IOException("Fixture failed while waiting for " + name + ". Output: " + output);
     }
 }

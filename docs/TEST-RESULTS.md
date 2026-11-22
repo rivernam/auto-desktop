@@ -1,5 +1,53 @@
 # 빌드 및 시험 기록
 
+## JNA 안정화 회귀 검증
+
+Windows 11 Pro x64 빌드 26200, JDK 21.0.11, Maven 3.9.9 및 .NET Framework 4.8 대상 C# 워커에서 검증했다.
+
+| 검사 | 결과 |
+|---|---|
+| 현대 Maven 빌드 및 시험 | 55개 통과. 실패·오류·건너뜀 각 0개 |
+| 실제 WPF 통합 시험 | 4개 통과. 세 백엔드의 변경 결과와 커서 좌표, 일반 창의 콘텐츠 트리 비교, JNA 하위 트리 재수집과 잘림 오류 처리 포함 |
+| 패키징된 JNA의 모의 COM 공급자 시험 | 같은 창 안에서 부모가 바뀐 요소, 보호 상태 변경, 부분 캡처 실패 시 참조 해제, 네이티브 타임아웃, 이미 타임아웃된 사전 검사에서의 늦은 변경 차단 통과 |
+| Windows PowerShell 5.1 시험 도구 | 상태 파일 동시 읽기, 결과 JSON 공유 잠금·체크포인트, 분위수 및 트리 비교를 검증하는 두 스크립트 통과 |
+| 레거시 Java | JDK 11에서 테스트 4개 및 패키징된 JAR의 읽기 전용 계약 7개 통과 |
+
+일반 WPF 창의 25 대 20 차이는 다시 재현됐다. 역할, AutomationId, 이름, 부모 경로가 일치하는 WPF 콘텐츠는 19개였다. PowerShell과 C#은 제목 표시줄과 자식 5개를, JNA는 제목 표시줄 노드 하나를 반환했다. .NET 클라이언트 측 프록시가 시스템 메뉴와 창 제어 버튼을 추가하는 경로를 소스에서 확인했다. [제목 표시줄 차이와 SDK 검토](JNA.md)
+
+기존 `fixture.log`는 프로세스 출력 핸들이 남아 임시 디렉터리 정리에 실패한 기록이 있다. 통합 시험은 이제 출력을 파이프로 소비하고 종료 후 진단을 수집한다. WPF 상태 파일은 동시 읽기가 기존 덮어쓰기를 막는 공유 위반을 재현해 원자적 교체로 전환했다. 이전 벤치마크의 WPF 종료에는 로그가 없어 같은 원인이었는지 확인할 수 없다.
+
+### 최종 빌드 단기 성능
+
+제목 표시줄을 제외한 WPF 트리 19개가 일치했다. 각 백엔드에서 새 프로세스로 첫 스냅샷을 2회 측정하고, 지속 세션 2개에서 워밍업 뒤 각 10회 반복했다. CPU와 작업 집합은 JVM과 해당 워커의 합계이며, 작업 집합은 공유 페이지가 중복으로 계산될 수 있다.
+
+| 지표 | PowerShell | C# Worker | Java/JNA |
+|---|---:|---:|---:|
+| JVM 시작부터 첫 스냅샷 응답까지 중앙값 | 991.9 ms | 621.1 ms | 497.5 ms |
+| 지속 세션 스냅샷 p50 / p95 | 92.4 / 111.5 ms | 54.6 / 57.5 ms | 57.7 / 73.6 ms |
+| 지속 세션 `Invoke` p50 | 21.6 ms | 17.8 ms | 14.1 ms |
+| 지속 세션 `SetValue` p50 | 21.3 ms | 18.4 ms | 19.3 ms |
+| 세션 종료 직전 작업 집합 중앙값 | 192.6 MiB | 128.8 MiB | 105.7 MiB |
+| 10회 반복 구간 CPU 시간 중앙값 | 1,156.3 ms | 421.9 ms | 500.0 ms |
+
+같은 장비의 짧은 실행으로, 시작 시간과 작업 집합은 JNA가 가장 낮았고 지속 세션 스냅샷은 C#이 빨랐다. [최종 벤치마크 JSON](test-results/windows-uia-benchmark-jna-stabilization.json)
+
+### JNA 60초 반복 시험
+
+일반 WPF 창에서 JVM 하나로 958회 반복을 완료했다. 입력값 설정과 버튼 실행을 함께 수행하는 변경 11쌍을 확인했고 실패는 0회였다. 스냅샷 p95는 61.9 ms, p99는 89.6 ms였다. 프로세스 표본 7개를 수집하고 CLI가 EOF로 정상 종료됨을 확인했다.
+
+약 59초의 첫·마지막 표본 사이에 private bytes는 13.3 MiB, working set은 138.4 MiB, NMT committed는 10.0 MiB 증가했다. 핸들은 2개, 스레드는 3개 감소했고 JVM 힙 committed는 같았다. 시작 구간의 단기 변화만으로 장기 누수 여부를 판단할 수 없으며, HotSpot NMT는 COM 객체를 직접 계수하지 않는다. [JNA 반복 시험 JSON](test-results/windows-uia-jna-soak-stabilization.json)
+
+### 재현 명령
+
+```powershell
+.\tools\Test-WindowsUia.ps1 -IncludeJna
+.\tools\Compare-UiaWorkers.ps1 -CSharpWorker .\workers\csharp\bin\Release\UiaWorker.exe -IncludeJna `
+    -ColdRuns 2 -Sessions 2 -Iterations 10 -OutputPath .\target\windows-uia-benchmark.json
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(8)) -OutputPath .\target\windows-uia-jna-soak.json
+```
+
+8시간 반복, 실제 설비 앱, x86 JVM과 Windows XP·CentOS 5, 실제 네이티브 영구 정지 및 JVM 충돌의 복구는 미검증이다. PowerShell은 기본값으로 유지한다.
+
 ## 2026-11-22 로컬 Windows 실기기 검증
 
 `main` 커밋 `fefcb53`을 Windows 11 Pro x64 빌드 26200에서 검증했다. 현대 빌드에는 JDK 21.0.11과 Maven 3.9.9를 사용했고, C# 워커는 MSBuild로 .NET Framework 4.8 대상 Release 빌드를 생성했다.

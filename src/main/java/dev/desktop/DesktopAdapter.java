@@ -27,6 +27,11 @@ public interface DesktopAdapter extends ReadOnlyDesktopAdapter<JsonNode>, AutoCl
                 .put("maxDepth", maxDepth).put("maxElements", maxElements));
     }
 
+    /** Recapture a held element as the root. Unsupported adapters preserve their current capture. */
+    default JsonNode snapshotSubtree(String windowId, String key, int processId, int maxDepth, int maxElements) {
+        throw new AgentException("SNAPSHOT_SCOPE_UNSUPPORTED", "This adapter does not support subtree snapshots.");
+    }
+
     /** Read the held element and verify that it belongs to the given process. */
     default JsonNode elementInfo(String key, int processId) {
         return call(elementRequest("getElementInfo", key, processId));

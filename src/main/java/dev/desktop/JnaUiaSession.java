@@ -5,12 +5,18 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 /** UI Automation session confined to the COM apartment of its constructor. */
 final class JnaUiaSession implements TypedDesktopAdapter {
     private static final int ELEMENT_NOT_AVAILABLE = 0x80040201;
+    private static final int UIA_TIMEOUT = 0x80131505;
+    private static final int RPC_TIMEOUT = 0x8001011f;
+    private static final int WIN32_TIMEOUT = 0x800705b4;
     private static final String[] TYPES = {
         "Button", "Calendar", "CheckBox", "ComboBox", "Edit", "Hyperlink", "Image", "ListItem", "List",
         "Menu", "MenuBar", "MenuItem", "ProgressBar", "RadioButton", "ScrollBar", "Slider", "Spinner",
@@ -19,15 +25,45 @@ final class JnaUiaSession implements TypedDesktopAdapter {
         "Header", "HeaderItem", "Table", "TitleBar", "Separator", "SemanticZoom", "AppBar"
     };
     private final UiaCom com = UiaCom.open();
-    private final Map<String, Entry> entries = new HashMap<>();
-    private Entry anchor;
-    private String windowId;
+    private Capture active;
     private boolean closed;
 
-    private record Entry(UiaCom.Ref node, String key, String parentKey, int pid, int[] runtime, Identity identity) {}
+    private record Entry(UiaCom.Ref node, String key, Entry parent, int pid, int[] runtime, Identity identity) {}
     private record Identity(String name, String role, String automationId, String className, boolean clipped) {}
     private record Info(Identity identity, boolean protect, boolean enabled, boolean offscreen,
                         boolean invoke, boolean writable, int[] bounds, int pid) {}
+
+    private static final class Capture implements AutoCloseable {
+        final String windowId;
+        final Map<String, Entry> entries = new HashMap<>();
+        final Set<UiaCom.Ref> owned = new LinkedHashSet<>();
+        Entry window;
+        Entry root;
+
+        Capture(String windowId) { this.windowId = windowId; }
+
+        void takePath(Capture previous, Entry scope) {
+            for (Entry entry = scope; entry != null; entry = entry.parent()) {
+                owned.add(entry.node());
+                previous.owned.remove(entry.node());
+            }
+            window = previous.window;
+        }
+
+        @Override public void close() {
+            RuntimeException failure = null;
+            for (UiaCom.Ref ref : owned) {
+                try { ref.close(); }
+                catch (RuntimeException releaseFailure) {
+                    if (failure == null) failure = releaseFailure;
+                    else failure.addSuppressed(releaseFailure);
+                }
+            }
+            owned.clear();
+            entries.clear();
+            if (failure != null) throw failure;
+        }
+    }
 
     private static ObjectNode object() { return JsonNodeFactory.instance.objectNode(); }
 
@@ -38,7 +74,10 @@ final class JnaUiaSession implements TypedDesktopAdapter {
             UiaCom.Ref root = com.root();
             if (root == null) throw unavailable();
             return root;
-        } catch (UiaCom.ComFailure failure) { throw unavailable(); }
+        } catch (UiaCom.ComFailure failure) {
+            propagateTimeout(failure);
+            throw unavailable();
+        }
     }
 
     @Override public JsonNode capabilities() {
@@ -51,6 +90,7 @@ final class JnaUiaSession implements TypedDesktopAdapter {
                     .add("findElement").add("getElementInfo").add("invoke").add("setValue");
             return caps;
         } catch (RuntimeException failure) {
+            propagateTimeout(failure);
             return DesktopCapabilities.unavailable("UIA", "UI Automation could not access the interactive desktop.");
         }
     }
@@ -60,6 +100,7 @@ final class JnaUiaSession implements TypedDesktopAdapter {
             try (UiaCom.Ref root = desktop()) {
                 return windows(root);
             } catch (UiaCom.ComFailure failure) {
+                propagateTimeout(failure);
                 if (failure.hresult != ELEMENT_NOT_AVAILABLE) throw unavailable();
             }
         }
@@ -128,6 +169,7 @@ final class JnaUiaSession implements TypedDesktopAdapter {
             retained = true;
             return node;
         } catch (UiaCom.ComFailure failure) {
+            propagateTimeout(failure);
             throw missing();
         } finally {
             if (!retained && node != null) node.close();
@@ -148,9 +190,10 @@ final class JnaUiaSession implements TypedDesktopAdapter {
         }
     }
 
-    private ObjectNode describe(Entry entry, Info info) {
+    private ObjectNode describe(Capture capture, Entry entry, Info info) {
         Identity id = info.identity();
-        ObjectNode row = object().put("key", entry.key()).put("parentKey", entry.parentKey())
+        String parentKey = entry == capture.root ? null : entry.parent().key();
+        ObjectNode row = object().put("key", entry.key()).put("parentKey", parentKey)
                 .put("name", id.name()).put("role", id.role()).put("automationId", id.automationId())
                 .put("className", id.className()).put("processId", info.pid()).put("enabled", info.enabled())
                 .put("offscreen", info.offscreen()).put("backend", "UIA");
@@ -168,82 +211,135 @@ final class JnaUiaSession implements TypedDesktopAdapter {
     }
 
     @Override public JsonNode snapshot(String id, int maxDepth, int maxElements) {
-        clearCapture();
-        if (maxDepth < 0 || maxDepth > 32 || maxElements < 1 || maxElements > 2000) throw precondition();
-        try (UiaCom.Ref desktop = desktop()) {
-            UiaCom.Ref root = window(id, desktop);
+        return capture(id, null, 0, maxDepth, maxElements);
+    }
+
+    @Override public JsonNode snapshotSubtree(String id, String key, int processId, int maxDepth, int maxElements) {
+        return capture(id, Objects.requireNonNull(key), processId, maxDepth, maxElements);
+    }
+
+    private JsonNode capture(String id, String key, int pid, int maxDepth, int maxElements) {
+        Capture previous = active;
+        active = null;
+        var next = new Capture(id);
+        try {
             ObjectNode result = object().put("truncated", false);
             result.putArray("elements");
+            UiaCom.Ref root;
+            Entry parent = null;
+            try (previous) {
+                if (maxDepth < 0 || maxDepth > 32 || maxElements < 1 || maxElements > 2000) throw precondition();
+                try (UiaCom.Ref desktop = desktop()) {
+                    if (key == null) {
+                        root = window(id, desktop);
+                        next.owned.add(root);
+                    } else {
+                        if (previous == null || !previous.windowId.equals(id)) throw stale();
+                        Entry scope = resolve(previous, key, pid, desktop, true);
+                        next.takePath(previous, scope);
+                        root = scope.node();
+                        parent = scope.parent();
+                    }
+                }
+            }
             try {
-                visit(root, null, 0, maxDepth, maxElements, result);
-                windowId = id;
-                return result;
+                visit(next, root, parent, 0, maxDepth, maxElements, result);
             } catch (RuntimeException failure) {
-                clearCapture();
+                propagateTimeout(failure);
                 throw stale();
             }
+            active = next;
+            return result;
+        } finally {
+            if (active != next) next.close();
         }
     }
 
     /** Takes ownership of node on entry, including when a provider call fails. */
-    private void visit(UiaCom.Ref node, String parentKey, int depth, int maxDepth, int maxElements, ObjectNode result) {
-        boolean retained = false;
-        try {
-            Info info = inspect(node);
-            int[] runtime = com.runtimeId(node);
-            if (runtime == null || runtime.length == 0 || info.pid() <= 0) throw stale();
-            Entry entry = new Entry(node, UUID.randomUUID().toString(), parentKey, info.pid(), runtime, info.identity());
-            entries.put(entry.key(), entry);
-            retained = true;
-            if (depth == 0) anchor = entry;
-            result.withArray("elements").add(describe(entry, info));
-            if (info.identity().clipped()) result.put("truncated", true);
-            if (info.protect()) return;
-            for (UiaCom.Ref child = com.firstChild(node); child != null; child = com.nextSibling(child)) {
-                if (depth >= maxDepth || entries.size() >= maxElements) {
-                    child.close();
-                    result.put("truncated", true);
-                    return;
-                }
-                visit(child, entry.key(), depth + 1, maxDepth, maxElements, result);
+    private void visit(Capture capture, UiaCom.Ref node, Entry parent, int depth, int maxDepth, int maxElements,
+                       ObjectNode result) {
+        capture.owned.add(node);
+        Info info = inspect(node);
+        int[] runtime = com.runtimeId(node);
+        if (runtime == null || runtime.length == 0 || info.pid() <= 0) throw stale();
+        Entry entry = new Entry(node, UUID.randomUUID().toString(), parent, info.pid(), runtime, info.identity());
+        capture.entries.put(entry.key(), entry);
+        if (depth == 0) capture.root = entry;
+        if (parent == null) capture.window = entry;
+        result.withArray("elements").add(describe(capture, entry, info));
+        if (info.identity().clipped()) result.put("truncated", true);
+        if (info.protect()) return;
+        for (UiaCom.Ref child = com.firstChild(node); child != null; child = com.nextSibling(child)) {
+            if (depth >= maxDepth || capture.entries.size() >= maxElements) {
+                child.close();
+                result.put("truncated", true);
+                return;
             }
-        } finally {
-            if (!retained) node.close();
+            visit(capture, child, entry, depth + 1, maxDepth, maxElements, result);
         }
     }
 
-    private Entry resolve(String key, int pid, UiaCom.Ref desktop) {
-        Entry selected = entries.get(key);
-        if (anchor == null || selected == null || pid != selected.pid()) throw stale();
-        try (UiaCom.Ref live = window(windowId, desktop)) {
-            if (!com.same(live, anchor.node()) || !sameIdentity(anchor, live)
-                    || !sameIdentity(selected, selected.node()) || !belongs(selected.node(), live, 0)) throw stale();
+    private Entry resolve(Capture capture, String key, int pid, UiaCom.Ref desktop, boolean checkingScope) {
+        if (capture == null) throw stale();
+        Entry selected = capture.entries.get(key);
+        if (selected == null || pid != selected.pid()) throw stale();
+        try (UiaCom.Ref live = window(capture.windowId, desktop)) {
+            if (!com.same(live, capture.window.node()) || !sameIdentity(capture.window, live)
+                    || !sameIdentity(selected, selected.node())
+                    || !matchesParents(capture, selected))
+                throw stale();
+            if (checkingScope && !selected.identity().equals(inspect(selected.node()).identity())) throw stale();
             return selected;
-        } catch (AgentException | UiaCom.ComFailure failure) { throw stale(); }
+        } catch (AgentException | UiaCom.ComFailure failure) {
+            propagateTimeout(failure);
+            throw stale();
+        }
     }
 
     private boolean sameIdentity(Entry entry, UiaCom.Ref node) {
         return com.pid(node) == entry.pid() && Arrays.equals(com.runtimeId(node), entry.runtime());
     }
 
-    private boolean belongs(UiaCom.Ref node, UiaCom.Ref window, int depth) {
-        if (com.same(node, window)) return true;
-        if (depth >= 127) return false;
-        try (UiaCom.Ref parent = com.parent(node)) {
-            return parent != null && belongs(parent, window, depth + 1);
+    private boolean matchesParents(Capture capture, Entry selected) {
+        UiaCom.Ref parent = null;
+        try {
+            Entry cursor = selected;
+            while (cursor.parent() != null) {
+                UiaCom.Ref child = parent;
+                parent = com.parent(child == null ? selected.node() : child);
+                if (child != null) child.close();
+                cursor = cursor.parent();
+                if (parent == null || !com.same(cursor.node(), parent) || !sameIdentity(cursor, parent)
+                        || protectsChildren(parent)) return false;
+            }
+            return cursor == capture.window;
+        } finally {
+            if (parent != null) parent.close();
         }
+    }
+
+    private boolean protectsChildren(UiaCom.Ref node) {
+        if (com.password(node) || com.controlType(node) == 50004) return true;
+        try (UiaCom.Ref value = com.valuePattern(node)) { return value != null; }
     }
 
     @Override public JsonNode elementInfo(String key, int processId) {
         try (UiaCom.Ref desktop = desktop()) {
-            Entry entry = resolve(key, processId, desktop);
-            return describe(entry, inspect(entry.node()));
-        } catch (UiaCom.ComFailure failure) { throw stale(); }
+            Entry entry = resolve(active, key, processId, desktop, false);
+            return describe(active, entry, inspect(entry.node()));
+        } catch (UiaCom.ComFailure failure) {
+            propagateTimeout(failure);
+            throw stale();
+        }
     }
 
     @Override public JsonNode perform(DesktopAction action, String key, int processId, String value) {
+        return perform(action, key, processId, value, () -> {});
+    }
+
+    JsonNode perform(DesktopAction action, String key, int processId, String value, Runnable beforeMutation) {
         try (UiaCom.Ref desktop = desktop()) {
-            Entry entry = resolve(key, processId, desktop);
+            Entry entry = resolve(active, key, processId, desktop, false);
             Info info = inspect(entry.node());
             if (entry.identity().clipped() || !entry.identity().equals(info.identity()) || entry.pid() != info.pid())
                 throw stale();
@@ -254,28 +350,38 @@ final class JnaUiaSession implements TypedDesktopAdapter {
                     ? com.invokePattern(entry.node()) : com.valuePattern(entry.node())) {
                 if (pattern == null) throw new AgentException("PATTERN_UNSUPPORTED", "The pattern is unavailable.");
                 if (action == DesktopAction.SET_VALUE && com.readOnly(pattern)) throw precondition();
+                // The provider may have changed the tree while fetching the action pattern.
+                if (!matchesParents(active, entry)) throw stale();
                 try {
-                    if (action == DesktopAction.INVOKE) com.invoke(pattern);
-                    else com.setValue(pattern, value);
+                    if (action == DesktopAction.INVOKE) com.invoke(pattern, beforeMutation);
+                    else com.setValue(pattern, value, beforeMutation);
+                } catch (AgentException cancelled) {
+                    throw cancelled;
                 } catch (RuntimeException failure) {
+                    propagateTimeout(failure);
                     throw new AgentException("ACTION_OUTCOME_UNKNOWN", "The provider did not confirm the action.");
                 }
             }
             return object().put("performed", true);
-        } catch (UiaCom.ComFailure failure) { throw stale(); }
-    }
-
-    private void clearCapture() {
-        anchor = null;
-        windowId = null;
-        for (Entry entry : entries.values()) entry.node().close();
-        entries.clear();
+        } catch (UiaCom.ComFailure failure) {
+            propagateTimeout(failure);
+            throw stale();
+        }
     }
 
     @Override public void close() {
         if (closed) return;
         closed = true;
-        try { clearCapture(); } finally { com.close(); }
+        try (Capture capture = active) { active = null; }
+        finally { com.close(); }
+    }
+
+    private static void propagateTimeout(RuntimeException failure) {
+        if (failure instanceof AgentException agent && "TIMEOUT".equals(agent.code())) throw agent;
+        if (failure instanceof UiaCom.ComFailure comFailure
+                && (comFailure.hresult == UIA_TIMEOUT || comFailure.hresult == RPC_TIMEOUT
+                    || comFailure.hresult == WIN32_TIMEOUT))
+            throw new AgentException("TIMEOUT", "The Windows UI Automation provider timed out.");
     }
 
     private static AgentException precondition() {
