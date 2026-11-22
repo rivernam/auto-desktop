@@ -1,5 +1,45 @@
 # 빌드 및 시험 기록
 
+## 2026-11-22 로컬 Windows 실기기 검증
+
+`main` 커밋 `fefcb53`을 Windows 11 Pro x64 빌드 26200에서 검증했다. 현대 빌드에는 JDK 21.0.11과 Maven 3.9.9를 사용했고, C# 워커는 MSBuild로 .NET Framework 4.8 대상 Release 빌드를 생성했다.
+
+| 검증 | 결과 |
+|---|---|
+| 현대 Maven 빌드 및 패키징 | 45개 통과. 실패·오류·건너뜀 각 0개 |
+| 실제 WPF GUI | PowerShell, C# Worker, Java/JNA 각각 통과. 창·트리 조회, 요소 검색, 버튼 이벤트 1회, 실제 텍스트 변경, 두 동작 전후 물리 커서 좌표 일치를 확인 |
+| 워커 장애 및 변경 명령 중복 방지 | PowerShell과 C#에서 워커 강제 종료 후 복구, 변경 응답 유실 후 동일 명령 재실행 차단을 확인 |
+| 패키징한 JNA 세션 및 C# 워커 프로토콜 | 모의 COM 트리로 JNA 세션 검사 통과. C# 워커는 비정상·초과 프레임 거부 후 후속 요청에 정상 응답 |
+| 레거시 Java | JDK 11로 Java 7 대상 빌드 및 테스트 4개 통과. 패키징한 레거시 JAR는 읽기 전용 프로토콜 7개 통과. 클래스 229개 모두 major 51 |
+
+첫 실행에서는 JNA 동작 검증 후 JUnit이 잠긴 `fixture.log`를 삭제하지 못했다. 같은 명령을 재실행했을 때 오류는 재현되지 않았다. 레거시 빌드는 JDK 21에서 `--release 7`을 지원하지 않아 JDK 11로 재실행했다.
+
+### PowerShell, C# Worker, Java/JNA 단기 성능
+
+기존 WPF 창에서는 두 워커가 25개, JNA가 20개 요소를 반환했다. 차이는 제목 표시줄 하위의 시스템 메뉴와 창 제어 버튼이었다. 제목 표시줄을 제거한 전용 WPF 창에서 세 백엔드의 19개 요소가 역할, AutomationId, 부모 경로 기준으로 일치함을 확인하고 다시 측정했다. 백엔드별로 새 프로세스에서 요청 종류당 5회, 지속 세션 3개에서 워밍업 1회 후 20회씩 측정했다. 총 180회 반복에서 입력값 변경과 버튼 카운터 증가를 확인했다.
+
+| 지표 | PowerShell | C# Worker | Java/JNA |
+|---|---:|---:|---:|
+| 프로세스 시작부터 첫 스냅샷 응답까지 중앙값 | 955.4 ms | 638.3 ms | 462.6 ms |
+| 지속 세션 `snapshot` p50 / p95 | 89.0 / 106.3 ms | 56.9 / 76.9 ms | 49.7 / 59.8 ms |
+| 지속 세션 `invoke` p50 | 20.6 ms | 16.9 ms | 14.2 ms |
+| 지속 세션 `setValue` p50 | 15.3 ms | 12.9 ms | 9.8 ms |
+| 세션 종료 직전 작업 집합 중앙값 | 196.6 MiB | 130.1 MiB | 106.8 MiB |
+| 세션 반복 구간 CPU 시간 중앙값 | 2,000.0 ms | 1,078.1 ms | 828.1 ms |
+
+지연은 CLI 요청부터 응답까지의 시간이다. CPU와 작업 집합은 JVM과 별도 워커를 합산했으며, JVM 내부에서 실행되는 JNA는 JVM만 측정했다. 합산 작업 집합은 프로세스가 공유하는 페이지를 중복 계산할 수 있다. 표의 지표는 모두 JNA가 가장 낮았지만, 이 단일 장비의 단기 결과로 장시간 안정성을 판단할 수는 없다.
+
+제목 표시줄을 제거한 첫 시험에서는 WPF 앱이 도중에 종료됐다. 종료 로그를 수집하도록 설정한 재실행에서는 세 백엔드가 모두 완료했고 오류 로그는 비어 있었다. 장시간 안정성, 실제 설비 앱, Windows XP SP3 및 CentOS 5에서의 실행은 미검증이다.
+
+### 실행 명령과 로컬 보고서
+
+```powershell
+.\tools\Test-WindowsUia.ps1 -IncludeJna
+.\target\Compare-UiaBackends-Matched.ps1 -CSharpWorker .\workers\csharp\bin\Release\UiaWorker.exe -ColdRuns 5 -Sessions 3 -Iterations 20
+```
+
+GUI 결과는 `target/surefire-reports/TEST-dev.desktop.WindowsGuiTest.xml`, 실행 환경은 `target/windows-uia-run.json`에 있다. 3종 벤치마크는 `tools/Compare-UiaWorkers.ps1`을 확장한 로컬 시험용 사본으로 실행했다. 성능 원본은 `target/windows-uia-benchmark-matched-retry.json`, 기존 WPF 창의 트리 비교는 `target/windows-uia-tree-comparison.json`에 있다. 레거시 빌드는 JDK 11 환경에서 `mvn -f legacy/pom.xml clean verify`로 실행했다.
+
 ## JNA 직접 COM 어댑터 추가 후 검증
 
 2026-11-21, Debian x86_64. OpenJDK 21과 Maven 3.9.11로 현대 JAR의 Java 17 대상 빌드를 검증했다.
