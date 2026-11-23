@@ -168,10 +168,24 @@ if ($heapInfo.heapCommittedBytes -ne 520192KB -or $heapInfo.heapUsedBytes -ne 22
     $heapInfo.heapSurvivorBytes -ne 40960KB) {
     throw 'G1 heap totals and young/survivor sizes were not parsed from GC.heap_info.'
 }
-$serialHeap = ConvertFrom-JvmHeapInfo ' def new generation   total 157248K, used 5602K [0x1, 0x2, 0x3)'
-if ($serialHeap.Contains('heapUsedBytes') -or $serialHeap.Contains('heapYoungBytes')) {
-    throw 'A heap layout without G1 totals must not produce guessed figures.'
+# Recorded from JDK 17 with -XX:+UseSerialGC -Xms16m. "total" of the young generation leaves out the to space.
+$serialHeap = ConvertFrom-JvmHeapInfo @"
+22556:
+ def new generation   total 4928K, used 2136K [0x0000000604a00000, 0x0000000604f50000, 0x00000006adc00000)
+  eden space 4416K,  38% used [0x0000000604a00000, 0x0000000604ba9130, 0x0000000604e50000)
+  from space 512K,  85% used [0x0000000604ed0000, 0x0000000604f3d290, 0x0000000604f50000)
+  to   space 512K,   0% used [0x0000000604e50000, 0x0000000604e50000, 0x0000000604ed0000)
+ tenured generation   total 10944K, used 2796K [0x00000006adc00000, 0x00000006ae6b0000, 0x0000000800000000)
+   the space 10944K,  25% used [0x00000006adc00000, 0x00000006adebb108, 0x00000006adebb200, 0x00000006ae6b0000)
+ Metaspace       used 7836K, committed 8128K, reserved 1114112K
+"@
+if ($serialHeap.heapCommittedBytes -ne 16384KB -or $serialHeap.heapUsedBytes -ne 4932KB -or
+    $serialHeap.heapYoungBytes -ne 2136KB -or $serialHeap.heapSurvivorBytes -ne 447120 -or
+    $serialHeap.Contains('heapRegionBytes')) {
+    throw 'Serial heap figures must add both generations, all three young spaces and the used part of the from space.'
 }
+$partialHeap = ConvertFrom-JvmHeapInfo ' def new generation   total 157248K, used 5602K [0x1, 0x2, 0x3)'
+if ($partialHeap.Count) { throw 'A heap layout that is not fully recognized must not produce guessed figures.' }
 
 $gcLogPattern = 'C:\soak dir\run.gc-%p.log'
 if ($env:OS -eq 'Windows_NT' -and (Get-SoakGcLogPattern 'C:\soak dir\run.json') -cne $gcLogPattern) {
@@ -191,6 +205,23 @@ $gcLogArgument = '"-Xlog:gc*,gc+ref=debug,gc+phases=debug,gc+age=trace,safepoint
 if ((New-CliStartInfo 'JNA' -TrackNativeMemory -GcLogPath $gcLogPattern).Arguments -cne
     "-XX:NativeMemoryTracking=summary $gcLogArgument $cliTail") {
     throw 'The GC log option must quote its path and record UTC and uptime decorations.'
+}
+if ((New-CliStartInfo 'JNA' -TrackNativeMemory -JvmOptions @('-Xms16m', '-XX:+UseSerialGC')).Arguments -cne
+    "-XX:NativeMemoryTracking=summary -Xms16m -XX:+UseSerialGC $cliTail") {
+    throw 'Extra JVM options must precede -jar in the order given.'
+}
+foreach ($option in @('Xms16m', '-Xms16m -jar other.jar', '-Dname="a b"', '-XX:+UseSerialGC,-Xms16m', '')) {
+    $rejected = $false
+    try { [void](New-CliStartInfo 'JNA' -JvmOptions @($option)) } catch { $rejected = $true }
+    if (!$rejected) { throw "The JVM option '$option' must be rejected: it could change what is launched." }
+}
+# powershell -File passes "-JvmOptions a,b" as one string, so the list is split on commas and spaces.
+$optionList = @(ConvertTo-UiaJvmOptions @('-XX:+UseSerialGC,-Xms16m', ' -Xss512k  -Dname=value '))
+if (($optionList -join '|') -cne '-XX:+UseSerialGC|-Xms16m|-Xss512k|-Dname=value') {
+    throw "JVM options must be split into single tokens: $($optionList -join '|')"
+}
+if (@(ConvertTo-UiaJvmOptions @()).Count -or @(ConvertTo-UiaJvmOptions $null).Count) {
+    throw 'No JVM options must stay an empty list.'
 }
 
 $UiaSlowRequestMs = 100.0

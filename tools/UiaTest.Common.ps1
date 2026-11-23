@@ -192,7 +192,13 @@ function Get-SoakGcLogName([string]$pattern, [int]$processId) {
     return [IO.Path]::GetFileName($pattern).Replace('%p', [string]$processId)
 }
 
-function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]$GcLogPath) {
+# "-JvmOptions '-XX:+UseSerialGC -Xms16m'" and the array form both give one token per option.
+# powershell -File passes a comma-separated list as a single string, so commas separate options too.
+function ConvertTo-UiaJvmOptions([string[]]$options) {
+    return @($options | Where-Object { $_ } | ForEach-Object { $_ -split '[,\s]+' } | Where-Object { $_ })
+}
+
+function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]$GcLogPath, [string[]]$JvmOptions) {
     $start = New-Object Diagnostics.ProcessStartInfo
     $start.FileName = $javaExe
     if ($TrackNativeMemory) { $start.Arguments = '-XX:NativeMemoryTracking=summary ' }
@@ -200,6 +206,11 @@ function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]
         # Unified logging splits its option on ':' and ',', so the path is quoted inside the quoted argument.
         $start.Arguments += '"-Xlog:gc*,gc+ref=debug,gc+phases=debug,gc+age=trace,safepoint:file=\"' + $GcLogPath +
             '\":utctime,uptime,level,tags:filecount=8,filesize=32m" '
+    }
+    foreach ($option in $JvmOptions) {
+        # One unquoted token each, so an option cannot add an argument or replace the JAR.
+        if ($option -cnotmatch '^-[A-Za-z0-9:+=._-]+$') { throw "Unsupported JVM option '$option'." }
+        $start.Arguments += "$option "
     }
     $start.Arguments += "-jar `"$Jar`" --allow-pid $($fixture.Id) --allow-action invoke --allow-action setValue"
     switch ($backend) {
@@ -605,11 +616,28 @@ function Complete-SoakInterval($interval, $intervalLatencies, [double]$endElapse
     return $interval
 }
 
-# jcmd GC.heap_info. Generation sizes are printed by G1 only; young includes the survivor regions.
+# jcmd GC.heap_info for G1 and Serial GC; any other layout yields no figures rather than guessed ones.
+# G1: young is the size of the young regions, survivor regions included.
+# Serial: young is the used part of the young generation, so used - young is the tenured generation exactly.
 function ConvertFrom-JvmHeapInfo([string]$text) {
     $result = [ordered]@{}
     $usage = [regex]::Match($text, '(?i)heap\s+total\s+(\d+)K,\s+used\s+(\d+)K\b')
-    if (!$usage.Success) { return $result }
+    if (!$usage.Success) {
+        $young = [regex]::Match($text, '(?im)^\s*def new generation\s+total\s+\d+K,\s+used\s+(\d+)K\b')
+        $old = [regex]::Match($text, '(?im)^\s*tenured generation\s+total\s+(\d+)K,\s+used\s+(\d+)K\b')
+        $eden = [regex]::Match($text, '(?im)^\s*eden space\s+(\d+)K,')
+        $from = [regex]::Match($text, '(?im)^\s*from space\s+(\d+)K,\s+\d+% used \[0x([0-9a-f]+),\s*0x([0-9a-f]+),')
+        $to = [regex]::Match($text, '(?im)^\s*to\s+space\s+(\d+)K,')
+        if ($young.Success -and $old.Success -and $eden.Success -and $from.Success -and $to.Success) {
+            # The generation's own "total" leaves out the to space, which is committed as well.
+            $result.heapCommittedBytes = ([long]$eden.Groups[1].Value + [long]$from.Groups[1].Value +
+                [long]$to.Groups[1].Value + [long]$old.Groups[1].Value) * 1KB
+            $result.heapUsedBytes = ([long]$young.Groups[1].Value + [long]$old.Groups[2].Value) * 1KB
+            $result.heapYoungBytes = [long]$young.Groups[1].Value * 1KB
+            $result.heapSurvivorBytes = [Convert]::ToInt64($from.Groups[3].Value, 16) - [Convert]::ToInt64($from.Groups[2].Value, 16)
+        }
+        return $result
+    }
     $result.heapCommittedBytes = [long]$usage.Groups[1].Value * 1KB
     $result.heapUsedBytes = [long]$usage.Groups[2].Value * 1KB
     $regions = [regex]::Match($text, '(?i)region size\s+(\d+)K,\s+\d+\s+young\s+\((\d+)K\),\s+\d+\s+survivors\s+\((\d+)K\)')

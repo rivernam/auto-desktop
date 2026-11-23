@@ -267,6 +267,7 @@ def normalize(report):
         'slow_limit': num(report.get('slowRequestLimit')),
         'top_processes': num(report.get('topProcesses')),
         'gc_logging': report.get('gcLogging') is True,
+        'jvm_options': [str(o) for o in report['jvmOptions']] if isinstance(report.get('jvmOptions'), list) else None,
         'sessions': [], 'points': [], 'intervals': [],
     }
     if model['failure_rate'] is None and attempted:
@@ -484,6 +485,15 @@ def collector_totals(points):
     return None
 
 
+def collector_family(points):
+    """'G1' or 'Serial' from the names of the latest sample's collectors, else None."""
+    for point in reversed(points):
+        names = list(point['gc_collectors'] or {})
+        if names:
+            return next((family for family in ('G1', 'Serial') if any(n.startswith(family) for n in names)), None)
+    return None
+
+
 def analyze_memory(model, warmup_s, min_hours):
     rows = []
     for session in model['sessions'] or [{'index': 0, 'start_s': None}]:
@@ -526,7 +536,8 @@ def analyze_generations(model):
         totals = collector_totals(points)
         if not old and not totals:
             continue
-        row = {'session': session['index'], 'n': len(old), 'old_first': None, 'old_last': None, 'old_delta': None,
+        row = {'session': session['index'], 'collector': collector_family(points),
+               'n': len(old), 'old_first': None, 'old_last': None, 'old_delta': None,
                'span_h': None, 'survivor_median': statistics.median(survivors) if survivors else None,
                'survivor_max': max(survivors) if survivors else None,
                'young_collections': None, 'young_pause_mean_ms': None, 'old_collections': None}
@@ -1208,6 +1219,8 @@ def render(model, analysis, source):
     logs = [s['gc_log'] for s in model['sessions'] if s['gc_log']]
     if logs:
         rows.append(('GC log', ', '.join('`%s`' % name for name in logs)))
+    if model['jvm_options'] is not None:
+        rows.append(('JVM options', '`%s`' % ' '.join(model['jvm_options']) if model['jvm_options'] else 'none'))
     lines.extend(table(['Item', 'Value'], rows))
     out('')
 
@@ -1409,8 +1422,12 @@ def render(model, analysis, source):
         out('GC 횟수·시간: %s' % NA)
     if analysis['generations']:
         out('')
-        out('세대별 Heap과 수거 횟수 (G1). Old(used − young)는 old와 humongous 영역의 합에 대한 추정값이고 survivor는 young에 '
-            '포함된다. young은 덜 찬 영역도 통째로 세므로 추정값은 몇 영역만큼 작게 나올 수 있다. Old 증가는 누수 판정에 쓰지 않는다:')
+        if all(g['collector'] == 'Serial' for g in analysis['generations']):
+            out('세대별 Heap과 수거 횟수 (Serial). Old(used − young)는 tenured 세대의 사용량이고 young은 eden과 from 공간의 '
+                '사용량, survivor는 from 공간의 사용량이다. Old 증가는 누수 판정에 쓰지 않는다:')
+        else:
+            out('세대별 Heap과 수거 횟수 (G1). Old(used − young)는 old와 humongous 영역의 합에 대한 추정값이고 survivor는 young에 '
+                '포함된다. young은 덜 찬 영역도 통째로 세므로 추정값은 몇 영역만큼 작게 나올 수 있다. Old 증가는 누수 판정에 쓰지 않는다:')
         out('')
         lines.extend(table(['JVM', 'Samples', 'Old first', 'Old last', 'Old last-first', 'Survivor median', 'Survivor max',
                             'Young collections', 'Young mean pause ms', 'Old collections (full + concurrent)'], [

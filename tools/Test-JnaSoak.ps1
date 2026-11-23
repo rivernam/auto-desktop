@@ -18,12 +18,14 @@ param(
     [ValidateRange(0, 1000)][int]$SlowRequestLimit = 10,
     [ValidateRange(0, 50)][int]$TopProcesses = 0,
     [switch]$NoGcLog,
+    [string[]]$JvmOptions = @(),
     [string]$OutputPath = (Join-Path $PSScriptRoot '../target/windows-uia-jna-soak.json')
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'UiaTest.Common.ps1')
 $UiaSlowRequestMs = $SlowRequestMs
 $UiaSlowRequestLimit = $SlowRequestLimit
+$JvmOptions = @(ConvertTo-UiaJvmOptions $JvmOptions)
 
 function Sample-Jna($cli, $clock, [int]$iteration) {
     $elapsedMs = $clock.Elapsed.TotalMilliseconds
@@ -119,7 +121,7 @@ $report = [ordered]@{
     mutateEvery = $MutateEvery; mutationIntervalSeconds = $MutationIntervalSeconds
     iterationLimit = $MaxIterations
     slowRequestThresholdMs = $SlowRequestMs; slowRequestLimit = $SlowRequestLimit
-    topProcesses = $TopProcesses; gcLogging = $false
+    topProcesses = $TopProcesses; gcLogging = $false; jvmOptions = @($JvmOptions)
     attemptedIterations = 0; completedIterations = 0; mutationIterations = 0
     requestsCompleted = 0; requestsFailed = 0; timeouts = 0; errorCounts = [ordered]@{}
     sessionRestarts = 0; unexpectedJvmExits = 0
@@ -157,7 +159,7 @@ try {
     $report.stage = 'fixture'
     Save-UiaCheckpoint $report $OutputPath
     Start-UiaFixture $false
-    $start = New-CliStartInfo 'JNA' -TrackNativeMemory -GcLogPath $gcLogPattern
+    $start = New-CliStartInfo 'JNA' -TrackNativeMemory -GcLogPath $gcLogPattern -JvmOptions $JvmOptions
     $clock.Restart()
     $fixtureShape = @()
     $expectedCount = 0

@@ -630,6 +630,33 @@ class InstrumentationTests(unittest.TestCase):
                          '| Power source | AC in 61 of 61 samples |'):
             self.assertIn(expected, text)
 
+    def test_generations_are_labelled_with_the_collector_in_use(self):
+        def session(prefix, full):
+            return [sample(t, heap=(20 + i) * MIB, young=12 * MIB, survivor=MIB,
+                           collectors={prefix + ' young collection pauses': (10 * (i + 1), 30.0 * (i + 1)),
+                                       prefix + ' ' + full + ' collection pauses': (0, 0.0)})
+                    for i, t in enumerate(hours(4))]
+
+        _, analysis, text = run(report([session('Serial', 'full')], schemaVersion=3))
+        self.assertEqual(analysis['generations'][0]['young_collections'], 40)
+        self.assertIn('세대별 Heap과 수거 횟수 (Serial)', text)
+        self.assertIn('tenured', text)
+        self.assertNotIn('humongous 영역의 합에 대한 추정값', text)
+        _, _, text = run(report([session('G1', 'full')], schemaVersion=3))
+        self.assertIn('세대별 Heap과 수거 횟수 (G1)', text)
+        self.assertIn('humongous 영역의 합에 대한 추정값', text)
+
+    def test_jvm_options_are_listed_with_the_environment(self):
+        data = loaded_run()
+        _, _, text = run(data)
+        self.assertNotIn('JVM options', text)  # older reports did not record them
+        data['jvmOptions'] = ['-Xms16m', '-XX:+UseSerialGC']
+        _, _, text = run(data)
+        self.assertIn('| JVM options | `-Xms16m -XX:+UseSerialGC` |', text)
+        data['jvmOptions'] = []
+        _, _, text = run(data)
+        self.assertIn('| JVM options | none |', text)
+
     def test_busiest_processes_are_summarized_for_slow_and_normal_intervals(self):
         def busiest(k, slow):
             return [('scanner.exe', 5000.0 if slow else 200.0)] + ([('updater.exe', 300.0)] if k % 2 else [])

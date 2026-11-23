@@ -15,10 +15,11 @@
 - 리소스 표본마다 `fixture`(WPF 시험 앱, UIA 공급자)와 `driver`(측정 스크립트) 프로세스의 CPU 시간·private bytes·working set·핸들·스레드를 남긴다.
 - `host`에는 전체 논리 프로세서의 사용·유휴 CPU 시간과 `% Processor Performance` 누적값, 가용 메모리, AC 전원 여부, 마지막 키보드·마우스 입력 이후 시간, 시험 창의 전경·최소화 상태를 남긴다. CPU 시간과 성능 카운터는 누적값이어서 두 표본의 차이가 그 사이의 평균이 된다. 성능 카운터의 기준값은 주기적으로 되돌아가며, 분석 도구는 그 구간의 프로세서 속도를 NOT AVAILABLE로 둔다.
 - `-TopProcesses N`을 주면 JVM·시험 앱·스크립트를 제외하고 직전 표본 이후 CPU를 가장 많이 쓴 프로세스 N개의 이름과 CPU 시간을 `host.topProcesses`에 남긴다. 기본값 0은 프로세스 이름을 기록하지 않는다. 이름이 JSON에 남으므로 결과를 공개 저장소에 올리기 전에 확인한다.
-- G1의 young·survivor 크기(`heapYoungBytes`, `heapSurvivorBytes`)를 표본마다 남긴다.
+- young·survivor 크기(`heapYoungBytes`, `heapSurvivorBytes`)를 표본마다 남긴다. G1에서는 young 영역과 survivor 영역의 크기이고, Serial GC에서는 young 세대와 from 공간의 사용량이다. 다른 수집기의 `GC.heap_info` 형식은 읽지 않는다.
 - 지연이 `-SlowRequestMs`(기본 100 ms) 이상인 요청은 구간·연산별로 세고(`slowRequestCount`), 구간마다 가장 느린 `-SlowRequestLimit`(기본 10)개는 완료 시각과 함께 `slowRequests`에 남긴다.
 - JVM마다 GC 로그를 보고서 옆에 `<보고서 이름>.gc-<PID>.log`로 쓰고 파일 이름을 세션의 `gcLog`에 기록한다. `gc*`와 `safepoint`, 단계·참조 처리·age 상세를 UTC 시각과 함께 남기며 수거 1회에 약 15 KB, 1시간에 2~3 MB다. `-NoGcLog`로 끈다.
 - 환경 정보에 CPU 모델과 명목 주파수, 메모리, 전원 구성표와 전원 모드, 스크립트의 git 커밋을 추가한다.
+- `-JvmOptions '-XX:+UseSerialGC -Xms16m'`처럼 에이전트 JVM에 옵션을 넘길 수 있다. 여러 옵션은 공백이나 쉼표로 구분한다. 따옴표가 필요한 옵션은 받지 않고, 사용한 옵션은 `jvmOptions`에 기록되어 보고서 1절에 표시된다.
 
 `tools/Analyze-JnaSoak.py`(Python 3.8 이상, 표준 라이브러리만 사용)는 기존 60초 JSON과 새 JSON, 중단된 체크포인트를 읽어 Markdown 보고서와 선택적 CSV(`jna-soak-resources.csv`, `jna-soak-intervals.csv`)를 만든다. 메모리 누수는 최초·최종 차이가 아니라 JVM 세션별 워밍업 이후 Theil-Sen 기울기, 초반·후반 중앙값, 후반부 기울기로 판정하고, 워밍업 이후 관측이 1시간 미만이면 INCONCLUSIVE로 표시한다. Heap used는 하한 포락선으로 GC 톱니를 줄인다. 입력에 없는 값은 NOT AVAILABLE로 표시하며 추정하지 않는다. 보고서 파일이 손상되고 같은 위치에 완전한 `.pending` 체크포인트가 남아 있으면 그 파일을 분석한다.
 
@@ -34,27 +35,29 @@
 
 잠금 해제된 대화형 데스크톱에서 프로젝트 루트를 작업 디렉터리로 사용한다. `java.exe`는 `jcmd.exe`가 함께 있는 JDK여야 한다. Oracle `javapath` 바로가기가 먼저 잡히면 JDK `bin`을 PATH 앞에 둔다. 먼저 `mvn package`로 `target/desktop-agent.jar`를 만든다.
 
+아래 명령은 README의 권장 JVM 옵션으로 에이전트를 띄운다. JVM 기본 설정을 재려면 `-JvmOptions`를 뺀다.
+
 5분 시험:
 
 ```powershell
-.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromMinutes(5)) -IntervalSeconds 60 -SampleSeconds 30 -OutputPath .\target\windows-uia-jna-soak-5min.json
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromMinutes(5)) -IntervalSeconds 60 -SampleSeconds 30 -JvmOptions '-XX:+UseSerialGC -Xms16m' -OutputPath .\target\windows-uia-jna-soak-5min.json
 ```
 
 2시간 시험. 워밍업 10분을 빼고도 추세 판정에 필요한 1시간을 넘긴다. 다른 프로세스의 부하까지 보려면 `-TopProcesses 3`을 붙인다:
 
 ```powershell
-.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(2)) -IntervalSeconds 60 -SampleSeconds 60 -TopProcesses 3 -OutputPath .\target\windows-uia-jna-soak-2h.json
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(2)) -IntervalSeconds 60 -SampleSeconds 60 -TopProcesses 3 -JvmOptions '-XX:+UseSerialGC -Xms16m' -OutputPath .\target\windows-uia-jna-soak-2h.json
 ```
 
 8시간 시험:
 
 ```powershell
-.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(8)) -IntervalSeconds 60 -SampleSeconds 60 -OutputPath .\target\windows-uia-jna-soak-8h.json
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(8)) -IntervalSeconds 60 -SampleSeconds 60 -JvmOptions '-XX:+UseSerialGC -Xms16m' -OutputPath .\target\windows-uia-jna-soak-8h.json
 ```
 
 변경 요청은 기본 15초 간격이라 JVM 재시작 조건(세션당 변경 2,048회)에 약 8.6시간 뒤에 닿는다. 8시간 안에 재시작 경로까지 보려면 `-MutationIntervalSeconds 5`처럼 간격을 줄인다.
 
-작업 스케줄러처럼 `powershell -File .\tools\Test-JnaSoak.ps1`로 실행할 때는 `-Jar`와 `-OutputPath`를 직접 지정한다. Windows PowerShell 5.1은 이 실행 방식에서 매개변수 기본값을 계산할 때 `$PSScriptRoot`가 비어 있어 기본 경로를 만들지 못한다.
+작업 스케줄러처럼 `powershell -File .\tools\Test-JnaSoak.ps1`로 실행할 때는 `-Jar`와 `-OutputPath`를 직접 지정한다. Windows PowerShell 5.1은 이 실행 방식에서 매개변수 기본값을 계산할 때 `$PSScriptRoot`가 비어 있어 기본 경로를 만들지 못한다. JVM 옵션은 `-JvmOptions:"-XX:+UseSerialGC -Xms16m"`처럼 콜론으로 붙여 쓴다. 띄어 쓰면 `-`로 시작하는 값이 매개변수 이름으로 해석된다.
 
 분석 보고서 생성:
 
@@ -194,7 +197,7 @@ Heap 밖의 지표는 안정적이었다. 워밍업 이후 private bytes는 +3.2
 
 **old 영역 증가는 이 정리용 객체가 승격된 것으로 본다.** 살아남는 양이 survivor 공간을 넘으면 일부가 old로 승격된다. OpenJDK 17의 `ReferenceProcessor::discover_reference`는 발견 대상 영역 밖의 참조 객체를 일반 객체처럼 처리하므로, 같은 수거에서 old로 옮겨진 참조 객체는 대상 버퍼를 강한 참조처럼 붙잡고 concurrent mark까지 남는다. 2시간 시험에서 첫 concurrent mark의 참조 처리가 119 ms 걸렸고, 직후 NMT 밖 네이티브가 29.0 MiB에서 23.6 MiB로 줄었으며, old 영역의 절반만 회수된 것이 이 설명과 맞는다. 이 경로를 직접 재현하지는 않았다. 누적은 concurrent mark마다 정리되므로 상한이 있다.
 
-**전체 GC 뒤에는 JVM이 작은 Heap으로 동작했다.** 첫 집계의 전체 GC 뒤 Heap committed가 508 MiB에서 28 MiB로, private bytes가 640 MiB에서 135 MiB로 줄었고 시험이 끝날 때까지 유지됐다. young 수거는 0.49초마다 중앙값 2.6 ms, 최대 6.6 ms였고 합계는 실행 시간의 0.54%였다. 다른 프로세스의 부하가 낮던 7개 구간에서 반복당 JVM CPU는 12.8~14.6 ms로 2시간 시험의 초기 구간(14.0 ms)과 같은 수준이었고, 100 ms 이상 걸린 요청은 합계 1건, snapshot 최대는 79~106 ms였다. 2시간 시험의 조용한 구간은 구간마다 1~4건, 최대는 대체로 170~230 ms였다. 기본 설정의 초기 Heap(물리 메모리의 1/64인 508 MiB)이 도달 가능한 객체 4.4 MiB인 이 에이전트에는 크다는 뜻이다. Heap 옵션을 지정했을 때의 효과는 따로 시험하지 않았다.
+**전체 GC 뒤에는 JVM이 작은 Heap으로 동작했다.** 첫 집계의 전체 GC 뒤 Heap committed가 508 MiB에서 28 MiB로, private bytes가 640 MiB에서 135 MiB로 줄었고 시험이 끝날 때까지 유지됐다. young 수거는 0.49초마다 중앙값 2.6 ms, 최대 6.6 ms였고 합계는 실행 시간의 0.54%였다. 다른 프로세스의 부하가 낮던 7개 구간에서 반복당 JVM CPU는 12.8~14.6 ms로 2시간 시험의 초기 구간(14.0 ms)과 같은 수준이었고, 100 ms 이상 걸린 요청은 합계 1건, snapshot 최대는 79~106 ms였다. 2시간 시험의 조용한 구간은 구간마다 1~4건, 최대는 대체로 170~230 ms였다. 기본 설정의 초기 Heap(물리 메모리의 1/64인 508 MiB)이 도달 가능한 객체 4.4 MiB인 이 에이전트에는 크다는 뜻이다. Heap 옵션을 지정한 실행은 아래 Heap 옵션 비교에 있다.
 
 집계와 비교 결과는 `target\jna-leak-check`에 있다.
 
@@ -221,7 +224,46 @@ Heap 밖의 지표는 안정적이었다. 워밍업 이후 private bytes는 +3.2
 
 처리량과 CPU는 이 두 실행으로 비교할 수 없다. 새 JAR 실행은 처음부터 2시간 시험의 17분 이후와 같은 느린 상태(반복당 스크립트 CPU 16.6 ms)였고 10개 구간 중 5개에서 입력이 있었다. 같은 상태인 2시간 시험의 조용한 구간(초당 15.2회, 반복당 JVM CPU 22.0 ms, snapshot p99 79.7 ms, 100 ms 이상 요청이 구간마다 1~4건, snapshot 최대 170~230 ms)과 견주면, 새 JAR의 조용한 구간 5개는 초당 16.1회, JVM CPU 19.7 ms, p99 72.2 ms, 100 ms 이상 요청 0~1건(한 구간은 6건), 최대 87~137 ms였다. 한 번의 실행이라 참고값이다.
 
-초기 Heap 508 MiB를 커밋하는 것은 그대로여서 private bytes는 630 MiB였다. Heap 옵션의 효과는 아직 시험하지 않았다. 결과는 `target\jna-buffer-fix`에 있다.
+초기 Heap 508 MiB를 커밋하는 것은 그대로여서 private bytes는 630 MiB였다. Heap 옵션은 아래에서 비교했다. 결과는 `target\jna-buffer-fix`에 있다.
+
+### 2026-11-23 Heap 옵션 비교
+
+기본 설정의 JVM은 초기 Heap으로 물리 메모리의 1/64인 508 MiB를 시작할 때 커밋한다. `Test-JnaSoak.ps1`에 `-JvmOptions`를 추가하고, 버퍼 수정이 들어간 같은 JAR로 옵션마다 10분 시험을 실행했다. 세 실행 모두 실패 0회였다. 기본 옵션의 값은 위 출력 버퍼 재사용의 10분 시험이다.
+
+| 항목 (10분 시점) | 기본 | `-Xms16m` | `-XX:+UseSerialGC -Xms16m` |
+|---|---:|---:|---:|
+| Private bytes | 630.4 MiB | 129.0 MiB | 62.8 MiB |
+| Working set | 381.0 MiB | 93.7 MiB | 79.5 MiB |
+| Heap 커밋 | 508.0 MiB | 24.0 MiB | 16.0 MiB |
+| GC 보조 구조 (NMT의 GC 항목) | 72.9 MiB | 54.4 MiB | 0.1 MiB |
+| NMT의 나머지 항목 | 37.3 MiB | 37.3 MiB | 36.9 MiB |
+| 스레드 | 36개 | 35개 | 22개 |
+| GC 일시정지 횟수 | 11회 | 365회 | 601회 |
+| 일시정지 중앙값 / 최대 | 4.3 / 8.4 ms | 3.2 / 8.2 ms | 0.7 / 2.4 ms |
+| 일시정지 합계 (실행 시간 대비) | 44 ms (0.01%) | 1,139 ms (0.19%) | 423 ms (0.07%) |
+| 반복당 JVM CPU (구간 중앙값) | 19.7 ms | 19.9 ms | 19.1 ms |
+
+초기 Heap만 줄여도 private bytes가 501 MiB 줄었다. G1은 Heap이 24 MiB여도 보조 구조에 54 MiB를 쓰고, Serial GC는 거의 쓰지 않아 다시 절반이 된다. Heap이 작으면 수거가 0.9~1.6초마다 일어나지만 한 번이 짧아 반복당 JVM CPU는 달라지지 않았다. 세 실행 모두 전체 GC는 없었고 최대 Heap은 기본값 그대로다.
+
+지연은 조용한 구간(입력 후 60초가 지나고 시험 창이 전경)끼리 비교했다.
+
+| 조용한 구간 중앙값 | 기본 (5개 구간) | `-Xms16m` (9개) | Serial (2개) |
+|---|---:|---:|---:|
+| 처리량 | 초당 16.1회 | 초당 15.6회 | 초당 15.2회 |
+| Snapshot p50 | 43.3 ms | 43.9 ms | 44.5 ms |
+| Snapshot p95 | 61.6 ms | 60.2 ms | 61.8 ms |
+| Snapshot p99 | 72.2 ms | 74.2 ms | 107.0 ms |
+
+`-Xms16m`는 기본과 차이가 없다. Serial 실행은 3번 구간부터 PC를 써서 조용한 구간이 2개뿐이고 그중 하나에 다른 프로세스의 부하가 있었다. GC 일시정지가 최대 2.4 ms여서 GC가 지연을 늘릴 여지는 없지만, 지연이 같다는 것을 이 실행으로 확인하지는 못했다.
+
+`-XX:+UseSerialGC -Xms16m`를 권장 옵션으로 정하고 README의 실행 명령과 장시간 시험 명령에 넣었다. 그 뒤에 확인한 것은 다음과 같다.
+
+- README의 방식으로 Agent를 띄워 조회 요청 두 개를 보낸 직후의 private bytes는 기본 백엔드가 620.7 MiB에서 55.4 MiB, JNA 백엔드가 636.2 MiB에서 67.6 MiB였다. 네 실행 모두 두 요청에 정상 응답하고 종료 코드 0으로 끝났다. C# 워커 경로는 이 체크아웃에 워커 빌드가 없어 실행하지 않았다.
+- 비교 시험 때는 측정 도구가 Serial GC의 `GC.heap_info` 형식을 읽지 못해 그 실행의 Heap used와 committed가 NOT AVAILABLE이었다. 도구가 Serial GC의 두 세대를 읽도록 고친 뒤 권장 옵션으로 3분 시험을 실행했다. 2,681회 반복에 실패 0회였고 모든 구간에 Heap 커밋 16.0 MiB와 사용량 3.5~5.5 MiB가 기록됐다. GC 일시정지는 201회, 중앙값 0.4 ms, 최대 2.3 ms였다.
+- Serial GC에서 길어질 수 있는 일시정지는 전체 수거다. 10분 시험에는 전체 수거가 없어, 2분 시험 중에 `GC.class_histogram`으로 두 번 일으켰다. 도달 가능한 객체 3.3 MiB에서 16.0 ms와 30.0 ms였다. 10분 시험에서 tenured 사용량은 2.7 MiB에서 3.3 MiB로 늘었고, 이 속도면 첫 전체 수거는 약 2시간 뒤다.
+- PowerShell 도구 시험과 Python 분석 도구 시험 42개가 통과했다.
+
+남은 제약은 다음과 같다. 요소 20개인 시험 창과 10분 이하의 시험만 했다. Serial 실행의 지연은 조용한 구간이 부족해 기본 설정과 같다는 것을 확인하지 못했다. 권장 옵션으로 장시간 시험을 실행해 확인해야 한다. 결과는 `target\jna-heap-options`에 있다.
 
 ## 2026-11-23 PR #2 헤드 재검증
 

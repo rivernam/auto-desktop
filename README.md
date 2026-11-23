@@ -8,8 +8,10 @@ JDK 17 이상과 Maven 3.9를 사용한다. 처음 빌드할 때 Maven이 의존
 
 ```sh
 mvn clean verify
-java -jar target/desktop-agent.jar
+java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar
 ```
+
+`-XX:+UseSerialGC -Xms16m`는 권장 JVM 옵션이다. 옵션이 없으면 JVM이 물리 메모리의 1/64를 초기 Heap으로 커밋해, 32 GiB PC에서 Agent 프로세스가 시작하자마자 약 620~640 MiB를 쓴다. 옵션을 주면 55~70 MiB다. JNA 백엔드 10분 시험에서 약 63 MiB로 유지됐고 반복당 JVM CPU 시간은 같았다. 최대 Heap은 바꾸지 않으므로 필요하면 늘어난다. 측정값은 [Heap 옵션 비교](docs/TEST-RESULTS.md#2026-11-23-heap-옵션-비교)에 있다.
 
 CLI가 실행되면 JSON 한 줄을 입력할 때마다 응답 한 줄을 출력한다. 다음 두 명령은 조회 전용이다.
 
@@ -21,7 +23,7 @@ CLI가 실행되면 JSON 한 줄을 입력할 때마다 응답 한 줄을 출력
 Windows에서는 로그인한 사용자의 로컬 대화형 세션에서 대상 앱과 같은 권한 수준으로 실행한다. 기본 백엔드에는 Windows PowerShell 5.1과 .NET Framework의 UI Automation 어셈블리가 필요하다. 출력된 창의 PID를 확인한 뒤 변경이 필요한 경우에만 새 세션을 시작한다. 아래의 1234는 승인한 테스트 앱의 실제 PID로 바꾼다.
 
 ```powershell
-java -jar target/desktop-agent.jar --allow-pid 1234 --allow-action invoke --allow-action setValue
+java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --allow-pid 1234 --allow-action invoke --allow-action setValue
 ```
 
 Windows 통합 테스트는 독립된 WPF 창을 만들고 해당 PID만 허용한다. Windows 10/11 테스트 데스크톱에서 마우스를 건드리지 않고 실행한다.
@@ -37,7 +39,7 @@ mvn '-Ddesktop.windowsIT=true' '-Dtest=WindowsGuiTest' test
 ```powershell
 msbuild .\workers\csharp\UiaWorker.csproj /p:Configuration=Release
 $worker = (Resolve-Path '.\workers\csharp\bin\Release\UiaWorker.exe').Path
-java -jar target/desktop-agent.jar --csharp-worker "$worker"
+java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --csharp-worker "$worker"
 ```
 
 `--csharp-worker`에는 로컬 운영자가 배포한 신뢰할 수 있는 EXE의 절대 경로를 지정한다. 두 워커에서 변경을 수행할 때는 같은 `--allow-pid` 및 `--allow-action` 옵션이 필요하다. C# 워커 기동에 실패하면 원래 요청에 실패 또는 capability 응답을 반환한다. 다른 워커로 같은 명령을 자동 전송하지 않는다.
@@ -68,17 +70,17 @@ Windows 10/11 테스트 데스크톱에서 프로젝트 루트의 `.\tools\Test-
 Windows 10/11의 대화형 데스크톱에서 다음 명령으로 Java 프로세스 안의 UI Automation COM 어댑터를 선택한다. 첫 줄은 조회 전용이다. 변경 요청에는 기존 PID 및 액션 허용 옵션이 그대로 적용된다. 옵션을 생략하면 기존 기본 백엔드를 사용한다.
 
 ```powershell
-java -jar target/desktop-agent.jar --backend jna
-java -jar target/desktop-agent.jar --backend jna --allow-pid 1234 --allow-action invoke --allow-action setValue
+java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend jna
+java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend jna --allow-pid 1234 --allow-action invoke --allow-action setValue
 .\tools\Test-WindowsUia.ps1 -IncludeJna
 ```
 
 마지막 명령은 Windows의 동일한 WPF 시험을 PowerShell, C#, JNA에 대해 실행한다. [JNA 설계 및 채택 기준](docs/JNA.md)
 
-JNA 장시간 안정성은 구간별로 측정하고 Python 표준 라이브러리 도구로 분석한다. 측정은 JVM과 함께 시험 앱·호스트 지표와 GC 로그를 남겨 느린 구간의 원인을 좁힐 수 있게 한다. 5분 확인 절차와 옵션 설명은 [장시간 측정 도구](docs/TEST-RESULTS.md#jna-장시간-측정-및-분석-도구)에 있다.
+JNA 장시간 안정성은 구간별로 측정하고 Python 표준 라이브러리 도구로 분석한다. 측정은 JVM과 함께 시험 앱·호스트 지표와 GC 로그를 남겨 느린 구간의 원인을 좁힐 수 있게 한다. `-JvmOptions`로 위의 권장 JVM 옵션을 준다. 5분 확인 절차와 옵션 설명은 [장시간 측정 도구](docs/TEST-RESULTS.md#jna-장시간-측정-및-분석-도구)에 있다.
 
 ```powershell
-.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromMinutes(5)) -IntervalSeconds 60 -SampleSeconds 30 -OutputPath .\target\windows-uia-jna-soak-5min.json
-.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(8)) -IntervalSeconds 60 -SampleSeconds 60 -OutputPath .\target\windows-uia-jna-soak-8h.json
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromMinutes(5)) -IntervalSeconds 60 -SampleSeconds 30 -JvmOptions '-XX:+UseSerialGC -Xms16m' -OutputPath .\target\windows-uia-jna-soak-5min.json
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(8)) -IntervalSeconds 60 -SampleSeconds 60 -JvmOptions '-XX:+UseSerialGC -Xms16m' -OutputPath .\target\windows-uia-jna-soak-8h.json
 python .\tools\Analyze-JnaSoak.py .\target\windows-uia-jna-soak-8h.json --output .\target\jna-soak-analysis.md --csv-dir .\target
 ```
