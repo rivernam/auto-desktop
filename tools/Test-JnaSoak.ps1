@@ -2,6 +2,9 @@
 # Only the tool's own WPF fixture is mutated. A failed iteration stops the run.
 # Latencies are aggregated per -IntervalSeconds window and released when the window closes;
 # whole-run quantiles come from a fixed-size histogram (see latencyStatistics in the report).
+# Each resource sample also covers the fixture, this script and the host, and every JVM writes a
+# GC log next to the report, so a slow interval can be attributed after the run.
+# -TopProcesses N stores the names of the N busiest other processes per sample (off by default).
 [CmdletBinding()]
 param(
     [string]$Jar = (Join-Path $PSScriptRoot '../target/desktop-agent.jar'),
@@ -11,15 +14,25 @@ param(
     [ValidateRange(0, 10000)][int]$MutateEvery = 0,
     [ValidateRange(1, 3600)][int]$MutationIntervalSeconds = 15,
     [ValidateRange(0, 1000000)][int]$MaxIterations = 0,
+    [ValidateRange(0, 600000)][double]$SlowRequestMs = 100,
+    [ValidateRange(0, 1000)][int]$SlowRequestLimit = 10,
+    [ValidateRange(0, 50)][int]$TopProcesses = 0,
+    [switch]$NoGcLog,
     [string]$OutputPath = (Join-Path $PSScriptRoot '../target/windows-uia-jna-soak.json')
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'UiaTest.Common.ps1')
+$UiaSlowRequestMs = $SlowRequestMs
+$UiaSlowRequestLimit = $SlowRequestLimit
 
 function Sample-Jna($cli, $clock, [int]$iteration) {
     $elapsedMs = $clock.Elapsed.TotalMilliseconds
+    # The process and host counters are read together, before jcmd adds its own load.
     $resources = Resources $cli 'JNA'
     if (!$resources.java.available) { throw 'Unable to sample the JVM process.' }
+    $fixtureSample = Process-Sample $fixture
+    $driverSample = Process-Sample $driver
+    $hostSample = Get-UiaHostSample $fixtureWindow $TopProcesses @($cli.Id, $fixture.Id, $PID)
     $heap = Read-Diagnostic $jcmd "$($cli.Id) GC.heap_info"
     $native = Read-Diagnostic $jcmd "$($cli.Id) VM.native_memory summary scale=KB"
     $total = [regex]::Match($native.stdout, '(?m)^Total:\s*reserved=(\d+)KB,\s*committed=(\d+)KB')
@@ -28,15 +41,13 @@ function Sample-Jna($cli, $clock, [int]$iteration) {
     }
     $sample = [ordered]@{
         iteration = $iteration; elapsedMs = $elapsedMs; resources = $resources
+        fixture = $fixtureSample; driver = $driverSample; host = $hostSample
         heap = $heap.stdout; nativeMemory = $native.stdout
         nmtReservedBytes = [long]$total.Groups[1].Value * 1KB
         nmtCommittedBytes = [long]$total.Groups[2].Value * 1KB
     }
-    $usage = [regex]::Match($heap.stdout, '(?i)heap\s+total\s+(\d+)K,\s+used\s+(\d+)K\b')
-    if ($usage.Success) {
-        $sample.heapCommittedBytes = [long]$usage.Groups[1].Value * 1KB
-        $sample.heapUsedBytes = [long]$usage.Groups[2].Value * 1KB
-    }
+    $heapFigures = ConvertFrom-JvmHeapInfo $heap.stdout
+    foreach ($field in $heapFigures.Keys) { $sample[$field] = $heapFigures[$field] }
     # GC counters are optional: a missing jvmstat counter must not fail the soak.
     try {
         $counters = Read-Diagnostic $jcmd "$($cli.Id) PerfCounter.print"
@@ -100,12 +111,15 @@ function Stop-SoakSession([string]$reason) {
 }
 
 $report = [ordered]@{
-    schemaVersion = 2
+    # 3 adds fixture, driver and host samples, heap generations, slow requests and GC logs to 2.
+    schemaVersion = 3
     utc = [DateTime]::UtcNow.ToString('o'); environment = Get-UiaEnvironment
     passed = $false; stage = 'setup'; durationLimitSeconds = $Duration.TotalSeconds
     sampleIntervalSeconds = $SampleSeconds; intervalSeconds = $IntervalSeconds
     mutateEvery = $MutateEvery; mutationIntervalSeconds = $MutationIntervalSeconds
     iterationLimit = $MaxIterations
+    slowRequestThresholdMs = $SlowRequestMs; slowRequestLimit = $SlowRequestLimit
+    topProcesses = $TopProcesses; gcLogging = $false
     attemptedIterations = 0; completedIterations = 0; mutationIterations = 0
     requestsCompleted = 0; requestsFailed = 0; timeouts = 0; errorCounts = [ordered]@{}
     sessionRestarts = 0; unexpectedJvmExits = 0
@@ -127,16 +141,23 @@ $cli = $null
 $session = $null
 $interval = $null
 $intervalLatencies = $null
+$driver = [Diagnostics.Process]::GetCurrentProcess()
+$fixtureWindow = 0
+$requestEnds = @{}
 try {
     Save-UiaCheckpoint $report $OutputPath
     if ($Duration -le [TimeSpan]::Zero) { throw 'Duration must be positive.' }
     Initialize-UiaTools
     $jcmd = (Get-Item -LiteralPath (Join-Path (Split-Path -Parent $javaExe) 'jcmd.exe')).FullName
     Set-UiaBuildInfo $report.environment
+    # Host observations are optional: without them the samples record host.available = false.
+    if (Initialize-UiaHostProbe) { Set-UiaHostInfo $report.environment }
+    $gcLogPattern = if ($NoGcLog) { $null } else { Get-SoakGcLogPattern $OutputPath }
+    $report.gcLogging = [bool]$gcLogPattern
     $report.stage = 'fixture'
     Save-UiaCheckpoint $report $OutputPath
     Start-UiaFixture $false
-    $start = New-CliStartInfo 'JNA' -TrackNativeMemory
+    $start = New-CliStartInfo 'JNA' -TrackNativeMemory -GcLogPath $gcLogPattern
     $clock.Restart()
     $fixtureShape = @()
     $expectedCount = 0
@@ -152,10 +173,14 @@ try {
                 startElapsedMs = $sessionStartMs; completedIterations = 0; mutationIterations = 0
                 samples = New-Object 'Collections.Generic.List[object]'
             }
+            # A file name relative to the report, so the pair can be moved together.
+            if ($gcLogPattern) { $session.gcLog = Get-SoakGcLogName $gcLogPattern $cli.Id }
             $report.sessions.Add($session)
             if ($session.index -gt 0) { $report.sessionRestarts++ }
             if (!(Request $cli @{ op = 'getCapabilities' }).result.available) { throw 'JNA backend is unavailable.' }
             $windowId = Check-Window (Request $cli @{ op = 'listWindows' }).result
+            $fixtureWindow = 0
+            [void][long]::TryParse([string]$windowId, [ref]$fixtureWindow) # the window ID is the HWND
             $snapshot = (Take-Snapshot $cli $windowId).result
             $expectedCount = Check-Snapshot $snapshot $windowId $expectedCount
             Check-TreeShape $snapshot $fixtureShape
@@ -175,7 +200,8 @@ try {
         $report.attemptedIterations++
         $interval.attemptedIterations++
         try {
-            $times = Run-Iteration $cli $windowId $expectedCount ([guid]::NewGuid().ToString('N')) $fixtureShape -ObserveOnly:$observeOnly
+            $times = Run-Iteration $cli $windowId $expectedCount ([guid]::NewGuid().ToString('N')) $fixtureShape `
+                -ObserveOnly:$observeOnly -RequestEnds $requestEnds
         } catch {
             $failure = Get-SoakFailure $_.Exception.Message
             $failure.message = $_.Exception.Message
@@ -204,7 +230,7 @@ try {
             $session.mutationIterations++
             $interval.mutationIterations++
         }
-        Add-SoakIterationTimes $interval $intervalLatencies $histograms $times
+        Add-SoakIterationTimes $interval $intervalLatencies $histograms $times $requestEnds $report.attemptedIterations
         $report.requestsCompleted += $times.Count
         $boundaryMs = $clock.Elapsed.TotalMilliseconds
         $dueSample = $boundaryMs / 1000 - $lastSampleSeconds -ge $SampleSeconds

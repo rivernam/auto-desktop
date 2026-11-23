@@ -10,7 +10,25 @@
 - 구간 종료, 표본 수집 때마다 체크포인트를 저장한다. 파일은 임시 파일에 write-through로 기록한 뒤 원자적으로 교체한다. jcmd 수집 시간(`samplingMs`)과 체크포인트 저장 시간(`checkpointMs`)은 구간 시간에서 제외한다. 강제 GC는 호출하지 않는다.
 - Ctrl+C로 중단하면 `interrupted`와 마지막 부분 구간을 저장한다. 프로세스가 강제 종료되면 마지막 체크포인트까지 남는다.
 
+스키마 버전 3부터는 느린 구간이 생겼을 때 에이전트, 시험 앱, 호스트 중 무엇이 달라졌는지 가릴 수 있도록 다음을 함께 기록한다.
+
+- 리소스 표본마다 `fixture`(WPF 시험 앱, UIA 공급자)와 `driver`(측정 스크립트) 프로세스의 CPU 시간·private bytes·working set·핸들·스레드를 남긴다.
+- `host`에는 전체 논리 프로세서의 사용·유휴 CPU 시간과 `% Processor Performance` 누적값, 가용 메모리, AC 전원 여부, 마지막 키보드·마우스 입력 이후 시간, 시험 창의 전경·최소화 상태를 남긴다. CPU 시간과 성능 카운터는 누적값이어서 두 표본의 차이가 그 사이의 평균이 된다. 성능 카운터의 기준값은 주기적으로 되돌아가며, 분석 도구는 그 구간의 프로세서 속도를 NOT AVAILABLE로 둔다.
+- `-TopProcesses N`을 주면 JVM·시험 앱·스크립트를 제외하고 직전 표본 이후 CPU를 가장 많이 쓴 프로세스 N개의 이름과 CPU 시간을 `host.topProcesses`에 남긴다. 기본값 0은 프로세스 이름을 기록하지 않는다. 이름이 JSON에 남으므로 결과를 공개 저장소에 올리기 전에 확인한다.
+- G1의 young·survivor 크기(`heapYoungBytes`, `heapSurvivorBytes`)를 표본마다 남긴다.
+- 지연이 `-SlowRequestMs`(기본 100 ms) 이상인 요청은 구간·연산별로 세고(`slowRequestCount`), 구간마다 가장 느린 `-SlowRequestLimit`(기본 10)개는 완료 시각과 함께 `slowRequests`에 남긴다.
+- JVM마다 GC 로그를 보고서 옆에 `<보고서 이름>.gc-<PID>.log`로 쓰고 파일 이름을 세션의 `gcLog`에 기록한다. `gc*`와 `safepoint`, 단계·참조 처리·age 상세를 UTC 시각과 함께 남기며 수거 1회에 약 15 KB, 1시간에 2~3 MB다. `-NoGcLog`로 끈다.
+- 환경 정보에 CPU 모델과 명목 주파수, 메모리, 전원 구성표와 전원 모드, 스크립트의 git 커밋을 추가한다.
+
 `tools/Analyze-JnaSoak.py`(Python 3.8 이상, 표준 라이브러리만 사용)는 기존 60초 JSON과 새 JSON, 중단된 체크포인트를 읽어 Markdown 보고서와 선택적 CSV(`jna-soak-resources.csv`, `jna-soak-intervals.csv`)를 만든다. 메모리 누수는 최초·최종 차이가 아니라 JVM 세션별 워밍업 이후 Theil-Sen 기울기, 초반·후반 중앙값, 후반부 기울기로 판정하고, 워밍업 이후 관측이 1시간 미만이면 INCONCLUSIVE로 표시한다. Heap used는 하한 포락선으로 GC 톱니를 줄인다. 입력에 없는 값은 NOT AVAILABLE로 표시하며 추정하지 않는다. 보고서 파일이 손상되고 같은 위치에 완전한 `.pending` 체크포인트가 남아 있으면 그 파일을 분석한다.
+
+스키마 3의 값은 다음과 같이 쓰인다. 스키마 2 이하에서 계산할 수 없는 항목은 NOT AVAILABLE이다.
+
+- 4절: 구간별 부하 표(반복 1회당 JVM·시험 앱·스크립트 CPU 시간, 호스트와 다른 프로세스의 CPU 사용률, 프로세서 속도, GC, 느린 요청 수)와 느린 구간·정상 구간 비교. snapshot p95가 유효 구간 하위 25% 값의 1.5배를 넘으면 느린 구간으로 보고, 측정값별 중앙값과 snapshot p95에 대한 Spearman 순위 상관을 보여준다. 상관은 함께 변한 항목을 가리킬 뿐 원인 판정은 아니다.
+- 4절: setValue·invoke처럼 구간당 요청이 적은 연산은 요청이 20개에 이를 때까지 연속 구간을 묶은 평균으로 초반·후반을 비교한다.
+- 5절: 세대별 Heap과 수거 횟수, GC 로그의 일시정지 통계. GC 로그는 보고서와 같은 폴더에서 찾으며 `--gc-log`로 지정할 수 있다. old 영역 수거가 한 번도 없던 JVM의 Heap used 증가는 누수와 가비지 누적을 구분할 수 없어 INCONCLUSIVE로 둔다.
+- 6~8절: `private bytes − NMT committed`(HotSpot이 추적하지 않는 COM·JNA 등 네이티브 할당)을 누수 지표에 추가하고, 시험 앱과 스크립트 프로세스의 추세를 전체 실행 기간으로 본다. 시험 앱의 지속 증가는 경고, 스크립트의 증가는 참고로 표시한다.
+- 9절: 느린 요청 수와, 완료 시각이 남은 요청 중 GC 일시정지와 겹친 요청 수.
 
 ### Windows 실행 명령
 
@@ -22,11 +40,21 @@
 .\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromMinutes(5)) -IntervalSeconds 60 -SampleSeconds 30 -OutputPath .\target\windows-uia-jna-soak-5min.json
 ```
 
+2시간 시험. 워밍업 10분을 빼고도 추세 판정에 필요한 1시간을 넘긴다. 다른 프로세스의 부하까지 보려면 `-TopProcesses 3`을 붙인다:
+
+```powershell
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(2)) -IntervalSeconds 60 -SampleSeconds 60 -TopProcesses 3 -OutputPath .\target\windows-uia-jna-soak-2h.json
+```
+
 8시간 시험:
 
 ```powershell
 .\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(8)) -IntervalSeconds 60 -SampleSeconds 60 -OutputPath .\target\windows-uia-jna-soak-8h.json
 ```
+
+변경 요청은 기본 15초 간격이라 JVM 재시작 조건(세션당 변경 2,048회)에 약 8.6시간 뒤에 닿는다. 8시간 안에 재시작 경로까지 보려면 `-MutationIntervalSeconds 5`처럼 간격을 줄인다.
+
+작업 스케줄러처럼 `powershell -File .\tools\Test-JnaSoak.ps1`로 실행할 때는 `-Jar`와 `-OutputPath`를 직접 지정한다. Windows PowerShell 5.1은 이 실행 방식에서 매개변수 기본값을 계산할 때 `$PSScriptRoot`가 비어 있어 기본 경로를 만들지 못한다.
 
 분석 보고서 생성:
 
@@ -34,10 +62,10 @@
 python .\tools\Analyze-JnaSoak.py .\target\windows-uia-jna-soak-8h.json --output .\target\jna-soak-analysis.md --csv-dir .\target
 ```
 
-5분 결과에서 구간 데이터가 수집됐는지 확인한다. 구간 4개 이상, 각 구간의 snapshot 지연과 리소스 표본, 스키마 버전 2가 있어야 한다.
+5분 결과에서 구간 데이터가 수집됐는지 확인한다. 구간 4개 이상, 각 구간의 snapshot 지연과 JVM·시험 앱·스크립트·호스트 표본, 스키마 버전 3, GC 로그 파일이 있어야 한다.
 
 ```powershell
-$r = Get-Content .\target\windows-uia-jna-soak-5min.json -Raw | ConvertFrom-Json; $bad = @($r.intervals | Where-Object { !$_.latencyMs.snapshot.count -or !$_.resources.privateBytes -or $null -eq $_.resources.nmtCommittedBytes }); "schema=$($r.schemaVersion) passed=$($r.passed) intervals=$($r.intervals.Count) incomplete=$($bad.Count) failures=$($r.failedIterations)"
+$r = Get-Content .\target\windows-uia-jna-soak-5min.json -Raw | ConvertFrom-Json; $bad = @($r.intervals | Where-Object { !$_.latencyMs.snapshot.count -or !$_.resources.privateBytes -or $null -eq $_.resources.nmtCommittedBytes -or !$_.resources.fixture.available -or !$_.resources.driver.available -or !$_.resources.host.available -or $null -eq $_.resources.heapYoungBytes }); "schema=$($r.schemaVersion) passed=$($r.passed) intervals=$($r.intervals.Count) incomplete=$($bad.Count) failures=$($r.failedIterations) gcLog=$(Test-Path (Join-Path .\target $r.sessions[0].gcLog))"
 ```
 
 이어서 `python .\tools\Analyze-JnaSoak.py .\target\windows-uia-jna-soak-5min.json --output .\target\jna-soak-5min-analysis.md`를 실행해 4절 표에 구간이 나열되는지 본다. 5분 시험은 1시간 기준보다 짧아 메모리 추세가 INCONCLUSIVE로 표시되는 것이 정상이다.
@@ -71,7 +99,34 @@ Windows 11 Pro x64 빌드 26200, Oracle JDK 17.0.10, Windows PowerShell 5.1, Mav
 
 Heap committed는 508 MiB로 일정했고 NMT committed는 약 619 MiB에서 유지됐다. Private bytes는 약 633 MiB에서 643 MiB로 완만히 늘었고, 핸들은 552~557개, 스레드는 40~42개였다. Working set은 104 MiB에서 465 MiB로 늘었으며 대부분 시작 후 5분 안에 증가했다. GC는 76회였다. 워밍업 10분을 제외한 추세 구간이 47.5분이라 분석 도구는 메모리와 성능 추세를 INCONCLUSIVE로 판정했다. [1시간 시험 원본](test-results/2026-11-23-jna-soak-1h-intervals.json)
 
-8시간 시험은 아직 실행하지 않았다.
+### 2026-11-23 계측 보강 검증
+
+1시간 시험의 느린 구간은 시험 앱과 호스트를 측정하지 않아 원인을 좁힐 수 없었다. 스키마 3의 계측과 분석을 추가하고 같은 환경에서 검증했다. Java 소스는 바꾸지 않았다. Maven `test`는 55개 중 51개 통과, 실패·오류 0, Windows GUI 4개는 기본 설정대로 건너뜀으로 이전과 같고, JAR는 다시 만들지 않았다.
+
+| 검사 | 결과 |
+|---|---|
+| Python 분석 도구 단위 시험 | 39개 통과(기존 18개 포함, 2시간 시험 뒤 1개 추가). 누적 카운터로 구간별 부하 계산, 느린 구간·정상 구간 비교, 스키마 2 보고서의 누락 열, 묶음 평균 추세, NMT 밖 네이티브 추세, 세대별 Heap과 old 수거가 없을 때의 판정 보류, 시험 앱·스크립트 추세, GC 로그 해석과 회전된 로그, 느린 요청과 GC 일시정지 대조, 환경 표와 CSV 열 |
+| PowerShell 도구 시험 | 통과. `GC.heap_info`의 세대 크기 해석, GC 로그 옵션의 경로 인용, 느린 요청 집계와 상한, 리소스 포인트의 새 필드, 모의 에이전트 프로세스로 요청 완료 시각 확인, 호스트 표본의 CPU 시간·전원·입력 유휴 시간·상위 프로세스, 환경 정보 |
+| 기존 1시간 JSON 재분석 | 유효 구간 49개 중 느린 구간 27개. snapshot p95와의 순위 상관은 getElementInfo p95가 0.92, JVM 안에서 끝나는 findElement 평균이 -0.48이다. 반복당 JVM CPU 중앙값은 정상 구간 20.9 ms, 느린 구간 21.5 ms다. setValue와 invoke는 5구간 묶음 평균이 17.1 → 27.4 ms, 17.2 → 21.2 ms이며 1시간 미만이라 INCONCLUSIVE다. 시험 앱·호스트 값은 NOT AVAILABLE이다 |
+
+실제 WPF 창에서 짧게 두 번 실행해 수집을 확인했다. 두 실행 모두 실패 0회였고 모든 구간이 JVM·시험 앱·스크립트·호스트 표본과 세대 크기를 포함했으며, 분석 도구가 보고서 옆의 GC 로그를 읽었다.
+
+| 항목 | 90초, `-IntervalSeconds 20 -SampleSeconds 10 -SlowRequestMs 60 -TopProcesses 3` | 150초, `-IntervalSeconds 30 -SampleSeconds 30` |
+|---|---:|---:|
+| 반복 | 1,317회 | 3,450회 |
+| 처리량 | 초당 14.6~15.9회 | 초당 23.2~24.3회 |
+| 반복당 JVM CPU (첫 구간 제외) | 17.8~22.2 ms | 11.5~13.5 ms |
+| 반복당 시험 앱 CPU | 30.6~36.6 ms | 28.7~30.4 ms |
+| 반복당 스크립트 CPU | 15.2~23.8 ms | 6.9~8.2 ms |
+| 프로세서 속도 (명목 대비) | 105~126% | 129~136% |
+| GC 로그의 일시정지 | 5회, 중앙값 54.0 ms, 최대 64.0 ms | 8회, 중앙값 23.3 ms, 최대 94.2 ms |
+| 느린 요청 | 60 ms 이상 61건. 시각이 남은 40건 중 4건이 GC 일시정지와 겹침 | 100 ms 이상 2건. 2건 모두 GC 일시정지와 겹침 |
+
+두 실행 모두 시험 앱 프로세스가 JVM보다 반복당 CPU 시간을 더 썼다. 두 실행 사이에 처리량이 약 1.5배 달랐고 프로세서 속도와 JVM·스크립트의 반복당 CPU 시간도 함께 달랐다. 짧은 실행이라 원인은 판단하지 않는다. 기본 옵션 실행에서는 프로세스 이름이 기록되지 않았다.
+
+검증 중에 기존 결함 하나를 고쳤다. 콘솔 입력 코드 페이지가 UTF-8(65001)인 Windows PowerShell에서 실행하면 .NET이 CLI의 표준 입력 앞에 BOM을 보내 첫 요청이 `INVALID_REQUEST`로 실패했다. `Start-Cli`가 프로세스를 시작하는 동안 BOM이 없는 인코딩을 쓰도록 바꾸고 도구 시험에 넣었다.
+
+`Compare-UiaWorkers.ps1`은 이 체크아웃에 C# 워커 빌드가 없어 설정 실패 경로만 시험했다. 2시간 시험은 아래에 기록했고 8시간 시험은 아직 실행하지 않았다.
 
 도구 단위 시험:
 
@@ -79,6 +134,69 @@ Heap committed는 508 MiB로 일정했고 NMT committed는 약 619 MiB에서 유
 python -m unittest discover -s tools\tests -p "test_*.py"
 powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\tests\Test-UiaTools.ps1
 ```
+
+### 2026-11-23 JNA 2시간 시험
+
+같은 환경과 같은 JAR로 `-Duration ([TimeSpan]::FromHours(2)) -IntervalSeconds 60 -SampleSeconds 60 -TopProcesses 3`을 실행했다. AC 전원, 전원 구성표 '균형 조정'이었고 시험 중에 같은 PC를 다른 작업에도 썼다. 단일 JVM에서 104,955회 반복, 변경 473쌍, 요청 420,766건을 처리했고 실패·Timeout·세션 재시작·비정상 종료는 0이었다. 60초 구간 119개(마지막은 20초)가 모두 JVM·시험 앱·스크립트·호스트 표본을 포함했다.
+
+| 연산 | p50 | p95 | p99 | 최대 |
+|---|---:|---:|---:|---:|
+| Snapshot | 44.2 ms | 97.0 ms | 176.3 ms | 521.8 ms |
+| GetElementInfo | 5.5 ms | 10.9 ms | 22.0 ms | 210.2 ms |
+| SetValue | 18.2 ms | 45.1 ms | 74.2 ms | 95.8 ms |
+| Invoke | 16.3 ms | 30.6 ms | 38.8 ms | 66.7 ms |
+
+분석 도구의 종합 판정은 PASS WITH WARNINGS다. 경고는 snapshot p95와 setValue 평균의 초반·후반 차이, Heap used와 working set의 증가다. 아래 구분 중 '조용한 구간'과 '사용 중 구간'은 분석 도구에 없는 분류라서 원자료에서 따로 계산했다.
+
+**느린 구간은 PC를 쓴 시간과 겹친다.** 워밍업 10분과 마지막 짧은 구간을 뺀 유효 구간 108개 중 snapshot p95가 95.1 ms를 넘는 느린 구간이 40개였다. 그중 38개는 표본을 뜬 시점에 키보드·마우스 입력이 60초 안에 있었다. 구간 안의 두 표본 모두 입력 후 60초가 지났고 시험 창이 전경이던 구간을 조용한 구간으로 보면 46개이고, 그중 느린 구간은 2개다. 그 2개는 보안 검사, 검색 색인, 스크립트 실행 같은 다른 프로세스가 CPU를 10초 넘게 쓴 구간이었다.
+
+| 항목 (구간 중앙값) | 조용한 구간 46개 | 사용 중 구간 62개 |
+|---|---:|---:|
+| 처리량 | 초당 15.2회 | 초당 13.3회 |
+| Snapshot p50 | 44.8 ms | 46.0 ms |
+| Snapshot p95 | 63.5 ms | 114.6 ms |
+| Snapshot p99 | 80.4 ms | 193.2 ms |
+| 반복당 JVM CPU | 22.1 ms | 21.2 ms |
+| 반복당 시험 앱 CPU | 34.0 ms | 45.4 ms |
+| 느린 구간 | 2개 | 38개 |
+
+분석 도구의 느린 구간·정상 구간 비교에서 snapshot p95와 가장 강하게 함께 움직인 값은 반복당 시험 앱 CPU(34.6 → 51.9 ms, 순위 상관 0.92)였다. 다른 프로세스의 CPU 사용률은 0.69, 마지막 입력 이후 시간은 -0.69, 프로세서 속도는 -0.63이었다. 반복당 JVM CPU는 21.7 ms와 21.8 ms로 같았고(0.21), GC 일시정지 시간(-0.28)과 JVM 안에서 끝나는 findElement(-0.03)는 함께 움직이지 않았다. 100 ms 이상 걸린 요청 4,866건 중 4,496건이 사용 중 구간에서 나왔다.
+
+**조용한 구간끼리 비교하면 시간이 지나도 느려지지 않았다.** 17~58번 구간의 조용한 구간 16개는 초당 15.2회, snapshot p50 44.8 ms, p95 63.0 ms였고 59~117번의 24개는 초당 15.0회, p50 44.9 ms, p95 65.1 ms였다. setValue 평균은 19.0 → 18.7 ms, invoke 평균은 16.5 → 15.9 ms였다. 분석 도구가 snapshot p95(66.7 → 108.8 ms)와 setValue 묶음 평균(18.6 → 26.0 ms)을 DEGRADING으로 표시한 것은 초반 1/4과 후반 1/4을 비교하기 때문이다. 후반 1/4의 27개 구간 중 18개가 사용 중 구간이었다. 분석 도구는 PC 사용에 따른 차이와 누적 저하를 구분하지 못한다.
+
+**시작 후 약 17분에 처리량이 한 단계 내려갔고 원인은 확인하지 못했다.** 10~15번 구간은 초당 19.9회, snapshot p50 37.4 ms, 반복당 JVM CPU 14.0 ms, 스크립트 CPU 7.8 ms, 프로세서 속도는 명목의 100~112%(중앙값 110%)였다. 시작 후 처음으로 입력이 들어온 16번 구간을 지나 17번 구간부터는 초당 15.2회, p50 44.8 ms, JVM 22.0 ms, 스크립트 18.5 ms, 프로세서 속도 약 100%가 됐다. 시험 앱의 반복당 CPU는 35.8 ms와 34.0 ms로 거의 같았다. 이후 입력이 14분 동안 없던 구간에서도 돌아오지 않았고, 일부 사용 중 구간(32·33·81·88·111~117번 등)에서는 반복당 CPU가 JVM 15~20 ms, 스크립트 8~12 ms로 다시 낮아졌다. 같은 일을 하는 데 드는 CPU 시간이 프로세스별로 따로 변한 것이어서 P 코어 2개와 E 코어 8개인 CPU에서 프로세스가 놓인 코어나 주파수가 달라졌을 가능성이 있다. 코어별 기록이 없어 이번 계측으로는 확인할 수 없다.
+
+**GC 일시정지는 약 42초마다 127 ms다.** GC 로그의 일시정지는 181회, 중앙값 127.0 ms, p95 185.9 ms, 최대 265.4 ms, 합계 21.0초(실행 시간의 0.29%)다. Object Copy가 중앙값 94.2 ms로 대부분을 차지했다. young 수거 뒤에 남는 객체는 중앙값 36.7 MiB이고 179회 중 177회에서 모두 age 1이었다. 한 번 살아남은 뒤 다음 수거 전에 죽는 객체가 eden의 약 15%라는 뜻이다. 아래 Heap 누수 확인에서 이 객체가 COM 호출마다 만드는 JNA 네이티브 버퍼의 정리용 객체임을 확인했다. 시각이 남은 느린 요청 799건 중 GC 일시정지와 겹친 것은 115건이다.
+
+**Heap의 old 영역이 늘었고, 이 시험만으로는 누수 여부를 판정할 수 없었다.** 아래 Heap 누수 확인에서 도달 가능한 객체는 늘지 않는다는 것을 따로 확인했다. GC 로그 기준 old와 humongous 영역은 20회째 수거에서 20 MiB, 80회째 44 MiB, 120회째 108 MiB, 158회째(1시간 48분) 232 MiB로 점점 빠르게 늘었다. 이때 첫 concurrent mark와 mixed 수거 3회가 실행되어 112 MiB로 줄었고 종료 때는 128 MiB였다. 줄어든 절반은 young 수거가 치우지 못한 가비지다. 남은 약 100 MiB는 마킹 시점에 살아 있다고 판정된 객체인데, 사이클이 한 번뿐이어서 이 값이 계속 늘어나는지 알 수 없다. old 수거 뒤 young 일시정지 중앙값은 131.3 ms에서 78.4 ms(15회)로 줄었다. Heap committed는 508 MiB로 일정했다. Working set 증가(+58.7 MiB/h)는 old 영역이 차면서 committed 범위 안의 페이지를 처음 쓰는 것과 같은 방향이어서 단독으로 누수 지표가 되지 않는다.
+
+Heap 밖의 지표는 안정적이었다. 워밍업 이후 private bytes는 +3.2 MiB/h(640.8 → 651.5 MiB), NMT 밖 네이티브는 +1.5 MiB/h, NMT committed는 +0.6 MiB/h였고 핸들은 563개 안팎, 스레드는 44~47개였다. 시험 앱의 private bytes는 +0.3 MiB/h였다. 측정 스크립트 프로세스의 private bytes는 +11.1 MiB/h로 늘었으며 분석 도구는 참고 항목으로 표시한다.
+
+이 실행에서 분석 도구의 결함 하나를 찾아 고쳤다. `% Processor Performance`의 기준값은 논리 프로세서마다 32비트 값이고 `_Total`은 그 평균이어서, 한 프로세서의 값이 넘칠 때마다 2^32 / 프로세서 수만큼 되돌아간다. 2시간 동안 두 번 일어났고 그 구간의 속도가 -2%로 계산됐다. 기준값이 되돌아간 구간은 NOT AVAILABLE로 두도록 바꾸고 단위 시험에 넣었다(40개 통과).
+
+원자료와 GC 로그에는 `-TopProcesses`로 기록한 프로세스 이름이 들어 있어 저장소에 넣지 않았다.
+
+### 2026-11-23 Heap 누수 확인
+
+2시간 시험에서 남은 의문은 old 영역의 증가가 누수인지였다. 같은 환경과 JAR로 16분 시험(`-IntervalSeconds 60 -SampleSeconds 60`)을 실행하면서 JVM 시작 후 84초, 509초, 873초에 클래스별 객체 집계를 떴다. 시점마다 `jcmd <PID> GC.class_histogram -all`(수거 없이 모든 객체), `jcmd <PID> GC.class_histogram`(전체 GC 뒤 도달 가능한 객체), 2초 뒤 같은 명령을 한 번 더 실행했다. 시험은 18,193회 반복에 실패 0회였다.
+
+| 시점 | 반복 수 | 전체 GC 직후 | 2초 뒤 다시 전체 GC |
+|---|---:|---:|---:|
+| 84초 | 1,317 | 20.93 MiB | 7.12 MiB |
+| 509초 | 9,616 | 4.31 MiB | 4.36 MiB |
+| 873초 | 16,714 | 4.58 MiB | 4.39 MiB |
+
+**도달 가능한 객체는 늘지 않았다.** 9,658회와 16,755회 사이에 4.36 MiB에서 4.39 MiB로 약 30 KB 늘었다. 늘어난 것은 String, byte 배열, HashMap 노드가 각각 70~100개다. `ActionDispatcher`가 중복 방지를 위해 보관하는 명령 ID(그 사이 약 48개, 세션당 상한 4,096개)와 집계 순간에 처리 중이던 요청의 객체로 설명되는 크기다. 에이전트가 붙잡고 있는 UIA 객체는 스냅샷 1개분(`Capture` 1개, 요소 약 20개)이었고 살아 있는 JNA `Memory`는 3개였다.
+
+**GC 때 살아남는 객체는 JNA 버퍼의 정리용 객체다.** 84초 시점에는 직전 young 수거에서 12.8초가 지나 있었다. 전체 GC 직후 20.93 MiB 중 16.9 MiB가 `Cleaner$CleanerRef`(48바이트), `Memory$MemoryDisposer`(24), `WeakReference`(32), `ConcurrentHashMap$Node`(32), `Long`(24) 다섯 클래스였고 각각 약 109,000개였다. JNA `Memory` 하나에 160바이트가 딸려 있고, 버퍼가 죽은 것을 GC가 확인한 뒤에야 정리 스레드가 해제하므로 수거 한 번은 반드시 살아남는다. 2초 뒤에는 각각 약 18,500개로 줄었다.
+
+반복 1회에 `Memory`가 427개 만들어진다. 그중 `PointerByReference` 193개와 `IntByReference` 172개는 `UiaCom`의 COM 호출 보조 메서드가 호출마다 새로 만들고 닫지 않는 버퍼다. 나머지 약 60개는 대부분 `try`로 바로 닫아 정리용 객체가 남지 않는다. 닫지 않는 버퍼를 반복당 370개로 잡고 2시간 시험의 수거 간격으로 계산하면 42초 × 초당 15회 × 370개 × 160바이트 = 35.6 MiB로, 그 시험에서 수거마다 살아남은 36.7 MiB와 맞는다.
+
+**old 영역 증가는 이 정리용 객체가 승격된 것으로 본다.** 살아남는 양이 survivor 공간을 넘으면 일부가 old로 승격된다. OpenJDK 17의 `ReferenceProcessor::discover_reference`는 발견 대상 영역 밖의 참조 객체를 일반 객체처럼 처리하므로, 같은 수거에서 old로 옮겨진 참조 객체는 대상 버퍼를 강한 참조처럼 붙잡고 concurrent mark까지 남는다. 2시간 시험에서 첫 concurrent mark의 참조 처리가 119 ms 걸렸고, 직후 NMT 밖 네이티브가 29.0 MiB에서 23.6 MiB로 줄었으며, old 영역의 절반만 회수된 것이 이 설명과 맞는다. 이 경로를 직접 재현하지는 않았다. 누적은 concurrent mark마다 정리되므로 상한이 있다.
+
+**전체 GC 뒤에는 JVM이 작은 Heap으로 동작했다.** 첫 집계의 전체 GC 뒤 Heap committed가 508 MiB에서 28 MiB로, private bytes가 640 MiB에서 135 MiB로 줄었고 시험이 끝날 때까지 유지됐다. young 수거는 0.49초마다 중앙값 2.6 ms, 최대 6.6 ms였고 합계는 실행 시간의 0.54%였다. 다른 프로세스의 부하가 낮던 7개 구간에서 반복당 JVM CPU는 12.8~14.6 ms로 2시간 시험의 초기 구간(14.0 ms)과 같은 수준이었고, 100 ms 이상 걸린 요청은 합계 1건, snapshot 최대는 79~106 ms였다. 2시간 시험의 조용한 구간은 구간마다 1~4건, 최대는 대체로 170~230 ms였다. 기본 설정의 초기 Heap(물리 메모리의 1/64인 508 MiB)이 도달 가능한 객체 4.4 MiB인 이 에이전트에는 크다는 뜻이다. Heap 옵션을 지정했을 때의 효과는 따로 시험하지 않았다.
+
+집계와 비교 결과는 `target\jna-leak-check`에 있다.
 
 ## 2026-11-23 PR #2 헤드 재검증
 

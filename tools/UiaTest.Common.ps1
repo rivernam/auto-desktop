@@ -1,12 +1,21 @@
 # Shared only by the local Windows UIA benchmark and soak scripts.
 function Get-UiaEnvironment {
-    [ordered]@{
+    $environment = [ordered]@{
         os = [Environment]::OSVersion.VersionString
         is64BitOS = [Environment]::Is64BitOperatingSystem
         interactive = [Environment]::UserInteractive
         powerShell = $PSVersionTable.PSVersion.ToString()
         processorCount = [Environment]::ProcessorCount
     }
+    if ($env:OS -eq 'Windows_NT') {
+        # The registry answers without the delay of a WMI query; this runs before every report.
+        try {
+            $processor = Get-ItemProperty -LiteralPath 'HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0' -ErrorAction Stop
+            $environment.cpu = ([string]$processor.ProcessorNameString).Trim()
+            $environment.cpuNominalMhz = [int]$processor.'~MHz'
+        } catch {}
+    }
+    return $environment
 }
 
 function Initialize-UiaTools {
@@ -51,6 +60,9 @@ function Set-UiaBuildInfo($environment, [string]$worker) {
     $environment.jarSha256 = (Get-FileHash -LiteralPath $Jar -Algorithm SHA256).Hash
     $environment.fixtureSha256 = (Get-FileHash -LiteralPath $fixtureScript -Algorithm SHA256).Hash
     if ($worker) { $environment.csharpWorkerSha256 = (Get-FileHash -LiteralPath $worker -Algorithm SHA256).Hash }
+    # The commit identifies these scripts and the fixture; the JAR is identified by its hash.
+    $git = Get-UiaGitInfo
+    if ($git) { $environment.gitCommit = $git.commit; $environment.gitDirty = $git.dirty }
 }
 
 function Start-UiaFixture([bool]$borderless) {
@@ -168,10 +180,27 @@ function Wait-State($file, $value) {
     throw "Fixture did not report expected $file."
 }
 
-function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory) {
+# One GC log per JVM next to the report. The JVM expands %p to its process ID.
+function Get-SoakGcLogPattern([string]$reportPath) {
+    if (!$reportPath) { return $null }
+    $fullPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($reportPath)
+    return [IO.Path]::Combine([IO.Path]::GetDirectoryName($fullPath),
+        [IO.Path]::GetFileNameWithoutExtension($fullPath) + '.gc-%p.log')
+}
+
+function Get-SoakGcLogName([string]$pattern, [int]$processId) {
+    return [IO.Path]::GetFileName($pattern).Replace('%p', [string]$processId)
+}
+
+function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]$GcLogPath) {
     $start = New-Object Diagnostics.ProcessStartInfo
     $start.FileName = $javaExe
     if ($TrackNativeMemory) { $start.Arguments = '-XX:NativeMemoryTracking=summary ' }
+    if ($GcLogPath) {
+        # Unified logging splits its option on ':' and ',', so the path is quoted inside the quoted argument.
+        $start.Arguments += '"-Xlog:gc*,gc+ref=debug,gc+phases=debug,gc+age=trace,safepoint:file=\"' + $GcLogPath +
+            '\":utctime,uptime,level,tags:filecount=8,filesize=32m" '
+    }
     $start.Arguments += "-jar `"$Jar`" --allow-pid $($fixture.Id) --allow-action invoke --allow-action setValue"
     switch ($backend) {
         'PowerShell' { $start.Arguments += ' --backend powershell' }
@@ -189,7 +218,19 @@ function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory) {
 }
 
 function Start-Cli($start) {
-    $cli = [Diagnostics.Process]::Start($start)
+    # Windows PowerShell opens the child's stdin writer with the console input encoding. On a UTF-8
+    # console (code page 65001) that writer sends a byte order mark ahead of the first request frame.
+    $consoleInput = $null
+    try {
+        if ($start.RedirectStandardInput -and [Console]::InputEncoding.GetPreamble().Length) {
+            $consoleInput = [Console]::InputEncoding
+            [Console]::InputEncoding = New-Object Text.UTF8Encoding($false)
+        }
+    } catch { $consoleInput = $null }
+    try { $cli = [Diagnostics.Process]::Start($start) }
+    finally {
+        if ($consoleInput) { try { [Console]::InputEncoding = $consoleInput } catch {} }
+    }
     $cli.BeginErrorReadLine() # Drain per-request audit output without accumulating it.
     return $cli
 }
@@ -204,10 +245,11 @@ function Request($cli, $command) {
     $next = $cli.StandardOutput.ReadLineAsync()
     if (!$next.Wait(30000)) { throw "Timed out waiting for $($command.op)." }
     $clock.Stop()
+    $endUtc = [DateTime]::UtcNow # the system clock that the JVM's GC log is stamped with
     if ($null -eq $next.Result) { throw "CLI closed before responding to $($command.op)." }
     $reply = $next.Result | ConvertFrom-Json
     if (!$reply.ok -or $reply.id -ne $command.id) { throw "$($command.op) failed: $($reply.error.code)" }
-    return @{ ms = $clock.Elapsed.TotalMilliseconds; result = $reply.result }
+    return @{ ms = $clock.Elapsed.TotalMilliseconds; result = $reply.result; endUtc = $endUtc }
 }
 
 function Worker-Process($cli, [string]$backend) {
@@ -314,7 +356,8 @@ function Take-Snapshot($cli, $windowId) {
     return Request $cli @{ op = 'snapshot'; windowId = $windowId; maxDepth = 16; maxElements = 200 }
 }
 
-function Run-Iteration($cli, $windowId, $expectedCount, $token, [string[]]$expectedShape, [switch]$ObserveOnly) {
+# -RequestEnds is an optional hashtable that receives the completion time of each request by latency key.
+function Run-Iteration($cli, $windowId, $expectedCount, $token, [string[]]$expectedShape, [switch]$ObserveOnly, $RequestEnds) {
     $snap = Take-Snapshot $cli $windowId
     [void](Check-Snapshot $snap.result $windowId $expectedCount)
     Check-TreeShape $snap.result $expectedShape
@@ -327,6 +370,11 @@ function Run-Iteration($cli, $windowId, $expectedCount, $token, [string[]]$expec
         throw 'Live element information did not identify the fixture editor.'
     }
     $times = [ordered]@{ snapshot = $snap.ms; findEdit = $edit.ms; findButton = $button.ms; elementInfo = $info.ms }
+    if ($null -ne $RequestEnds) {
+        $RequestEnds.Clear()
+        $RequestEnds.snapshot = $snap.endUtc; $RequestEnds.findEdit = $edit.endUtc
+        $RequestEnds.findButton = $button.endUtc; $RequestEnds.elementInfo = $info.endUtc
+    }
     if (!$ObserveOnly) {
         $set = Request $cli @{ op = 'setValue'; ref = $edit.result.ref; value = $token }
         if ($set.result.performed -isnot [bool] -or !$set.result.performed) {
@@ -341,6 +389,7 @@ function Run-Iteration($cli, $windowId, $expectedCount, $token, [string[]]$expec
         Wait-State 'count.txt' ([string]($previous + 1))
         $times.setValue = $set.ms
         $times.invoke = $invoke.ms
+        if ($null -ne $RequestEnds) { $RequestEnds.setValue = $set.endUtc; $RequestEnds.invoke = $invoke.endUtc }
     }
     return $times
 }
@@ -453,14 +502,41 @@ function New-SoakInterval([int]$index, [int]$sessionIndex, $processId, [double]$
         requestsCompleted = 0; requestsFailed = 0; timeouts = 0
         requestCounts = [ordered]@{}; errorCounts = [ordered]@{}
         events = New-Object 'Collections.Generic.List[object]'
+        slowRequestCount = 0; slowRequestCounts = [ordered]@{}
+        slowRequests = New-Object 'Collections.Generic.List[object]'
     }
 }
 
-function Add-SoakIterationTimes($interval, $intervalLatencies, $histograms, $times) {
+# Requests at or above this latency are counted per interval; the slowest few keep their completion
+# time so they can be matched against GC pauses. Zero disables the tracking.
+$script:UiaSlowRequestMs = 100.0
+$script:UiaSlowRequestLimit = 10
+
+function Add-SoakSlowRequest($interval, [string]$operation, [double]$ms, $endUtc, $iteration) {
+    $interval.slowRequestCount++
+    if ($interval.slowRequestCounts.Contains($operation)) { $interval.slowRequestCounts[$operation]++ }
+    else { $interval.slowRequestCounts[$operation] = 1 }
+    $kept = $interval.slowRequests
+    if ($kept.Count -ge $UiaSlowRequestLimit) {
+        if (!$kept.Count) { return }
+        $fastest = 0
+        for ($i = 1; $i -lt $kept.Count; $i++) { if ($kept[$i].ms -lt $kept[$fastest].ms) { $fastest = $i } }
+        if ($kept[$fastest].ms -ge $ms) { return }
+        $kept.RemoveAt($fastest)
+    }
+    # Requests arrive in time order, so appending keeps the list chronological.
+    $utc = if ($endUtc -is [DateTime]) { $endUtc.ToString('o') } else { $null }
+    $kept.Add([ordered]@{ utc = $utc; op = $operation; ms = $ms; iteration = $iteration })
+}
+
+function Add-SoakIterationTimes($interval, $intervalLatencies, $histograms, $times, $ends, $iteration) {
     foreach ($name in $times.Keys) {
         $value = [double]$times[$name]
         $operation = $UiaLatencyOperation[$name]
         if (!$operation) { $operation = $name }
+        if ($ends -and $UiaSlowRequestMs -gt 0 -and $value -ge $UiaSlowRequestMs) {
+            Add-SoakSlowRequest $interval $operation $value $ends[$name] $iteration
+        }
         if (!$intervalLatencies.Contains($operation)) {
             $intervalLatencies[$operation] = New-Object 'Collections.Generic.List[double]'
         }
@@ -506,7 +582,8 @@ function ConvertTo-SoakResourcePoint($sample) {
             $point[$field] = $resources.java[$field]
         }
     }
-    foreach ($field in 'heapUsedBytes', 'heapCommittedBytes', 'nmtReservedBytes', 'nmtCommittedBytes', 'gc') {
+    foreach ($field in 'heapUsedBytes', 'heapCommittedBytes', 'heapRegionBytes', 'heapYoungBytes', 'heapSurvivorBytes',
+        'nmtReservedBytes', 'nmtCommittedBytes', 'gc', 'fixture', 'driver', 'host') {
         if ($sample.Contains($field)) { $point[$field] = $sample[$field] }
     }
     return $point
@@ -526,6 +603,22 @@ function Complete-SoakInterval($interval, $intervalLatencies, [double]$endElapse
     $interval.resources = ConvertTo-SoakResourcePoint $resourceSample
     if ($intervalLatencies) { $intervalLatencies.Clear() }
     return $interval
+}
+
+# jcmd GC.heap_info. Generation sizes are printed by G1 only; young includes the survivor regions.
+function ConvertFrom-JvmHeapInfo([string]$text) {
+    $result = [ordered]@{}
+    $usage = [regex]::Match($text, '(?i)heap\s+total\s+(\d+)K,\s+used\s+(\d+)K\b')
+    if (!$usage.Success) { return $result }
+    $result.heapCommittedBytes = [long]$usage.Groups[1].Value * 1KB
+    $result.heapUsedBytes = [long]$usage.Groups[2].Value * 1KB
+    $regions = [regex]::Match($text, '(?i)region size\s+(\d+)K,\s+\d+\s+young\s+\((\d+)K\),\s+\d+\s+survivors\s+\((\d+)K\)')
+    if ($regions.Success) {
+        $result.heapRegionBytes = [long]$regions.Groups[1].Value * 1KB
+        $result.heapYoungBytes = [long]$regions.Groups[2].Value * 1KB
+        $result.heapSurvivorBytes = [long]$regions.Groups[3].Value * 1KB
+    }
+    return $result
 }
 
 # HotSpot jvmstat counters; collector time is reported in high-resolution ticks.
@@ -549,4 +642,223 @@ function ConvertFrom-JvmPerfCounters([string]$text) {
         $result.collectors.Add($entry)
     }
     return $result
+}
+
+# Host-side observations that separate provider or host delays from the agent's own work: CPU time
+# of every logical processor, processor speed, free memory, power source, user input and the fixture
+# window state. Every part is optional; a missing API or counter leaves its fields out.
+$script:UiaHostProbeSource = @'
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+
+public sealed class UiaProcessTime { public int Pid; public string Name; public double CpuMs; }
+
+public static class UiaHostProbe {
+    [StructLayout(LayoutKind.Sequential)] struct FILETIME { public uint Low, High; }
+    [StructLayout(LayoutKind.Sequential)] struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }
+    [StructLayout(LayoutKind.Sequential)] struct SYSTEM_POWER_STATUS {
+        public byte ACLineStatus, BatteryFlag, BatteryLifePercent, SystemStatusFlag;
+        public uint BatteryLifeTime, BatteryFullLifeTime;
+    }
+    [StructLayout(LayoutKind.Sequential)] struct MEMORYSTATUSEX {
+        public uint dwLength, dwMemoryLoad;
+        public ulong ullTotalPhys, ullAvailPhys, ullTotalPageFile, ullAvailPageFile, ullTotalVirtual, ullAvailVirtual,
+            ullAvailExtendedVirtual;
+    }
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool GetSystemTimes(out FILETIME idle, out FILETIME kernel, out FILETIME user);
+    [DllImport("user32.dll", SetLastError = true)] static extern bool GetLastInputInfo(ref LASTINPUTINFO info);
+    [DllImport("kernel32.dll")] static extern uint GetTickCount();
+    [DllImport("kernel32.dll", SetLastError = true)] static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS status);
+    [DllImport("kernel32.dll", SetLastError = true)] static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX status);
+    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern bool IsIconic(IntPtr window);
+    [DllImport("powrprof.dll")] static extern uint PowerGetEffectiveOverlayScheme(out Guid scheme);
+    [DllImport("ntdll.dll")] static extern int NtQuerySystemInformation(int kind, IntPtr buffer, int length, out int needed);
+
+    static double Ms(FILETIME value) { return ((((long)value.High) << 32) | value.Low) / 10000.0; }
+
+    // { busy, idle } summed over all logical processors since boot. Kernel time includes idle time.
+    public static double[] CpuTimesMs() {
+        FILETIME idle, kernel, user;
+        if (!GetSystemTimes(out idle, out kernel, out user)) throw new Win32Exception();
+        double idleMs = Ms(idle);
+        return new double[] { Ms(kernel) + Ms(user) - idleMs, idleMs };
+    }
+
+    // Time since the last keyboard or mouse input in this session. UI Automation patterns do not reset it.
+    public static double UserIdleMs() {
+        LASTINPUTINFO info = new LASTINPUTINFO();
+        info.cbSize = (uint)Marshal.SizeOf(typeof(LASTINPUTINFO));
+        if (!GetLastInputInfo(ref info)) throw new Win32Exception();
+        return unchecked(GetTickCount() - info.dwTime);
+    }
+
+    // { AC line status (0 offline, 1 online, 255 unknown), battery percent (255 unknown) }
+    public static int[] Power() {
+        SYSTEM_POWER_STATUS status;
+        if (!GetSystemPowerStatus(out status)) throw new Win32Exception();
+        return new int[] { status.ACLineStatus, status.BatteryLifePercent };
+    }
+
+    // { installed, available } physical memory in bytes.
+    public static double[] MemoryBytes() {
+        MEMORYSTATUSEX status = new MEMORYSTATUSEX();
+        status.dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX));
+        if (!GlobalMemoryStatusEx(ref status)) throw new Win32Exception();
+        return new double[] { status.ullTotalPhys, status.ullAvailPhys };
+    }
+
+    public static bool IsForeground(long window) { return window != 0 && GetForegroundWindow() == new IntPtr(window); }
+    public static bool IsMinimized(long window) { return window != 0 && IsIconic(new IntPtr(window)); }
+
+    public static string PowerOverlay() {
+        Guid scheme;
+        return PowerGetEffectiveOverlayScheme(out scheme) == 0 ? scheme.ToString() : null;
+    }
+
+    // Cumulative kernel + user time of every process from one system call. Unlike opening each
+    // process, this also covers services that deny access to a standard user.
+    public static UiaProcessTime[] ProcessTimes() {
+        int size = 1 << 20;
+        for (int attempt = 0; attempt < 6; attempt++) {
+            IntPtr buffer = Marshal.AllocHGlobal(size);
+            try {
+                int needed;
+                int status = NtQuerySystemInformation(5, buffer, size, out needed); // SystemProcessInformation
+                if (status == unchecked((int)0xC0000004)) { size = Math.Max(size * 2, needed + 65536); continue; }
+                if (status < 0) throw new InvalidOperationException("NtQuerySystemInformation 0x" + status.ToString("x8"));
+                List<UiaProcessTime> result = new List<UiaProcessTime>();
+                bool wide = IntPtr.Size == 8;
+                long offset = 0;
+                while (true) {
+                    // SYSTEM_PROCESS_INFORMATION: UserTime 40, KernelTime 48, ImageName 56, UniqueProcessId 80 (x86: 68).
+                    IntPtr entry = new IntPtr(buffer.ToInt64() + offset);
+                    int next = Marshal.ReadInt32(entry, 0);
+                    int nameBytes = (ushort)Marshal.ReadInt16(entry, 56);
+                    IntPtr name = Marshal.ReadIntPtr(entry, wide ? 64 : 60);
+                    UiaProcessTime row = new UiaProcessTime();
+                    row.Pid = Marshal.ReadIntPtr(entry, wide ? 80 : 68).ToInt32();
+                    row.Name = name == IntPtr.Zero ? "" : Marshal.PtrToStringUni(name, nameBytes / 2);
+                    row.CpuMs = (Marshal.ReadInt64(entry, 40) + Marshal.ReadInt64(entry, 48)) / 10000.0;
+                    result.Add(row);
+                    if (next == 0) break;
+                    offset += next;
+                }
+                return result.ToArray();
+            } finally { Marshal.FreeHGlobal(buffer); }
+        }
+        throw new InvalidOperationException("The process list did not fit its buffer.");
+    }
+}
+'@
+$script:UiaHostPerformance = $null
+$script:UiaHostProcessTimes = $null
+
+function Initialize-UiaHostProbe {
+    if ($env:OS -ne 'Windows_NT') { return $false }
+    try {
+        if (!('UiaHostProbe' -as [type])) { Add-Type -TypeDefinition $UiaHostProbeSource }
+        [void][UiaHostProbe]::CpuTimesMs()
+    } catch { return $false }
+    if ($null -eq $script:UiaHostPerformance) {
+        # Opening the counter takes a few hundred milliseconds, so it is done before the first sample.
+        # .NET resolves the English counter names on every display language.
+        try {
+            $script:UiaHostPerformance = New-Object Diagnostics.PerformanceCounter(
+                'Processor Information', '% Processor Performance', '_Total')
+            [void]$script:UiaHostPerformance.NextSample()
+        } catch { $script:UiaHostPerformance = $false }
+    }
+    return $true
+}
+
+# CPU times and the processor performance counter are cumulative, so any two samples give the
+# average over the time between them. topProcesses is the exception: it lists the processes that
+# used the most CPU since the previous call, excluding $ownPids, and stores their names.
+function Get-UiaHostSample([long]$windowHandle, [int]$topProcesses, [int[]]$ownPids) {
+    if (!('UiaHostProbe' -as [type])) { return [ordered]@{ available = $false } }
+    try {
+        $cpu = [UiaHostProbe]::CpuTimesMs()
+        $sample = [ordered]@{ available = $true; cpuBusyMs = $cpu[0]; cpuIdleMs = $cpu[1] }
+    } catch { return [ordered]@{ available = $false; error = $_.Exception.Message } }
+    try {
+        if ($script:UiaHostPerformance) {
+            # Average speed relative to the nominal frequency = delta raw / delta base between two samples.
+            $counter = $script:UiaHostPerformance.NextSample()
+            $sample.processorPerformanceRaw = $counter.RawValue
+            $sample.processorPerformanceBase = $counter.BaseValue
+        }
+    } catch { $script:UiaHostPerformance = $false }
+    try { $sample.availableMemoryBytes = [UiaHostProbe]::MemoryBytes()[1] } catch {}
+    $sample.acPower = $null
+    try {
+        $power = [UiaHostProbe]::Power()
+        if ($power[0] -eq 1) { $sample.acPower = $true } elseif ($power[0] -eq 0) { $sample.acPower = $false }
+        if ($power[1] -le 100) { $sample.batteryPercent = $power[1] }
+    } catch {}
+    try { $sample.userIdleMs = [UiaHostProbe]::UserIdleMs() } catch {}
+    try {
+        $sample.fixtureForeground = [UiaHostProbe]::IsForeground($windowHandle)
+        $sample.fixtureMinimized = [UiaHostProbe]::IsMinimized($windowHandle)
+    } catch {}
+    if ($topProcesses -gt 0) {
+        try {
+            $current = @{}
+            $rows = New-Object 'Collections.Generic.List[object]'
+            foreach ($row in [UiaHostProbe]::ProcessTimes()) {
+                if ($row.Pid -eq 0) { continue } # idle
+                $key = "$($row.Pid)|$($row.Name)"
+                $current[$key] = $row.CpuMs
+                if ($null -eq $script:UiaHostProcessTimes -or $ownPids -contains $row.Pid) { continue }
+                # A process that appeared since the previous sample spent all of its time in this window.
+                $used = $row.CpuMs
+                if ($script:UiaHostProcessTimes.ContainsKey($key)) { $used -= $script:UiaHostProcessTimes[$key] }
+                if ($used -gt 0) { $rows.Add([ordered]@{ name = $row.Name; pid = $row.Pid; cpuMs = $used }) }
+            }
+            $script:UiaHostProcessTimes = $current
+            $sample.topProcesses = @($rows | Sort-Object { $_.cpuMs } -Descending | Select-Object -First $topProcesses)
+        } catch {}
+    }
+    return $sample
+}
+
+$script:UiaPowerSchemes = @{
+    '381b4222-f694-41f0-9685-ff5bb260df2e' = 'Balanced'
+    '8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c' = 'High performance'
+    'a1841308-3541-4fab-bc81-f71556f20b4a' = 'Power saver'
+}
+
+# Installed memory and the power configuration at the start of the run. Call after Initialize-UiaHostProbe.
+function Set-UiaHostInfo($environment) {
+    if (!('UiaHostProbe' -as [type])) { return }
+    try { $environment.memoryBytes = [UiaHostProbe]::MemoryBytes()[0] } catch {}
+    $power = [ordered]@{}
+    try {
+        $scheme = Read-Diagnostic (Join-Path $env:SystemRoot 'System32/powercfg.exe') '/getactivescheme'
+        $guid = [regex]::Match($scheme.stdout, '[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}')
+        if ($guid.Success) {
+            $power.scheme = $guid.Value.ToLowerInvariant()
+            # The localized name is not parsed; only the built-in schemes are named.
+            if ($UiaPowerSchemes.ContainsKey($power.scheme)) { $power.schemeName = $UiaPowerSchemes[$power.scheme] }
+        }
+    } catch {}
+    try {
+        # The power mode slider. All zeroes is the scheme's own default.
+        $overlay = [UiaHostProbe]::PowerOverlay()
+        if ($overlay) { $power.overlay = $overlay }
+    } catch {}
+    if ($power.Count) { $environment.power = $power }
+}
+
+function Get-UiaGitInfo {
+    try {
+        $git = (Get-Command git -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $head = Read-Diagnostic $git "-C `"$PSScriptRoot`" rev-parse HEAD"
+        if ($head.exitCode -ne 0 -or $head.stdout -notmatch '^[0-9a-f]{40}$') { return $null }
+        $status = Read-Diagnostic $git "-C `"$PSScriptRoot`" status --porcelain --untracked-files=no"
+        return [ordered]@{ commit = $head.stdout; dirty = [bool]($status.exitCode -ne 0 -or $status.stdout) }
+    } catch { return $null }
 }
