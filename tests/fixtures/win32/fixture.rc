@@ -1,0 +1,14 @@
+#include <windows.h>
+#include "resource.h"
+
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+
+IDD_FIXTURE_MODAL DIALOGEX 0, 0, 205, 76
+STYLE DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Fixture modal"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT "Confirm the fixture action.", -1, 12, 12, 181, 12
+    DEFPUSHBUTTON "Accept modal", IDOK, 35, 44, 64, 16
+    PUSHBUTTON "Cancel modal", IDCANCEL, 106, 44, 64, 16
+END

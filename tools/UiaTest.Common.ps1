@@ -10,7 +10,7 @@ function Get-UiaEnvironment {
     if ($env:OS -eq 'Windows_NT') {
         # The registry answers without the delay of a WMI query; this runs before every report.
         try {
-            $processor = Get-ItemProperty -LiteralPath 'HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0' -ErrorAction Stop
+            $processor = Get-ItemProperty -LiteralPath 'HKLM:\HARDWARE\DESCRIPTION\System\CentralProcessor\0' -Name 'ProcessorNameString', '~MHz' -ErrorAction Stop
             $environment.cpu = ([string]$processor.ProcessorNameString).Trim()
             $environment.cpuNominalMhz = [int]$processor.'~MHz'
         } catch {}
@@ -31,7 +31,7 @@ function Initialize-UiaTools {
     $script:title = 'UIA fixture ' + [guid]::NewGuid()
 }
 
-function Read-Diagnostic([string]$executable, [string]$arguments, [long]$timeoutMs = 10000) {
+function Read-Diagnostic([string]$executable, [string]$arguments, [long]$timeoutMs = 10000, [switch]$Utf8) {
     $start = New-Object Diagnostics.ProcessStartInfo
     $start.FileName = $executable
     $start.Arguments = $arguments
@@ -39,6 +39,10 @@ function Read-Diagnostic([string]$executable, [string]$arguments, [long]$timeout
     $start.CreateNoWindow = $true
     $start.RedirectStandardOutput = $true
     $start.RedirectStandardError = $true
+    if ($Utf8) {
+        $start.StandardOutputEncoding = [Text.Encoding]::UTF8
+        $start.StandardErrorEncoding = [Text.Encoding]::UTF8
+    }
     $diagnostic = [Diagnostics.Process]::Start($start)
     try {
         $output = $diagnostic.StandardOutput.ReadToEndAsync()
@@ -168,7 +172,7 @@ function Read-State([string]$file) {
     } finally { $stream.Dispose() }
 }
 
-function Wait-State($file, $value) {
+function Wait-State($file, $value, [int]$timeoutMs = 20000) {
     $clock = [Diagnostics.Stopwatch]::StartNew()
     do {
         if ($fixture.HasExited) { throw "Fixture exited unexpectedly with status $($fixture.ExitCode)." }
@@ -176,7 +180,7 @@ function Wait-State($file, $value) {
         try { $actual = Read-State $file } catch [IO.IOException] {}
         if ($actual -ceq $value) { return }
         Start-Sleep -Milliseconds 25
-    } while ($clock.Elapsed.TotalSeconds -lt 20)
+    } while ($clock.Elapsed.TotalMilliseconds -lt $timeoutMs)
     throw "Fixture did not report expected $file."
 }
 
@@ -198,7 +202,7 @@ function ConvertTo-UiaJvmOptions([string[]]$options) {
     return @($options | Where-Object { $_ } | ForEach-Object { $_ -split '[,\s]+' } | Where-Object { $_ })
 }
 
-function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]$GcLogPath, [string[]]$JvmOptions) {
+function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]$GcLogPath, [string[]]$JvmOptions, [switch]$WithoutPid) {
     $start = New-Object Diagnostics.ProcessStartInfo
     $start.FileName = $javaExe
     if ($TrackNativeMemory) { $start.Arguments = '-XX:NativeMemoryTracking=summary ' }
@@ -212,7 +216,9 @@ function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]
         if ($option -cnotmatch '^-[A-Za-z0-9:+=._-]+$') { throw "Unsupported JVM option '$option'." }
         $start.Arguments += "$option "
     }
-    $start.Arguments += "-jar `"$Jar`" --allow-pid $($fixture.Id) --allow-action invoke --allow-action setValue"
+    $start.Arguments += "-jar `"$Jar`""
+    if (!$WithoutPid) { $start.Arguments += " --allow-pid $($fixture.Id)" }
+    $start.Arguments += ' --allow-action invoke --allow-action setValue'
     switch ($backend) {
         'PowerShell' { $start.Arguments += ' --backend powershell' }
         'CSharp' { $start.Arguments += " --csharp-worker `"$CSharpWorker`"" }
@@ -246,21 +252,27 @@ function Start-Cli($start) {
     return $cli
 }
 
-function Request($cli, $command) {
-    $command.id = [guid]::NewGuid().ToString()
+function Send-UiaRequest($cli, $command, [string]$id = ([guid]::NewGuid().ToString()), [int]$timeoutMs = 30000) {
+    $command.id = $id
     $line = ConvertTo-Json -Compress -Depth 5 $command
     $frame = [Text.Encoding]::UTF8.GetBytes($line + "`n")
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $cli.StandardInput.BaseStream.Write($frame, 0, $frame.Length)
     $cli.StandardInput.BaseStream.Flush()
     $next = $cli.StandardOutput.ReadLineAsync()
-    if (!$next.Wait(30000)) { throw "Timed out waiting for $($command.op)." }
+    if (!$next.Wait($timeoutMs)) { throw "Timed out waiting for $($command.op)." }
     $clock.Stop()
     $endUtc = [DateTime]::UtcNow # the system clock that the JVM's GC log is stamped with
     if ($null -eq $next.Result) { throw "CLI closed before responding to $($command.op)." }
     $reply = $next.Result | ConvertFrom-Json
-    if (!$reply.ok -or $reply.id -ne $command.id) { throw "$($command.op) failed: $($reply.error.code)" }
-    return @{ ms = $clock.Elapsed.TotalMilliseconds; result = $reply.result; endUtc = $endUtc }
+    if ($reply.id -cne $id -or $reply.ok -isnot [bool]) { throw "Invalid CLI reply for $($command.op)." }
+    return @{ ms = $clock.Elapsed.TotalMilliseconds; reply = $reply; endUtc = $endUtc }
+}
+
+function Request($cli, $command) {
+    $response = Send-UiaRequest $cli $command
+    if (!$response.reply.ok) { throw "$($command.op) failed: $($response.reply.error.code)" }
+    return @{ ms = $response.ms; result = $response.reply.result; endUtc = $response.endUtc }
 }
 
 function Worker-Process($cli, [string]$backend) {

@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "startedUtc": "2026-11-23T13:26:57.1401318Z",
+  "environment": {
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "is64BitOS": true,
+    "interactive": true,
+    "powerShell": "7.6.9",
+    "processorCount": 20,
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700",
+    "cpuNominalMhz": 2112,
+    "java": "openjdk version \"21.0.11\" 2026-04-21 LTS\r\nOpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS)\r\nOpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)",
+    "jarSha256": "33AB6091146D278C6AFDD7EFCE738C2F22C972CBEAB4C0741A0CD955B8E4DA26",
+    "fixtureSha256": "6547E1E7F35C2AFCAD87FFB4BE016DA11ED57483CDC4CB5E5DA77EBF2242204C",
+    "gitCommit": "f50ce8048ba1e9ac129195db6f1b1188bb0159cd",
+    "gitDirty": true,
+    "memoryBytes": 34120622080.0,
+    "power": {
+      "scheme": "381b4222-f694-41f0-9685-ff5bb260df2e",
+      "schemeName": "Balanced",
+      "overlay": "00000000-0000-0000-0000-000000000000"
+    },
+    "cppSha256": "599D6B42F7A2F365CBE5ED1BBBD2AE5362600F612AE181B2C37165699D9C1ABF",
+    "cppBytes": 509440,
+    "jarBytes": 5814349,
+    "javaLauncherBytes": 50344,
+    "uiaDllVersion": "7.2.26100.9949 (WinBuild.160101.0800)"
+  },
+  "jvmOptions": [
+    "-XX:+UseSerialGC",
+    "-Xms16m"
+  ],
+  "options": {
+    "pairs": 6,
+    "iterations": 20,
+    "warmup": 5,
+    "soakSeconds": 300,
+    "soakPeriodMs": 500,
+    "actionIntervalMs": 50,
+    "initialOrder": [
+      "JNA",
+      "Cpp"
+    ]
+  },
+  "sampleOrder": [
+    "snapshot",
+    "findEdit",
+    "findButton",
+    "getElementInfo",
+    "setValue",
+    "invoke"
+  ],
+  "percentile": "nearest rank, ceil(p*N), 1-based",
+  "short": [],
+  "soak": [],
+  "parity": {
+    "passed": true,
+    "jnaElements": 20,
+    "cppElements": 20,
+    "contentElements": 19,
+    "jnaChromeElements": 1,
+    "cppChromeElements": 1,
+    "chromeMatches": true,
+    "replacedControl": "passed",
+    "processExit": "passed"
+  },
+  "fixture": {
+    "exitCode": 0,
+    "stderr": "",
+    "stdout": ""
+  },
+  "finishedUtc": "2026-11-23T13:27:01.6955298Z",
+  "shortSummary": {},
+  "soakSummary": {}
+}
