@@ -143,7 +143,8 @@ std::vector<int> runtimeId(UiaElement* node) {
     check(SafeArrayGetLBound(array.value, 1, &lower));
     check(SafeArrayGetUBound(array.value, 1, &upper));
     const auto size = static_cast<long long>(upper) - lower + 1;
-    if (type != VT_I4 || size < 1 || size > 4096) throw ComFailure{E_FAIL};
+    if (type != VT_I4 || size < 0 || size > 4096) throw ComFailure{E_FAIL};
+    if (size == 0) return {};
     ArrayData data(array.value);
     const auto* values = static_cast<const int*>(data.data);
     if (!values) throw ComFailure{E_FAIL};
@@ -255,6 +256,7 @@ private:
         std::uint64_t started = 0;
         std::shared_ptr<const Entry> window;
         std::vector<std::shared_ptr<const Entry>> entries;
+        std::size_t visited = 0;
     };
 
     // Destruction order releases the snapshot before the walker and the MTA.
@@ -387,9 +389,16 @@ const UiaAdapter::Entry& UiaAdapter::resolve(const NativeCapture& capture, std::
 
 void UiaAdapter::visit(NativeCapture& native, Capture& rows, ElementPtr node, std::shared_ptr<const Entry> parent,
                        std::optional<std::size_t> parentIndex, int depth, int maxDepth, std::size_t limit) {
+    ++native.visited;
     auto current = inspect(node.Get());
     if (current.row.pid <= 0) throw stale();
     auto runtime = runtimeId(node.Get());
+    // A valid but empty ID cannot be revalidated, so omit this branch and report truncation.
+    if (runtime.empty()) {
+        if (depth == 0) throw stale();
+        rows.truncated = true;
+        return;
+    }
     auto entry = std::make_shared<Entry>(Entry{std::move(node), std::move(parent), current.row.pid,
                                                 std::move(runtime), current.row.identity});
     if (!entry->parent) native.window = entry;
@@ -401,7 +410,7 @@ void UiaAdapter::visit(NativeCapture& native, Capture& rows, ElementPtr node, st
     if (current.protectedContent) return;
     auto child = walk(entry->node.Get(), &IUIAutomationTreeWalker::GetFirstChildElement);
     while (child) {
-        if (depth >= maxDepth || native.entries.size() >= limit) {
+        if (depth >= maxDepth || native.visited >= limit) {
             rows.truncated = true;
             return;
         }

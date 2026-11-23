@@ -215,7 +215,8 @@ final class UiaCom implements AutoCloseable {
             bound = intOut();
             checked(api.SafeArrayGetUBound(array, 1, bound));
             long length = (long) bound.getValue() - lower + 1;
-            if (length < 1 || length > 4096) throw new ComFailure(E_FAIL);
+            if (length == 0) return new int[0];
+            if (length < 0 || length > 4096) throw new ComFailure(E_FAIL);
             var data = pointerOut();
             checked(api.SafeArrayAccessData(array, data));
             try {

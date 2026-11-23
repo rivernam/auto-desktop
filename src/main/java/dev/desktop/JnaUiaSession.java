@@ -39,6 +39,7 @@ final class JnaUiaSession implements TypedDesktopAdapter {
         final Set<UiaCom.Ref> owned = new LinkedHashSet<>();
         Entry window;
         Entry root;
+        int visited;
 
         Capture(String windowId) { this.windowId = windowId; }
 
@@ -259,9 +260,17 @@ final class JnaUiaSession implements TypedDesktopAdapter {
     private void visit(Capture capture, UiaCom.Ref node, Entry parent, int depth, int maxDepth, int maxElements,
                        ObjectNode result) {
         capture.owned.add(node);
+        capture.visited++;
         Info info = inspect(node);
         int[] runtime = com.runtimeId(node);
-        if (runtime == null || runtime.length == 0 || info.pid() <= 0) throw stale();
+        if (info.pid() <= 0) throw stale();
+        // Some providers return a valid, empty SAFEARRAY for virtual children.
+        // No stable reference can be issued, and the omitted branch makes lookup incomplete.
+        if (runtime.length == 0) {
+            if (depth == 0) throw stale();
+            result.put("truncated", true);
+            return;
+        }
         Entry entry = new Entry(node, UUID.randomUUID().toString(), parent, info.pid(), runtime, info.identity());
         capture.entries.put(entry.key(), entry);
         if (depth == 0) capture.root = entry;
@@ -270,7 +279,7 @@ final class JnaUiaSession implements TypedDesktopAdapter {
         if (info.identity().clipped()) result.put("truncated", true);
         if (info.protect()) return;
         for (UiaCom.Ref child = com.firstChild(node); child != null; child = com.nextSibling(child)) {
-            if (depth >= maxDepth || capture.entries.size() >= maxElements) {
+            if (depth >= maxDepth || capture.visited >= maxElements) {
                 child.close();
                 result.put("truncated", true);
                 return;

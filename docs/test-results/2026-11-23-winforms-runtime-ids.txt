@@ -1,0 +1,6 @@
+.NET Framework WinForms .NET 4.8, UI Automation Control View
+ListItem: 3 failures at snapshot depth 6.
+TabItem: 3 failures at snapshot depth 3.
+All six native GetRuntimeId calls returned S_OK (0x00000000) and a non-null 1-dimensional VT_I4 SAFEARRAY (element width 4).
+SafeArrayGetVartype, SafeArrayGetLBound, and SafeArrayGetUBound returned S_OK. Bounds [0..-1] mean zero runtime ID elements.
+The adapter validation converts the empty runtime ID to E_FAIL (0x80004005), then reports STALE_REFERENCE.
