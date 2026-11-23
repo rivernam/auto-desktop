@@ -57,9 +57,28 @@ final class UiaCom implements AutoCloseable {
 
     private final Thread owner = Thread.currentThread();
     private final Set<Ref> owned = new HashSet<>();
+    // One out buffer of each kind for every call. JNA frees a buffer only after a collection proves it
+    // unreachable and its cleaner entry survives that collection, so a buffer per call (about 365 per
+    // snapshot iteration) made each young collection copy tens of MiB.
+    private final IntByReference intOut = new IntByReference();
+    private final PointerByReference pointerOut = new PointerByReference();
     private Ref client, walker;
     private boolean closed;
     private UiaCom() {}
+
+    // Cleared on every use, so a callee that leaves its out parameter unwritten yields zero or null
+    // exactly as a fresh buffer did, never the previous call's value.
+    private IntByReference intOut() {
+        thread();
+        intOut.setValue(0);
+        return intOut;
+    }
+
+    private PointerByReference pointerOut() {
+        thread();
+        pointerOut.setValue(null);
+        return pointerOut;
+    }
 
     static UiaCom open() {
         if (!Platform.isWindows()) throw new ComFailure(E_FAIL);
@@ -67,7 +86,7 @@ final class UiaCom implements AutoCloseable {
         com.checkDesktop();
         checked(Ole32.INSTANCE.CoInitializeEx(null, Ole32.COINIT_MULTITHREADED).intValue());
         try {
-            var out = new PointerByReference();
+            var out = com.pointerOut();
             checked(Ole32.INSTANCE.CoCreateInstance(CLSID, null, 1, IID, out).intValue());
             com.client = com.new Ref(out.getValue());
             com.walker = com.output(com.client, 14, false); // get_ControlViewWalker
@@ -82,11 +101,11 @@ final class UiaCom implements AutoCloseable {
         thread();
         var kernel = Kernel32.INSTANCE;
         var api = DesktopApi.INSTANCE;
-        var session = new IntByReference();
+        var session = intOut();
         if (!kernel.ProcessIdToSessionId(kernel.GetCurrentProcessId(), session) || session.getValue() == 0)
             throw new ComFailure(E_FAIL);
         try (Memory flags = new Memory(12)) {
-            if (api.GetUserObjectInformationW(api.GetProcessWindowStation(), 1, flags, 12, new IntByReference()) == 0
+            if (api.GetUserObjectInformationW(api.GetProcessWindowStation(), 1, flags, 12, intOut()) == 0
                     || (flags.getInt(8) & 1) == 0) throw new ComFailure(E_FAIL);
         }
         Pointer input = api.OpenInputDesktop(0, 0, 0x41); // DESKTOP_ENUMERATE | DESKTOP_READOBJECTS
@@ -97,9 +116,9 @@ final class UiaCom implements AutoCloseable {
         } finally { api.CloseDesktop(input); }
     }
 
-    private static String desktopName(Pointer desktop) {
+    private String desktopName(Pointer desktop) {
         try (Memory buffer = new Memory(512)) {
-            var used = new IntByReference();
+            var used = intOut();
             if (desktop == null || DesktopApi.INSTANCE.GetUserObjectInformationW(desktop, 2, buffer, 512, used) == 0)
                 throw new ComFailure(E_FAIL);
             int size = used.getValue();
@@ -159,11 +178,12 @@ final class UiaCom implements AutoCloseable {
     }
 
     private Ref output(Ref object, int slot, boolean nullable, Object... args) {
-        var out = new PointerByReference();
+        var out = pointerOut();
         Object[] call = Arrays.copyOf(args, args.length + 1);
         call[args.length] = out;
         checked(vcall(object.pointer(), slot, call));
-        return nullable && out.getValue() == null ? null : new Ref(out.getValue());
+        Pointer value = out.getValue();
+        return nullable && value == null ? null : new Ref(value);
     }
 
     Ref root() { return output(client, 5, false); }
@@ -172,13 +192,13 @@ final class UiaCom implements AutoCloseable {
     Ref firstChild(Ref node) { return output(walker, 4, true, node.pointer()); }
     Ref nextSibling(Ref node) { return output(walker, 6, true, node.pointer()); }
     boolean same(Ref a, Ref b) {
-        var out = new IntByReference();
+        var out = intOut();
         checked(vcall(client.pointer(), 3, a.pointer(), b.pointer(), out));
         return out.getValue() != 0;
     }
 
     int[] runtimeId(Ref node) {
-        var out = new PointerByReference();
+        var out = pointerOut();
         checked(vcall(node.pointer(), 4, out));
         Pointer array = out.getValue();
         if (array == null) throw new ComFailure(E_FAIL);
@@ -188,29 +208,32 @@ final class UiaCom implements AutoCloseable {
                 throw new ComFailure(E_FAIL);
             checked(api.SafeArrayGetVartype(array, type));
             if (type.getShort(0) != 3) throw new ComFailure(E_FAIL); // VT_I4
-            var lower = new IntByReference();
-            var upper = new IntByReference();
-            checked(api.SafeArrayGetLBound(array, 1, lower));
-            checked(api.SafeArrayGetUBound(array, 1, upper));
-            long length = (long) upper.getValue() - lower.getValue() + 1;
+            // Each bound is read before the shared buffer is handed to the next call.
+            var bound = intOut();
+            checked(api.SafeArrayGetLBound(array, 1, bound));
+            int lower = bound.getValue();
+            bound = intOut();
+            checked(api.SafeArrayGetUBound(array, 1, bound));
+            long length = (long) bound.getValue() - lower + 1;
             if (length < 1 || length > 4096) throw new ComFailure(E_FAIL);
-            var data = new PointerByReference();
+            var data = pointerOut();
             checked(api.SafeArrayAccessData(array, data));
             try {
-                if (data.getValue() == null) throw new ComFailure(E_FAIL);
-                return data.getValue().getIntArray(0, (int) length);
+                Pointer elements = data.getValue();
+                if (elements == null) throw new ComFailure(E_FAIL);
+                return elements.getIntArray(0, (int) length);
             } finally { checked(api.SafeArrayUnaccessData(array)); }
         } finally { checked(api.SafeArrayDestroy(array)); }
     }
 
     private int integer(Ref node, int slot) {
-        var out = new IntByReference();
+        var out = intOut();
         checked(vcall(node.pointer(), slot, out));
         return out.getValue();
     }
 
     private String string(Ref node, int slot) {
-        var out = new PointerByReference();
+        var out = pointerOut();
         checked(vcall(node.pointer(), slot, out));
         Pointer bstr = out.getValue();
         if (bstr == null) return "";
@@ -238,7 +261,7 @@ final class UiaCom implements AutoCloseable {
     boolean offscreen(Ref node) { return integer(node, 38) != 0; }
 
     long hwnd(Ref node) {
-        var out = new PointerByReference(); // UIA_HWND is a void*, including on Win64
+        var out = pointerOut(); // UIA_HWND is a void*, including on Win64
         checked(vcall(node.pointer(), 36, out));
         return Pointer.nativeValue(out.getValue()) & 0xffff_ffffL;
     }
@@ -251,11 +274,12 @@ final class UiaCom implements AutoCloseable {
     }
 
     private Ref pattern(Ref node, int id, GUID iid) {
-        var out = new PointerByReference();
+        var out = pointerOut();
         int hr = vcall(node.pointer(), 14, id, iid, out); // GetCurrentPatternAs
         if (hr == 0x80040204 || hr == 0x80004002) return null; // UIA_E_NOTSUPPORTED, E_NOINTERFACE
         checked(hr);
-        return out.getValue() == null ? null : new Ref(out.getValue());
+        Pointer value = out.getValue();
+        return value == null ? null : new Ref(value);
     }
 
     Ref invokePattern(Ref node) { return pattern(node, 10000, INVOKE); }

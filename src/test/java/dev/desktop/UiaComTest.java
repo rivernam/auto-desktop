@@ -10,6 +10,8 @@ import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
 import com.sun.jna.win32.StdCallLibrary.StdCallCallback;
 import java.lang.ref.Reference;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
@@ -88,6 +90,100 @@ class UiaComTest {
             Reference.reachabilityFence(pidFn);
             Reference.reachabilityFence(rectFn);
             Reference.reachabilityFence(releaseFn);
+        }
+    }
+
+    // JNA releases a buffer only after a collection proves it unreachable, and its cleaner entry
+    // survives that collection. A buffer per call filled the survivor space on every young GC.
+    @Test void comCallsReuseTheSessionOutBuffers() throws Exception {
+        Set<Long> intOuts = new HashSet<>();
+        Set<Long> pointerOuts = new HashSet<>();
+        Getter getPid = (self, out) -> {
+            intOuts.add(Pointer.nativeValue(out));
+            out.setInt(0, 777);
+            return 0;
+        };
+        Getter getHwnd = (self, out) -> {
+            pointerOuts.add(Pointer.nativeValue(out));
+            out.setPointer(0, Pointer.createConstant(0x1234));
+            return 0;
+        };
+        GetPattern getPattern = (self, id, iid, out) -> {
+            pointerOuts.add(Pointer.nativeValue(out));
+            return 0x80040204;
+        };
+        try (MockObject mock = new MockObject(getPid, getHwnd, getPattern)) {
+            for (int i = 0; i < 5; i++) {
+                assertEquals(777, mock.session.pid(mock.ref));
+                assertEquals(0x1234, mock.session.hwnd(mock.ref));
+                assertNull(mock.session.valuePattern(mock.ref));
+            }
+        }
+        assertEquals(1, intOuts.size(), "addresses passed as an int out parameter");
+        assertEquals(1, pointerOuts.size(), "addresses passed as a pointer out parameter");
+    }
+
+    @Test void anOutValueTheCalleeDoesNotWriteReadsAsZero() throws Exception {
+        AtomicInteger pidCalls = new AtomicInteger();
+        AtomicInteger hwndCalls = new AtomicInteger();
+        AtomicInteger patternCalls = new AtomicInteger();
+        Getter getPid = (self, out) -> {
+            if (pidCalls.getAndIncrement() == 0) out.setInt(0, 777);
+            return 0;
+        };
+        Getter getHwnd = (self, out) -> {
+            if (hwndCalls.getAndIncrement() == 0) out.setPointer(0, Pointer.createConstant(0x1234));
+            return 0;
+        };
+        GetPattern getPattern = (self, id, iid, out) -> {
+            if (patternCalls.getAndIncrement() == 0) out.setPointer(0, self);
+            return 0;
+        };
+        try (MockObject mock = new MockObject(getPid, getHwnd, getPattern)) {
+            assertEquals(777, mock.session.pid(mock.ref));
+            assertEquals(0, mock.session.pid(mock.ref));
+            assertEquals(0x1234, mock.session.hwnd(mock.ref));
+            assertEquals(0, mock.session.hwnd(mock.ref));
+            try (UiaCom.Ref first = mock.session.invokePattern(mock.ref)) { assertNotNull(first); }
+            assertNull(mock.session.invokePattern(mock.ref));
+        }
+    }
+
+    /** A native object whose vtable answers get_CurrentProcessId, get_CurrentNativeWindowHandle and GetCurrentPatternAs. */
+    private static final class MockObject implements AutoCloseable {
+        final UiaCom session;
+        final UiaCom.Ref ref;
+        private final Memory table = new Memory(44L * Native.POINTER_SIZE);
+        private final Memory object = new Memory(Native.POINTER_SIZE);
+        private final Callback[] callbacks;
+
+        MockObject(Getter getPid, Getter getHwnd, GetPattern getPattern) throws Exception {
+            var sessionCtor = UiaCom.class.getDeclaredConstructor();
+            sessionCtor.setAccessible(true);
+            session = sessionCtor.newInstance();
+            var refCtor = UiaCom.Ref.class.getDeclaredConstructor(UiaCom.class, Pointer.class);
+            refCtor.setAccessible(true);
+            Release release = self -> 0;
+            boolean windows = Platform.isWindows();
+            callbacks = new Callback[] {
+                windows ? (WindowsRelease) release::invoke : release,
+                windows ? (WindowsPattern) getPattern::invoke : getPattern,
+                windows ? (WindowsGetter) getPid::invoke : getPid,
+                windows ? (WindowsGetter) getHwnd::invoke : getHwnd };
+            int[] slots = {2, 14, 20, 36};
+            object.setPointer(0, table);
+            for (int i = 0; i < slots.length; i++)
+                table.setPointer((long) slots[i] * Native.POINTER_SIZE, CallbackReference.getFunctionPointer(callbacks[i]));
+            ref = refCtor.newInstance(session, object);
+        }
+
+        @Override public void close() {
+            try { ref.close(); }
+            finally {
+                Reference.reachabilityFence(callbacks);
+                object.close();
+                table.close();
+            }
         }
     }
 }
