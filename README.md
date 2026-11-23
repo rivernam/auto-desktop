@@ -74,3 +74,11 @@ java -jar target/desktop-agent.jar --backend jna --allow-pid 1234 --allow-action
 ```
 
 마지막 명령은 Windows의 동일한 WPF 시험을 PowerShell, C#, JNA에 대해 실행한다. [JNA 설계 및 채택 기준](docs/JNA.md)
+
+JNA 장시간 안정성은 구간별로 측정하고 Python 표준 라이브러리 도구로 분석한다. 5분 확인 절차와 옵션 설명은 [장시간 측정 도구](docs/TEST-RESULTS.md#jna-장시간-측정-및-분석-도구)에 있다.
+
+```powershell
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromMinutes(5)) -IntervalSeconds 60 -SampleSeconds 30 -OutputPath .\target\windows-uia-jna-soak-5min.json
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(8)) -IntervalSeconds 60 -SampleSeconds 60 -OutputPath .\target\windows-uia-jna-soak-8h.json
+python .\tools\Analyze-JnaSoak.py .\target\windows-uia-jna-soak-8h.json --output .\target\jna-soak-analysis.md --csv-dir .\target
+```

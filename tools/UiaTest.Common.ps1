@@ -107,7 +107,11 @@ function Save-UiaJson([string]$json, [string]$path) {
     [void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($fullPath))
     $pending = "$fullPath.$([Guid]::NewGuid().ToString('N')).pending"
     try {
-        [IO.File]::WriteAllText($pending, $json)
+        # Flush the complete document to disk before it replaces the last good checkpoint.
+        $bytes = (New-Object Text.UTF8Encoding($false)).GetBytes($json)
+        $stream = New-Object IO.FileStream($pending, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write,
+            [IO.FileShare]::None, 65536, [IO.FileOptions]::WriteThrough)
+        try { $stream.Write($bytes, 0, $bytes.Length); $stream.Flush($true) } finally { $stream.Dispose() }
         for ($attempt = 0; ; $attempt++) {
             try {
                 if ([IO.File]::Exists($fullPath)) { [IO.File]::Replace($pending, $fullPath, [NullString]::Value) }
@@ -361,6 +365,188 @@ function Get-UiaLatencySummary($latencies) {
             p95 = $values[[int][Math]::Ceiling($values.Count * 0.95) - 1]
             p99 = $values[[int][Math]::Ceiling($values.Count * 0.99) - 1]
         }
+    }
+    return $result
+}
+
+# Long-run latency statistics without retaining every observation. Buckets have 1% relative
+# width; count, mean, min and max stay exact and quantiles are bucket upper bounds capped at max.
+$script:UiaHistogramFloorMs = 0.001
+$script:UiaHistogramRatio = 1.01
+$script:UiaLatencyOperation = @{
+    snapshot = 'snapshot'; findEdit = 'findElement'; findButton = 'findElement'
+    elementInfo = 'getElementInfo'; setValue = 'setValue'; invoke = 'invoke'
+}
+
+function New-UiaLatencyHistogram {
+    return [ordered]@{ count = [long]0; sum = 0.0; min = $null; max = $null; buckets = @{} }
+}
+
+function Add-UiaHistogramValue($histogram, [double]$value) {
+    $index = 0
+    if ($value -gt $UiaHistogramFloorMs) {
+        $index = [int][Math]::Ceiling([Math]::Log($value / $UiaHistogramFloorMs) / [Math]::Log($UiaHistogramRatio))
+    }
+    $key = [string]$index
+    if ($histogram.buckets.ContainsKey($key)) { $histogram.buckets[$key]++ } else { $histogram.buckets[$key] = [long]1 }
+    $histogram.count++
+    $histogram.sum += $value
+    if ($null -eq $histogram.min -or $value -lt $histogram.min) { $histogram.min = $value }
+    if ($null -eq $histogram.max -or $value -gt $histogram.max) { $histogram.max = $value }
+}
+
+function Merge-UiaHistogram($target, $source) {
+    foreach ($key in $source.buckets.Keys) {
+        if ($target.buckets.ContainsKey($key)) { $target.buckets[$key] += $source.buckets[$key] }
+        else { $target.buckets[$key] = [long]$source.buckets[$key] }
+    }
+    $target.count += $source.count
+    $target.sum += $source.sum
+    if ($null -ne $source.min -and ($null -eq $target.min -or $source.min -lt $target.min)) { $target.min = $source.min }
+    if ($null -ne $source.max -and ($null -eq $target.max -or $source.max -gt $target.max)) { $target.max = $source.max }
+}
+
+function Get-UiaHistogramSummary($histogram) {
+    if (!$histogram.count) { return $null }
+    [int[]]$indexes = @($histogram.buckets.Keys | ForEach-Object { [int]$_ })
+    [Array]::Sort($indexes)
+    $result = [ordered]@{ count = $histogram.count; mean = $histogram.sum / $histogram.count; max = $histogram.max }
+    foreach ($quantile in @(@('p50', 0.50), @('p95', 0.95), @('p99', 0.99))) {
+        $rank = [long][Math]::Ceiling($histogram.count * $quantile[1])
+        $seen = [long]0
+        foreach ($index in $indexes) {
+            $seen += $histogram.buckets[[string]$index]
+            if ($seen -ge $rank) {
+                $upper = $UiaHistogramFloorMs * [Math]::Pow($UiaHistogramRatio, $index)
+                $result[$quantile[0]] = [Math]::Max($histogram.min, [Math]::Min($upper, $histogram.max))
+                break
+            }
+        }
+    }
+    return $result
+}
+
+function Get-UiaOperationHistograms($histograms) {
+    $operations = [ordered]@{}
+    foreach ($name in $histograms.Keys) {
+        $operation = $UiaLatencyOperation[$name]
+        if (!$operation) { $operation = $name }
+        if (!$operations.Contains($operation)) { $operations[$operation] = New-UiaLatencyHistogram }
+        Merge-UiaHistogram $operations[$operation] $histograms[$name]
+    }
+    return $operations
+}
+
+function Get-UiaHistogramReport($histograms) {
+    $report = [ordered]@{}
+    foreach ($name in $histograms.Keys) { $report[$name] = Get-UiaHistogramSummary $histograms[$name] }
+    return $report
+}
+
+# One aggregation window of a soak run. Raw latencies are kept outside the record and released
+# when the window closes, so only fixed-size summaries accumulate over long runs.
+function New-SoakInterval([int]$index, [int]$sessionIndex, $processId, [double]$startElapsedMs) {
+    return [ordered]@{
+        index = $index; sessionIndex = $sessionIndex; pid = $processId
+        startUtc = [DateTime]::UtcNow.ToString('o'); startElapsedMs = $startElapsedMs
+        attemptedIterations = 0; completedIterations = 0; failedIterations = 0; mutationIterations = 0
+        requestsCompleted = 0; requestsFailed = 0; timeouts = 0
+        requestCounts = [ordered]@{}; errorCounts = [ordered]@{}
+        events = New-Object 'Collections.Generic.List[object]'
+    }
+}
+
+function Add-SoakIterationTimes($interval, $intervalLatencies, $histograms, $times) {
+    foreach ($name in $times.Keys) {
+        $value = [double]$times[$name]
+        $operation = $UiaLatencyOperation[$name]
+        if (!$operation) { $operation = $name }
+        if (!$intervalLatencies.Contains($operation)) {
+            $intervalLatencies[$operation] = New-Object 'Collections.Generic.List[double]'
+        }
+        $intervalLatencies[$operation].Add($value)
+        if (!$histograms.Contains($name)) { $histograms[$name] = New-UiaLatencyHistogram }
+        Add-UiaHistogramValue $histograms[$name] $value
+        if ($interval.requestCounts.Contains($operation)) { $interval.requestCounts[$operation]++ }
+        else { $interval.requestCounts[$operation] = 1 }
+        $interval.requestsCompleted++
+    }
+}
+
+function Get-SoakFailure([string]$message) {
+    if ($message -match '^Timed out waiting for (\w+)') {
+        return [ordered]@{ code = 'TIMEOUT'; operation = $Matches[1]; request = $true }
+    }
+    if ($message -match '^CLI closed before responding to (\w+)') {
+        return [ordered]@{ code = 'CLI_CLOSED'; operation = $Matches[1]; request = $true }
+    }
+    if ($message -match '^(\w+) failed: ?(\S*)') {
+        $code = if ($Matches[2]) { $Matches[2] } else { 'RESPONSE_MISMATCH' }
+        return [ordered]@{ code = $code; operation = $Matches[1]; request = $true }
+    }
+    return [ordered]@{ code = 'CHECK_FAILED'; operation = $null; request = $false }
+}
+
+function Add-SoakFailure($interval, $failure) {
+    $interval.failedIterations++
+    if ($failure.request) { $interval.requestsFailed++ }
+    if ($failure.code -eq 'TIMEOUT') { $interval.timeouts++ }
+    if ($interval.errorCounts.Contains($failure.code)) { $interval.errorCounts[$failure.code]++ }
+    else { $interval.errorCounts[$failure.code] = 1 }
+    if ($interval.events.Count -lt 20) { $interval.events.Add($failure) }
+}
+
+function ConvertTo-SoakResourcePoint($sample) {
+    if (!$sample) { return $null }
+    $resources = if ($sample.Contains('resources')) { $sample.resources } else { $sample }
+    $point = [ordered]@{ utc = $resources.utc; available = [bool]$resources.java.available }
+    if ($sample.Contains('elapsedMs')) { $point.elapsedMs = $sample.elapsedMs }
+    if ($resources.java.available) {
+        foreach ($field in 'pid', 'startUtc', 'cpuMs', 'privateBytes', 'workingSetBytes', 'handles', 'threads') {
+            $point[$field] = $resources.java[$field]
+        }
+    }
+    foreach ($field in 'heapUsedBytes', 'heapCommittedBytes', 'nmtReservedBytes', 'nmtCommittedBytes', 'gc') {
+        if ($sample.Contains($field)) { $point[$field] = $sample[$field] }
+    }
+    return $point
+}
+
+function Complete-SoakInterval($interval, $intervalLatencies, [double]$endElapsedMs, $resourceSample, [string]$closedBy) {
+    $interval.endUtc = [DateTime]::UtcNow.ToString('o')
+    $interval.endElapsedMs = $endElapsedMs
+    $interval.durationSeconds = [Math]::Max(0.0, ($endElapsedMs - $interval.startElapsedMs) / 1000)
+    $interval.closedBy = $closedBy
+    if ($interval.durationSeconds -gt 0) {
+        $interval.iterationsPerSecond = $interval.completedIterations / $interval.durationSeconds
+        $interval.requestsPerSecond = $interval.requestsCompleted / $interval.durationSeconds
+    }
+    $interval.latencyMs = if ($intervalLatencies -and $intervalLatencies.Count) { Get-UiaLatencySummary $intervalLatencies }
+                          else { [ordered]@{} }
+    $interval.resources = ConvertTo-SoakResourcePoint $resourceSample
+    if ($intervalLatencies) { $intervalLatencies.Clear() }
+    return $interval
+}
+
+# HotSpot jvmstat counters; collector time is reported in high-resolution ticks.
+function ConvertFrom-JvmPerfCounters([string]$text) {
+    $frequency = [regex]::Match($text, '(?m)^sun\.os\.hrt\.frequency=(\d+)')
+    $collectors = [ordered]@{}
+    foreach ($match in [regex]::Matches($text, '(?m)^sun\.gc\.collector\.(\d+)\.(name|invocations|time)=(.+?)\s*$')) {
+        $id = $match.Groups[1].Value
+        if (!$collectors.Contains($id)) { $collectors[$id] = [ordered]@{ id = [int]$id } }
+        $collectors[$id][$match.Groups[2].Value] = $match.Groups[3].Value.Trim('"')
+    }
+    if (!$frequency.Success -or !$collectors.Count) { return [ordered]@{ available = $false } }
+    $ticksPerMs = [double]$frequency.Groups[1].Value / 1000
+    $result = [ordered]@{ available = $true; totalInvocations = [long]0; totalTimeMs = 0.0
+        collectors = New-Object 'Collections.Generic.List[object]' }
+    foreach ($collector in $collectors.Values) {
+        $entry = [ordered]@{ name = $collector.name; invocations = [long]$collector.invocations
+            timeMs = [double]$collector.time / $ticksPerMs }
+        $result.totalInvocations += $entry.invocations
+        $result.totalTimeMs += $entry.timeMs
+        $result.collectors.Add($entry)
     }
     return $result
 }

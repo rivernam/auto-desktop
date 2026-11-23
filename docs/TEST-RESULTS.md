@@ -1,5 +1,70 @@
 # 빌드 및 시험 기록
 
+## JNA 장시간 측정 및 분석 도구
+
+`tools/Test-JnaSoak.ps1`은 `-IntervalSeconds`(기본 60초) 구간마다 요청 완료·실패 수, 연산별(Snapshot, FindElement, GetElementInfo, SetValue, Invoke) 호출 수와 평균·p50·p95·p99·최대 지연, 처리량, 오류 코드별 횟수를 집계한다. 구간이 끝날 때 Heap used/committed, NMT reserved/committed, Private bytes, Working set, CPU 시간, 핸들, 스레드, JVM PID·시작 시각, HotSpot GC 횟수·시간(`jcmd PerfCounter.print`)을 함께 기록한다. 실패·Timeout은 시각·구간·세션과 함께 `failures`에, 세션 재시작과 비정상 JVM 종료는 `sessionRestarts`, `unexpectedJvmExits`와 세션별 `endReason`에 남는다.
+
+- 구간 내부 분위수는 정확한 nearest-rank 값이며, 구간이 닫히면 개별 지연 표본을 해제한다.
+- 기존 `latencyMs`(snapshot, findEdit, findButton, elementInfo, setValue, invoke)는 유지한다. 전체 기간 분위수는 1% 폭 로그 히스토그램의 **근사값**(최대 1% 과대)이며 count·mean·max는 정확하다. 방식은 JSON의 `latencyStatistics`에 기록된다. 이전 60초 JSON의 분위수는 모든 표본을 보관한 정확한 값이다.
+- 세션 표본의 jcmd 원문(`heap`, `nativeMemory`)은 세션의 첫·마지막 표본에만 남기고 숫자 필드는 모두 유지한다. 8시간·60초 구간 기준 구간 480개(각 약 2 KB), 표본 480개(각 약 1 KB), 히스토그램 연산당 최대 약 1,700칸으로 보관량이 실행 시간에 비례해 작게만 늘어난다.
+- 구간 종료, 표본 수집 때마다 체크포인트를 저장한다. 파일은 임시 파일에 write-through로 기록한 뒤 원자적으로 교체한다. jcmd 수집 시간(`samplingMs`)과 체크포인트 저장 시간(`checkpointMs`)은 구간 시간에서 제외한다. 강제 GC는 호출하지 않는다.
+- Ctrl+C로 중단하면 `interrupted`와 마지막 부분 구간을 저장한다. 프로세스가 강제 종료되면 마지막 체크포인트까지 남는다.
+
+`tools/Analyze-JnaSoak.py`(Python 3.8 이상, 표준 라이브러리만 사용)는 기존 60초 JSON과 새 JSON, 중단된 체크포인트를 읽어 Markdown 보고서와 선택적 CSV(`jna-soak-resources.csv`, `jna-soak-intervals.csv`)를 만든다. 메모리 누수는 최초·최종 차이가 아니라 JVM 세션별 워밍업 이후 Theil-Sen 기울기, 초반·후반 중앙값, 후반부 기울기로 판정하고, 워밍업 이후 관측이 1시간 미만이면 INCONCLUSIVE로 표시한다. Heap used는 하한 포락선으로 GC 톱니를 줄인다. 입력에 없는 값은 NOT AVAILABLE로 표시하며 추정하지 않는다. 보고서 파일이 손상되고 같은 위치에 완전한 `.pending` 체크포인트가 남아 있으면 그 파일을 분석한다.
+
+### Windows 실행 명령
+
+잠금 해제된 대화형 데스크톱에서 프로젝트 루트를 작업 디렉터리로 사용한다. `java.exe`는 `jcmd.exe`가 함께 있는 JDK여야 한다. Oracle `javapath` 바로가기가 먼저 잡히면 JDK `bin`을 PATH 앞에 둔다. 먼저 `mvn package`로 `target/desktop-agent.jar`를 만든다.
+
+5분 시험:
+
+```powershell
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromMinutes(5)) -IntervalSeconds 60 -SampleSeconds 30 -OutputPath .\target\windows-uia-jna-soak-5min.json
+```
+
+8시간 시험:
+
+```powershell
+.\tools\Test-JnaSoak.ps1 -Duration ([TimeSpan]::FromHours(8)) -IntervalSeconds 60 -SampleSeconds 60 -OutputPath .\target\windows-uia-jna-soak-8h.json
+```
+
+분석 보고서 생성:
+
+```powershell
+python .\tools\Analyze-JnaSoak.py .\target\windows-uia-jna-soak-8h.json --output .\target\jna-soak-analysis.md --csv-dir .\target
+```
+
+5분 결과에서 구간 데이터가 수집됐는지 확인한다. 구간 4개 이상, 각 구간의 snapshot 지연과 리소스 표본, 스키마 버전 2가 있어야 한다.
+
+```powershell
+$r = Get-Content .\target\windows-uia-jna-soak-5min.json -Raw | ConvertFrom-Json; $bad = @($r.intervals | Where-Object { !$_.latencyMs.snapshot.count -or !$_.resources.privateBytes -or $null -eq $_.resources.nmtCommittedBytes }); "schema=$($r.schemaVersion) passed=$($r.passed) intervals=$($r.intervals.Count) incomplete=$($bad.Count) failures=$($r.failedIterations)"
+```
+
+이어서 `python .\tools\Analyze-JnaSoak.py .\target\windows-uia-jna-soak-5min.json --output .\target\jna-soak-5min-analysis.md`를 실행해 4절 표에 구간이 나열되는지 본다. 5분 시험은 1시간 기준보다 짧아 메모리 추세가 INCONCLUSIVE로 표시되는 것이 정상이다.
+
+### 2026-11-23 도구 검증
+
+Windows 11 Pro x64 빌드 26200, Oracle JDK 17.0.10, Windows PowerShell 5.1, Maven 3.9.16, Python 3.11.9에서 검증했다.
+
+| 검사 | 결과 |
+|---|---|
+| 현대 Maven `verify` | 55개 중 51개 통과, 실패·오류 0, Windows GUI 4개는 기본 설정대로 건너뜀. 변경 전 기준과 같음 |
+| Python 분석 도구 단위 시험 | 18개 통과. 정상, 필드 누락, 실행 중 실패, 다중 JVM, 메모리 증가·안정화, Heap 톱니, 지연 증가, 짧은 구간, 요청 수가 적은 구간, 잘못된 JSON, 체크포인트·`.pending` 복구, 기존 60초 JSON 수치 일치 |
+| PowerShell 도구 시험 | 2개 스크립트 통과. 히스토그램 오차 1% 이내와 버킷 수 상한, 구간 집계와 표본 해제, 오류 코드 분류, GC 카운터 해석 추가 |
+| 기존 60초 JSON 분석 | 반복 958·992회, 변경 11쌍, 스냅샷 p95 61.9·58.0 ms, p99 89.6·72.3 ms, private bytes +13.3·+15.8 MiB가 기존 기록과 일치. 기록된 `resourceChange` 9개 항목과 재계산 값 불일치 0. 구간 지연은 NOT AVAILABLE, 메모리 추세는 INCONCLUSIVE |
+| 8시간 크기 체크포인트 | 구간 480개·표본 480개 문서의 JSON 변환 117 ms, write-through 저장 49 ms |
+
+실제 WPF 5분 시험은 위의 5분 명령으로 실행했다. 단일 JVM에서 6,196회 반복, 변경 20쌍, 실패 0회, 정상 종료였고 60초 구간 5개가 모두 지연과 리소스 표본을 포함했다. 전체 스냅샷 p95는 63.2 ms(히스토그램 근사), jcmd 표본 수집은 구간당 약 0.6초, 체크포인트 저장은 11~16 ms였다. 첫 네 구간은 초당 21.5~23.3회였고 마지막 구간은 초당 14.8회, 스냅샷 p95 82.9 ms로 느렸다. 원인은 확인하지 않았으며, 분석 도구는 1시간 미만 구간이라 성능 추세를 INCONCLUSIVE로 표시했다. 첫·마지막 표본 사이 private bytes는 -4.8 MiB, working set은 +330.4 MiB, 핸들은 +24개, GC는 12회·541 ms였다. 5분 관측으로 장기 누수 여부는 판단할 수 없다. 이 실행은 Temurin 21이 아닌 JDK 17을 사용했다. [5분 시험 원본](test-results/2026-11-23-jna-soak-5min-intervals.json)
+
+8시간 시험은 아직 실행하지 않았다.
+
+도구 단위 시험:
+
+```powershell
+python -m unittest discover -s tools\tests -p "test_*.py"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\tests\Test-UiaTools.ps1
+```
+
 ## 2026-11-23 PR #2 헤드 재검증
 
 PR #2의 소스 커밋 `2824aa1`과 로컬 `HEAD`가 일치함을 확인했다. Windows 11 Pro x64 빌드 26200에서 C# 워커를 다시 빌드하고, PowerShell·C#·JNA의 실제 WPF 시험을 활성화해 현대 Maven `verify`를 재실행했다.
