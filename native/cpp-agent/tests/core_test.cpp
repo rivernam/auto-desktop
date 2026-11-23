@@ -1,0 +1,238 @@
+#include "core/agent.hpp"
+#include "core/session_worker.hpp"
+#include "protocol/ndjson.hpp"
+
+#include <iostream>
+#include <sstream>
+#include <thread>
+
+using namespace desktop;
+using namespace std::chrono_literals;
+
+namespace {
+void check(bool passed, const char* message) {
+    if (!passed) throw std::runtime_error(message);
+}
+
+class Fixture final : public DesktopAdapter {
+public:
+    int mutations = 0;
+    int clears = 0;
+    bool alive = true;
+    bool captureFails = false;
+    bool timeoutAfterDispatch = false;
+    std::string value;
+    std::function<void()> beforePreflight;
+    std::function<void()> afterDispatch;
+    std::function<void()> onClose;
+
+    ~Fixture() override { if (onClose) onClose(); }
+
+    std::vector<Window> windows() override { return {{"42", 123, "Fixture"}}; }
+    Capture capture(const std::string&, std::optional<std::size_t> scope, int depth, int limit) override {
+        if (captureFails) throw Error("WINDOW_NOT_FOUND", "Missing fixture.");
+        Element root;
+        root.pid = 123;
+        root.identity = {"Fixture", "Window", "", "Window"};
+        Element button;
+        button.pid = 123;
+        button.identity = {"Duplicate", "Button", "button", "Button"};
+        button.parent = 0;
+        button.invoke = true;
+        Element edit;
+        edit.pid = 123;
+        edit.identity = {"", "Edit", "edit", "TextBox"};
+        edit.parent = 0;
+        edit.writable = true;
+        if (scope) {
+            edit.parent.reset();
+            return {{edit}, false};
+        }
+        std::vector<Element> rows{root, button, button, edit};
+        rows[2].identity.automationId = "another";
+        if (depth == 0) limit = 1;
+        const bool truncated = limit < static_cast<int>(rows.size());
+        if (truncated) rows.resize(static_cast<std::size_t>(limit));
+        return {std::move(rows), truncated};
+    }
+    Element info(std::size_t index) override {
+        return capture("42", {}, 12, 20).elements.at(index);
+    }
+    void perform(Action, std::size_t, const std::string& text, const BeforeMutation& before) override {
+        if (beforePreflight) beforePreflight();
+        before();
+        ++mutations;
+        value = text;
+        if (afterDispatch) afterDispatch();
+        if (timeoutAfterDispatch) throw Error("ACTION_OUTCOME_UNKNOWN", "Provider timeout.", true);
+    }
+    void clear() noexcept override { ++clears; }
+};
+
+Json request(Agent& agent, const char* op, Json args = Json::object(), std::string id = "id") {
+    args["id"] = std::move(id);
+    args["op"] = op;
+    RequestDeadline deadline(Clock::now() + 10s);
+    return agent.handle(args, deadline);
+}
+
+void error(const Json& reply, const char* code) {
+    if (reply.at("ok") != false || reply.at("error").at("code") != code)
+        throw std::runtime_error(std::string("Expected ") + code + ", got " + reply.dump());
+}
+
+void core() {
+    Fixture fixture;
+    auto now = Clock::now();
+    Agent agent(fixture, "session", [&](int pid) { return fixture.alive && pid == 123; },
+                {Action::invoke, Action::setValue}, [&] { return now; });
+    const auto snap = request(agent, "snapshot", {{"windowId", "42"}}).at("result");
+    const auto id = snap.at("snapshotId");
+    const auto& rows = snap.at("elements");
+    const auto root = rows.at(0).at("ref");
+    const auto button = rows.at(1).at("ref");
+    const auto edit = rows.at(3).at("ref");
+    check(rows.at(0).at("parentRef").is_null() && rows.at(1).at("parentRef") == root, "parent links");
+    check(request(agent, "getElementInfo", {{"ref", button}}).at("result").at("ref") == button, "live ref");
+    const auto find = [&](const Json& locator, const Json& scope) {
+        return request(agent, "findElement", {{"snapshotId", id}, {"locator", locator}, {"scopeRef", scope}});
+    };
+    error(find({{"name", "Duplicate"}}, root), "AMBIGUOUS_ELEMENT");
+    error(find({{"role", "button"}}, root), "ELEMENT_NOT_FOUND");
+    check(find({{"role", "Button"}, {"automationId", "button"}}, root).at("result").at("ref") == button,
+          "exact AND lookup");
+    error(find({{"automationId", "button"}}, edit), "ELEMENT_NOT_FOUND");
+    error(find({{"pid", "123"}}, root), "INVALID_REQUEST");
+    error(request(agent, "snapshot", {{"windowId", "42"}, {"maxDepth", 1.0}}), "INVALID_REQUEST");
+    check(request(agent, "invoke", {{"ref", button}}).at("ok") == true, "invoke dispatched");
+    error(request(agent, "invoke", {{"ref", button}}), "DUPLICATE_COMMAND");
+    check(fixture.mutations == 1, "duplicate did not dispatch");
+    check(request(agent, "setValue", {{"ref", edit}, {"value", ""}}, "empty").at("ok") == true, "empty value");
+    error(request(agent, "setValue", {{"ref", edit}, {"value", std::string(16385, 'a')}}, "oversize"),
+          "INVALID_REQUEST");
+    fixture.alive = false;
+    error(request(agent, "invoke", {{"ref", button}}, "lost-pid"), "PERMISSION_DENIED");
+    fixture.alive = true;
+    const auto scoped = request(agent, "snapshot", {{"windowId", "42"}, {"scopeRef", edit}}).at("result");
+    check(scoped.at("elements").size() == 1 && scoped.at("elements")[0].at("parentRef").is_null(), "scope root");
+    error(request(agent, "getElementInfo", {{"ref", edit}}), "STALE_REFERENCE");
+    const auto limited = request(agent, "snapshot", {{"windowId", "42"}, {"maxElements", 3}}).at("result");
+    check(limited.at("truncated") == true, "limit retained");
+    error(request(agent, "findElement", {{"snapshotId", limited.at("snapshotId")},
+          {"locator", {{"name", "Duplicate"}}}}), "AMBIGUOUS_ELEMENT");
+    error(request(agent, "findElement", {{"snapshotId", limited.at("snapshotId")},
+          {"locator", {{"role", "Window"}}}, {"scopeRef", limited.at("elements")[0].at("ref")}}),
+          "INCOMPLETE_SNAPSHOT");
+    const auto stale = limited.at("elements")[0].at("ref");
+    now += 120s;
+    agent.expire();
+    error(request(agent, "getElementInfo", {{"ref", stale}}), "STALE_REFERENCE");
+    check(fixture.clears == 1, "TTL released adapter cache");
+    const auto next = request(agent, "snapshot", {{"windowId", "42"}}).at("result");
+    error(request(agent, "getElementInfo", {{"ref", stale}}), "STALE_REFERENCE");
+    fixture.captureFails = true;
+    error(request(agent, "snapshot", {{"windowId", "42"}}), "WINDOW_NOT_FOUND");
+    error(request(agent, "getElementInfo", {{"ref", next.at("elements")[0].at("ref")}}), "STALE_REFERENCE");
+    check(fixture.clears == 2, "failed capture cleared adapter cache");
+}
+
+void history() {
+    Fixture fixture;
+    Agent agent(fixture, "limit", [](int) { return true; }, {Action::invoke});
+    const auto snap = request(agent, "snapshot", {{"windowId", "42"}}).at("result");
+    const auto button = snap.at("elements")[1].at("ref");
+    const auto edit = snap.at("elements")[3].at("ref");
+    error(request(agent, "setValue", {{"ref", edit}, {"value", "ignored"}}), "PERMISSION_DENIED");
+    error(request(agent, "invoke", {{"ref", edit}}), "PATTERN_UNSUPPORTED");
+    for (int i = 0; i < 4095; ++i)
+        check(request(agent, "invoke", {{"ref", button}}, std::to_string(i)).at("ok") == true, "history capacity");
+    fixture.timeoutAfterDispatch = true;
+    error(request(agent, "invoke", {{"ref", button}}, "uncertain"), "ACTION_OUTCOME_UNKNOWN");
+    error(request(agent, "invoke", {{"ref", button}}, "uncertain"), "DUPLICATE_COMMAND");
+    error(request(agent, "invoke", {{"ref", button}}, "overflow"), "SESSION_LIMIT");
+    check(fixture.mutations == 4096, "bounded mutations");
+}
+
+void framing() {
+    std::istringstream input(std::string(frameLimit + 1, 'x')
+        + "\n{\"a\":{\"b\":1,\"b\":2}}\n{\"a\":1} {\"b\":2}\n{\"a\":\"\xFF\"}\n"
+          "{\"id\":\"j\",\"op\":\"getCapabilities\"}\r\n{\"last\":true}");
+    std::string raw;
+    for (int i = 0; i < 4; ++i) {
+        check(readFrame(input, raw), "invalid frame drained");
+        check(parseFrame(raw).is_null(), "malformed frame rejected");
+    }
+    check(readFrame(input, raw) && parseFrame(raw).at("id") == "j", "recovery");
+    check(readFrame(input, raw) && parseFrame(raw).at("last") == true, "unterminated final frame");
+    check(!readFrame(input, raw), "EOF");
+    check(utf16Length("\xF0\x9F\x98\x80") == 2, "supplementary UTF-16 width");
+    check(isBlank("\xE3\x80\x80") && !isBlank("\xC2\xA0"), "Java whitespace semantics");
+    check(parseFrame(std::string(200, '[') + std::string(200, ']')).is_null(), "depth ceiling");
+    check(parseFrame(std::string("\xEF\xBB\xBF") + "{}").is_null(), "BOM rejected");
+}
+
+void deadline() {
+    RequestDeadline cancelled(Clock::now() + 1s);
+    check(!cancelled.cancel(), "cancelled before provider dispatch");
+    try {
+        cancelled.beginMutation();
+        throw std::runtime_error("late mutation was allowed");
+    } catch (const Error& ex) {
+        check(std::string(ex.code) == "TIMEOUT", "preflight timeout");
+    }
+    RequestDeadline dispatched(Clock::now() + 1s);
+    dispatched.beginMutation();
+    check(dispatched.cancel(), "already dispatched, outcome unknown");
+}
+
+void workerTimeout(bool afterDispatch) {
+    std::promise<void> unblock;
+    const auto release = unblock.get_future().share();
+    const auto caller = std::this_thread::get_id();
+    std::thread::id created, destroyed;
+    int performed = -1;
+    Json timeout, duplicate, next;
+    {
+        SessionWorker worker([&] {
+            created = std::this_thread::get_id();
+            auto fixture = std::make_unique<Fixture>();
+            auto* provider = fixture.get();
+            auto& pause = afterDispatch ? fixture->afterDispatch : fixture->beforePreflight;
+            pause = [release] {
+                // Bound the fake provider even if the test itself fails.
+                release.wait_for(2s);
+            };
+            fixture->onClose = [&, provider] {
+                destroyed = std::this_thread::get_id();
+                performed = provider->mutations;
+            };
+            return fixture;
+        }, "worker", [](int) { return true; }, {Action::invoke}, 200ms);
+        const auto snap = worker.handle({{"id", "capture"}, {"op", "snapshot"}, {"windowId", "42"}});
+        const Json invoke{{"id", "action"}, {"op", "invoke"}, {"ref", snap.at("result").at("elements")[1].at("ref")}};
+        timeout = worker.handle(invoke);
+        duplicate = worker.handle(invoke);
+        next = worker.handle({{"id", "next"}, {"op", "listWindows"}});
+        unblock.set_value();
+    }
+    error(timeout, afterDispatch ? "ACTION_OUTCOME_UNKNOWN" : "TIMEOUT");
+    error(duplicate, "DUPLICATE_COMMAND");
+    error(next, "BACKEND_UNAVAILABLE");
+    check(created != caller && created == destroyed, "adapter released on its owning thread");
+    check(performed == (afterDispatch ? 1 : 0), "timeout did not allow a late or duplicate mutation");
+}
+} // namespace
+
+int main() {
+    try {
+        core();
+        history();
+        framing();
+        deadline();
+        workerTimeout(false);
+        workerTimeout(true);
+    } catch (const std::exception& ex) {
+        std::cerr << ex.what() << '\n';
+        return 1;
+    }
+}

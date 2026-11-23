@@ -1,0 +1,395 @@
+{
+    "schema":  1,
+    "status":  "passed",
+    "startedUtc":  "2026-11-23T11:29:12.6774950Z",
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.9818",
+                        "processorCount":  20,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-12700",
+                        "cpuNominalMhz":  2112,
+                        "java":  "openjdk version \"21.0.11\" 2026-04-21 LTS\r\nOpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS)\r\nOpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)",
+                        "jarSha256":  "56D92836867260461F3130A23E1F08B4A6DBEF1203B1B0E5DA08ACD8E2FE1412",
+                        "fixtureSha256":  "8B448007A24D4E198B7AF64DD3EB929BE2967DCE0D3E68A26F928E2149850D36",
+                        "gitCommit":  "46feceb4f3e4478cd774b203535d7b0794162070",
+                        "gitDirty":  false,
+                        "memoryBytes":  34120622080,
+                        "power":  {
+                                      "scheme":  "381b4222-f694-41f0-9685-ff5bb260df2e",
+                                      "schemeName":  "Balanced",
+                                      "overlay":  "00000000-0000-0000-0000-000000000000"
+                                  },
+                        "cppSha256":  "010CF5F6ED294FD92EA0FE5CC936B17B01886D6EE31038C1D476F5F02FD03AB1",
+                        "cppBytes":  508928,
+                        "jarBytes":  5814261,
+                        "javaLauncherBytes":  50344,
+                        "uiaDllVersion":  "7.2.26100.1 (WinBuild.160101.0800)"
+                    },
+    "jvmOptions":  [
+                       "-XX:+UseSerialGC",
+                       "-Xms16m"
+                   ],
+    "options":  {
+                    "pairs":  1,
+                    "iterations":  1,
+                    "warmup":  0,
+                    "soakSeconds":  0,
+                    "soakPeriodMs":  500,
+                    "actionIntervalMs":  50,
+                    "initialOrder":  [
+                                         "JNA",
+                                         "Cpp"
+                                     ]
+                },
+    "sampleOrder":  [
+                        "snapshot",
+                        "findEdit",
+                        "findButton",
+                        "getElementInfo",
+                        "setValue",
+                        "invoke"
+                    ],
+    "percentile":  "nearest rank, ceil(p*N), 1-based",
+    "short":  [
+                  {
+                      "pair":  1,
+                      "backend":  "JNA",
+                      "status":  "passed",
+                      "samplesMs":  [
+                                        [
+                                            59.498900000000006,
+                                            1.7652,
+                                            0.4012,
+                                            5.7184,
+                                            40.508900000000004,
+                                            9.7791
+                                        ]
+                                    ],
+                      "resources":  [
+                                        {
+                                            "available":  true,
+                                            "pid":  21688,
+                                            "cpuMs":  921.875,
+                                            "privateBytes":  72773632,
+                                            "workingSetBytes":  84295680,
+                                            "handles":  509,
+                                            "threads":  27,
+                                            "peakWorkingSetBytes":  84295680,
+                                            "elapsedMs":  38.3615
+                                        },
+                                        {
+                                            "available":  true,
+                                            "pid":  21688,
+                                            "cpuMs":  1000,
+                                            "privateBytes":  73502720,
+                                            "workingSetBytes":  85729280,
+                                            "handles":  509,
+                                            "threads":  27,
+                                            "peakWorkingSetBytes":  85729280,
+                                            "elapsedMs":  220.75330000000002
+                                        }
+                                    ],
+                      "startup":  {
+                                      "processStartReturnMs":  4.5207000000000006,
+                                      "firstCapabilitiesMs":  395.2248,
+                                      "firstListWindowsMs":  492.00370000000004,
+                                      "firstSnapshotMs":  556.6676
+                                  },
+                      "hostStart":  {
+                                        "available":  true,
+                                        "cpuBusyMs":  5092203.125,
+                                        "cpuIdleMs":  38807687.5,
+                                        "processorPerformanceRaw":  33084124726,
+                                        "processorPerformanceBase":  168646348,
+                                        "availableMemoryBytes":  19276623872,
+                                        "acPower":  true,
+                                        "userIdleMs":  636438,
+                                        "fixtureForeground":  true,
+                                        "fixtureMinimized":  false
+                                    },
+                      "scheduleOverruns":  0,
+                      "wallMs":  217.4933,
+                      "hostEnd":  {
+                                      "available":  true,
+                                      "cpuBusyMs":  5093156.25,
+                                      "cpuIdleMs":  38811156.25,
+                                      "processorPerformanceRaw":  33090133737,
+                                      "processorPerformanceBase":  168679150,
+                                      "availableMemoryBytes":  19272605696,
+                                      "acPower":  true,
+                                      "userIdleMs":  636641,
+                                      "fixtureForeground":  true,
+                                      "fixtureMinimized":  false
+                                  },
+                      "iterationsPerSecond":  4.5978427841225455,
+                      "requestsPerSecond":  27.587056704735275,
+                      "errorRate":  0
+                  },
+                  {
+                      "pair":  1,
+                      "backend":  "Cpp",
+                      "status":  "passed",
+                      "samplesMs":  [
+                                        [
+                                            42.046400000000006,
+                                            0.1081,
+                                            0.0979,
+                                            3.5434,
+                                            14.8383,
+                                            7.0739
+                                        ]
+                                    ],
+                      "resources":  [
+                                        {
+                                            "available":  true,
+                                            "pid":  21656,
+                                            "cpuMs":  109.375,
+                                            "privateBytes":  9105408,
+                                            "workingSetBytes":  23592960,
+                                            "handles":  305,
+                                            "threads":  9,
+                                            "peakWorkingSetBytes":  23592960,
+                                            "elapsedMs":  3.3841
+                                        },
+                                        {
+                                            "available":  true,
+                                            "pid":  21656,
+                                            "cpuMs":  125,
+                                            "privateBytes":  9113600,
+                                            "workingSetBytes":  23756800,
+                                            "handles":  305,
+                                            "threads":  9,
+                                            "peakWorkingSetBytes":  23756800,
+                                            "elapsedMs":  161.82250000000002
+                                        }
+                                    ],
+                      "startup":  {
+                                      "processStartReturnMs":  8.7567,
+                                      "firstCapabilitiesMs":  95.4323,
+                                      "firstListWindowsMs":  183.1524,
+                                      "firstSnapshotMs":  226.5436
+                                  },
+                      "hostStart":  {
+                                        "available":  true,
+                                        "cpuBusyMs":  5094765.625,
+                                        "cpuIdleMs":  38817968.75,
+                                        "processorPerformanceRaw":  33100181445,
+                                        "processorPerformanceBase":  168731438,
+                                        "availableMemoryBytes":  19333971968,
+                                        "acPower":  true,
+                                        "userIdleMs":  637078,
+                                        "fixtureForeground":  true,
+                                        "fixtureMinimized":  false
+                                    },
+                      "scheduleOverruns":  0,
+                      "wallMs":  158.9378,
+                      "hostEnd":  {
+                                      "available":  true,
+                                      "cpuBusyMs":  5095187.5,
+                                      "cpuIdleMs":  38821000,
+                                      "processorPerformanceRaw":  33102927150,
+                                      "processorPerformanceBase":  168745477,
+                                      "availableMemoryBytes":  19338293248,
+                                      "acPower":  true,
+                                      "userIdleMs":  637234,
+                                      "fixtureForeground":  true,
+                                      "fixtureMinimized":  false
+                                  },
+                      "iterationsPerSecond":  6.2917694846663279,
+                      "requestsPerSecond":  37.750616907997966,
+                      "errorRate":  0
+                  }
+              ],
+    "soak":  [
+
+             ],
+    "parity":  {
+                   "passed":  true,
+                   "jnaElements":  20,
+                   "cppElements":  20,
+                   "contentElements":  19,
+                   "jnaChromeElements":  1,
+                   "cppChromeElements":  1,
+                   "chromeMatches":  true,
+                   "replacedControl":  "passed",
+                   "processExit":  "passed"
+               },
+    "fixture":  {
+                    "exitCode":  0,
+                    "stderr":  "",
+                    "stdout":  ""
+                },
+    "benchmarkFixtureElements":  19,
+    "finishedUtc":  "2026-11-23T11:29:22.3220887Z",
+    "shortSummary":  {
+                         "JNA":  {
+                                     "processStartReturnMs":  {
+                                                                  "count":  1,
+                                                                  "mean":  4.5207000000000006,
+                                                                  "max":  4.5207000000000006,
+                                                                  "p50":  4.5207000000000006,
+                                                                  "p95":  4.5207000000000006,
+                                                                  "p99":  4.5207000000000006
+                                                              },
+                                     "firstCapabilitiesMs":  {
+                                                                 "count":  1,
+                                                                 "mean":  395.2248,
+                                                                 "max":  395.2248,
+                                                                 "p50":  395.2248,
+                                                                 "p95":  395.2248,
+                                                                 "p99":  395.2248
+                                                             },
+                                     "firstListWindowsMs":  {
+                                                                "count":  1,
+                                                                "mean":  492.00370000000004,
+                                                                "max":  492.00370000000004,
+                                                                "p50":  492.00370000000004,
+                                                                "p95":  492.00370000000004,
+                                                                "p99":  492.00370000000004
+                                                            },
+                                     "firstSnapshotMs":  {
+                                                             "count":  1,
+                                                             "mean":  556.6676,
+                                                             "max":  556.6676,
+                                                             "p50":  556.6676,
+                                                             "p95":  556.6676,
+                                                             "p99":  556.6676
+                                                         },
+                                     "snapshot":  {
+                                                      "count":  1,
+                                                      "mean":  59.498900000000006,
+                                                      "max":  59.498900000000006,
+                                                      "p50":  59.498900000000006,
+                                                      "p95":  59.498900000000006,
+                                                      "p99":  59.498900000000006
+                                                  },
+                                     "findEdit":  {
+                                                      "count":  1,
+                                                      "mean":  1.7652,
+                                                      "max":  1.7652,
+                                                      "p50":  1.7652,
+                                                      "p95":  1.7652,
+                                                      "p99":  1.7652
+                                                  },
+                                     "findButton":  {
+                                                        "count":  1,
+                                                        "mean":  0.4012,
+                                                        "max":  0.4012,
+                                                        "p50":  0.4012,
+                                                        "p95":  0.4012,
+                                                        "p99":  0.4012
+                                                    },
+                                     "getElementInfo":  {
+                                                            "count":  1,
+                                                            "mean":  5.7184,
+                                                            "max":  5.7184,
+                                                            "p50":  5.7184,
+                                                            "p95":  5.7184,
+                                                            "p99":  5.7184
+                                                        },
+                                     "setValue":  {
+                                                      "count":  1,
+                                                      "mean":  40.508900000000004,
+                                                      "max":  40.508900000000004,
+                                                      "p50":  40.508900000000004,
+                                                      "p95":  40.508900000000004,
+                                                      "p99":  40.508900000000004
+                                                  },
+                                     "invoke":  {
+                                                    "count":  1,
+                                                    "mean":  9.7791,
+                                                    "max":  9.7791,
+                                                    "p50":  9.7791,
+                                                    "p95":  9.7791,
+                                                    "p99":  9.7791
+                                                }
+                                 },
+                         "Cpp":  {
+                                     "processStartReturnMs":  {
+                                                                  "count":  1,
+                                                                  "mean":  8.7567,
+                                                                  "max":  8.7567,
+                                                                  "p50":  8.7567,
+                                                                  "p95":  8.7567,
+                                                                  "p99":  8.7567
+                                                              },
+                                     "firstCapabilitiesMs":  {
+                                                                 "count":  1,
+                                                                 "mean":  95.4323,
+                                                                 "max":  95.4323,
+                                                                 "p50":  95.4323,
+                                                                 "p95":  95.4323,
+                                                                 "p99":  95.4323
+                                                             },
+                                     "firstListWindowsMs":  {
+                                                                "count":  1,
+                                                                "mean":  183.1524,
+                                                                "max":  183.1524,
+                                                                "p50":  183.1524,
+                                                                "p95":  183.1524,
+                                                                "p99":  183.1524
+                                                            },
+                                     "firstSnapshotMs":  {
+                                                             "count":  1,
+                                                             "mean":  226.5436,
+                                                             "max":  226.5436,
+                                                             "p50":  226.5436,
+                                                             "p95":  226.5436,
+                                                             "p99":  226.5436
+                                                         },
+                                     "snapshot":  {
+                                                      "count":  1,
+                                                      "mean":  42.046400000000006,
+                                                      "max":  42.046400000000006,
+                                                      "p50":  42.046400000000006,
+                                                      "p95":  42.046400000000006,
+                                                      "p99":  42.046400000000006
+                                                  },
+                                     "findEdit":  {
+                                                      "count":  1,
+                                                      "mean":  0.1081,
+                                                      "max":  0.1081,
+                                                      "p50":  0.1081,
+                                                      "p95":  0.1081,
+                                                      "p99":  0.1081
+                                                  },
+                                     "findButton":  {
+                                                        "count":  1,
+                                                        "mean":  0.0979,
+                                                        "max":  0.0979,
+                                                        "p50":  0.0979,
+                                                        "p95":  0.0979,
+                                                        "p99":  0.0979
+                                                    },
+                                     "getElementInfo":  {
+                                                            "count":  1,
+                                                            "mean":  3.5434,
+                                                            "max":  3.5434,
+                                                            "p50":  3.5434,
+                                                            "p95":  3.5434,
+                                                            "p99":  3.5434
+                                                        },
+                                     "setValue":  {
+                                                      "count":  1,
+                                                      "mean":  14.8383,
+                                                      "max":  14.8383,
+                                                      "p50":  14.8383,
+                                                      "p95":  14.8383,
+                                                      "p99":  14.8383
+                                                  },
+                                     "invoke":  {
+                                                    "count":  1,
+                                                    "mean":  7.0739,
+                                                    "max":  7.0739,
+                                                    "p50":  7.0739,
+                                                    "p95":  7.0739,
+                                                    "p99":  7.0739
+                                                }
+                                 }
+                     },
+    "soakSummary":  {
+
+                    }
+}
