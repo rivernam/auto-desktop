@@ -821,7 +821,15 @@ def render(model, analysis, source):
                     operation, fmt(entry.get('early_p95')), fmt(entry.get('late_p95')), fmt(entry.get('ratio')),
                     slope_text(entry, analysis['min_hours'])))
         else:
-            out('- 허용 변동(±%d%%)을 넘는 p95 지연 증가 없음.' % round(100 * analysis['tolerance']))
+            pending = [(k, v) for k, v in latency['ops'].items()
+                       if v['status'] == 'INCONCLUSIVE' and v.get('direction') == 'DEGRADING']
+            if pending:
+                for operation, entry in pending:
+                    out('- %s p95: %s → %s ms (x%s). 증가했으나 유효 구간이 %.1f시간 미만이라 판정하지 않음 (INCONCLUSIVE).' % (
+                        operation, fmt(entry.get('early_p95')), fmt(entry.get('late_p95')), fmt(entry.get('ratio')),
+                        analysis['min_hours']))
+            else:
+                out('- 허용 변동(±%d%%)을 넘는 p95 지연 증가 없음.' % round(100 * analysis['tolerance']))
         throughput = latency['throughput'] or {}
         out('- 처리량: %s' % (status_text(throughput) if throughput else NA))
         if any(v['status'] == 'INCONCLUSIVE' for v in list(latency['ops'].values()) + [throughput]):
@@ -847,7 +855,13 @@ def render(model, analysis, source):
         for level, message in findings:
             out('- **%s** %s' % (level, message))
     else:
-        out('- 실패, 비정상 종료, 지속 증가 또는 성능 저하 징후 없음.')
+        undecided = [r for r in analysis['memory'] if r['status'] == 'INCONCLUSIVE'] + [
+            v for v in list(analysis['latency']['ops'].values()) + [analysis['latency']['throughput'] or {}]
+            if v.get('status') == 'INCONCLUSIVE']
+        if undecided:
+            out('- 실패와 비정상 종료 없음. 메모리·성능 추세는 관측 구간이 짧아 확정하지 않았다 (8·9절 INCONCLUSIVE 참고).')
+        else:
+            out('- 실패, 비정상 종료, 지속 증가 또는 성능 저하 징후 없음.')
     if analysis['checks']:
         mismatches = [c for c in analysis['checks'] if not c[4]]
         out('- 기록된 `resourceChange`와 첫·마지막 표본 재계산 비교: %d개 항목 중 %d개 불일치.' % (

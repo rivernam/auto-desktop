@@ -204,6 +204,9 @@ class AnalyzerTests(unittest.TestCase):
         self.assertEqual(analysis['latency']['throughput']['status'], 'INCONCLUSIVE')
         self.assertNotIn('**WARN**', text)
         self.assertIn('INCONCLUSIVE (DEGRADING)', text)
+        self.assertNotIn('p95 지연 증가 없음', text)
+        self.assertNotIn('성능 저하 징후 없음', text)
+        self.assertIn('판정하지 않음 (INCONCLUSIVE)', text)
 
     def test_too_few_intervals_are_insufficient(self):
         _, analysis, _ = run(report([[sample(t) for t in hours(10)]], [interval(0, 0.0), interval(1, 60.0)]), warmup_s=0)
