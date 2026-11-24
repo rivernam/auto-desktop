@@ -434,6 +434,8 @@ final class JabSession implements NativeSession {
 
     @Override public JsonNode perform(DesktopAction action, String key, int processId, String value,
                                       Runnable beforeMutation) {
+        if (action != DesktopAction.INVOKE && action != DesktopAction.SET_VALUE)
+            throw new AgentException("PATTERN_UNSUPPORTED", "The action is unavailable for this Java object.");
         boolean[] dispatched = {false};
         try {
             return act(action, key, processId, value, () -> {

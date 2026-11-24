@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 
 /**
@@ -43,6 +44,8 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
     private volatile boolean cleanupFailure;
     // True while another backend of the same session runs a request.
     private volatile boolean attending;
+    // Guarded by this. Idle cleanup may enter COM even when no protocol request has been claimed.
+    private boolean runningIdle;
     // The session once it exists, for the one call that any thread may make on it.
     private volatile NativeSession waker;
 
@@ -61,6 +64,11 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
     static JnaDesktopAdapter javaAccessBridge() {
         return new JnaDesktopAdapter(JabSession::new, REQUEST_BUDGET, onWindows(), "JAB",
                 "Java Access Bridge", 250);
+    }
+
+    static JnaDesktopAdapter activeAccessibility(IntPredicate trustedProvider) {
+        return new JnaDesktopAdapter(() -> new MsaaSession(trustedProvider), REQUEST_BUDGET, onWindows(), "MSAA",
+                "Microsoft Active Accessibility", 250);
     }
 
     JnaDesktopAdapter(Supplier<? extends TypedDesktopAdapter> factory, Duration timeout) {
@@ -106,9 +114,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
                         if (retired) return;
                         if (waker == null || apartment.getActiveCount() > 0 || !apartment.getQueue().isEmpty())
                             continue;
-                        apartment.submit(() -> {
-                            if (session instanceof NativeSession idle) idle.idle();
-                        });
+                        apartment.submit(this::runIdle);
                     }
                 }
             } catch (InterruptedException | RuntimeException stopped) {
@@ -117,6 +123,19 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         }, "jna-" + backend.toLowerCase(Locale.ROOT) + "-idle");
         ticker.setDaemon(true);
         ticker.start();
+    }
+
+    private void runIdle() {
+        if (!(session instanceof NativeSession idle)) return;
+        synchronized (this) {
+            if (retired) return;
+            runningIdle = true;
+        }
+        try {
+            idle.idle();
+        } finally {
+            synchronized (this) { runningIdle = false; }
+        }
     }
 
     /**
@@ -288,7 +307,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
     }
 
     private synchronized AgentException stopWaiting(Request request, Future<?> reply, boolean timedOut) {
-        if (request.started) {
+        if (request.started || runningIdle) {
             retire();
             return lost(request.dispatched, timedOut);
         }

@@ -3,7 +3,9 @@ package dev.desktop;
 /** Semantic actions supported by the desktop protocol. */
 public enum DesktopAction {
     INVOKE("invoke"),
-    SET_VALUE("setValue");
+    SET_VALUE("setValue"),
+    DEFAULT_ACTION("defaultAction"),
+    SELECT("select");
 
     private final String wireName;
 

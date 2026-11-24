@@ -32,10 +32,15 @@ final class UiaCom implements AutoCloseable {
         int CloseDesktop(Pointer desktop);
         int GetUserObjectInformationW(Pointer obj, int index, Pointer data, int bytes, IntByReference used);
         boolean EnumWindows(WindowVisitor visitor, Pointer data);
+        boolean EnumChildWindows(Pointer parent, WindowVisitor visitor, Pointer data);
         Pointer GetWindow(Pointer window, int command);
         Pointer GetAncestor(Pointer window, int flags);
         Pointer GetDesktopWindow();
         boolean IsWindowVisible(Pointer window);
+        boolean IsChild(Pointer parent, Pointer window);
+        int GetWindowThreadProcessId(Pointer window, IntByReference processId);
+        int GetWindowTextW(Pointer window, char[] text, int count);
+        int GetClassNameW(Pointer window, char[] text, int count);
     }
 
     public interface WindowVisitor extends StdCallLibrary.StdCallCallback {
@@ -109,26 +114,30 @@ final class UiaCom implements AutoCloseable {
 
     void checkDesktop() {
         thread();
+        checkDesktopAccess(intOut());
+    }
+
+    static void checkDesktopAccess(IntByReference scratch) {
         var kernel = Kernel32.INSTANCE;
         var api = DesktopApi.INSTANCE;
-        var session = intOut();
-        if (!kernel.ProcessIdToSessionId(kernel.GetCurrentProcessId(), session) || session.getValue() == 0)
+        scratch.setValue(0);
+        if (!kernel.ProcessIdToSessionId(kernel.GetCurrentProcessId(), scratch) || scratch.getValue() == 0)
             throw new ComFailure(E_FAIL);
         try (Memory flags = new Memory(12)) {
-            if (api.GetUserObjectInformationW(api.GetProcessWindowStation(), 1, flags, 12, intOut()) == 0
+            if (api.GetUserObjectInformationW(api.GetProcessWindowStation(), 1, flags, 12, scratch) == 0
                     || (flags.getInt(8) & 1) == 0) throw new ComFailure(E_FAIL);
         }
         Pointer input = api.OpenInputDesktop(0, 0, 0x41); // DESKTOP_ENUMERATE | DESKTOP_READOBJECTS
         if (input == null) throw new ComFailure(E_FAIL);
         try {
-            if (!desktopName(input).equals(desktopName(api.GetThreadDesktop(kernel.GetCurrentThreadId()))))
+            if (!desktopName(input, scratch).equals(desktopName(api.GetThreadDesktop(kernel.GetCurrentThreadId()), scratch)))
                 throw new ComFailure(E_FAIL);
         } finally { api.CloseDesktop(input); }
     }
 
-    private String desktopName(Pointer desktop) {
+    private static String desktopName(Pointer desktop, IntByReference used) {
         try (Memory buffer = new Memory(512)) {
-            var used = intOut();
+            used.setValue(0);
             if (desktop == null || DesktopApi.INSTANCE.GetUserObjectInformationW(desktop, 2, buffer, 512, used) == 0)
                 throw new ComFailure(E_FAIL);
             int size = used.getValue();
@@ -178,7 +187,7 @@ final class UiaCom implements AutoCloseable {
 
     static void checked(int hr) { if (hr < 0) throw new ComFailure(hr); }
 
-    private static int vcall(Pointer self, int slot, Object... args) {
+    static int vcall(Pointer self, int slot, Object... args) {
         Pointer address = self.getPointer(0).getPointer((long) slot * Native.POINTER_SIZE);
         Object[] nativeArgs = new Object[args.length + 1];
         nativeArgs[0] = self;

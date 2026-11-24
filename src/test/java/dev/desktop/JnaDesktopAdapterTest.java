@@ -98,6 +98,29 @@ class JnaDesktopAdapterTest {
         assertEquals("BACKEND_CLEANUP_FAILED", assertThrows(AgentException.class, adapter::close).code());
     }
 
+    @Test void aRequestThatExpiresBehindIdleComCleanupRetiresTheOwner() {
+        var entered = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        class IdleSession extends Session implements NativeSession {
+            @Override public void idle() {
+                entered.countDown();
+                await(release);
+            }
+            @Override public JsonNode perform(DesktopAction action, String key, int pid, String value,
+                                              Runnable beforeMutation) {
+                throw new AssertionError("idle cleanup must never send an action");
+            }
+        }
+        try (var adapter = new JnaDesktopAdapter(IdleSession::new, Duration.ofMillis(250), "MSAA", "MSAA", 10)) {
+            assertTrue(adapter.capabilities().path("available").asBoolean());
+            try {
+                await(entered);
+                assertEquals("TIMEOUT", assertThrows(AgentException.class, adapter::listWindows).code());
+                assertTrue(adapter.retired(), "A queued request cannot recover an owner stuck releasing native objects.");
+            } finally { release.countDown(); }
+        }
+    }
+
     @Test void aLateProviderErrorCannotBeatTheQueryDeadline() throws Exception {
         var entered = new CountDownLatch(1);
         var release = new CountDownLatch(1);

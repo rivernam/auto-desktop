@@ -537,6 +537,7 @@ Element UiaAdapter::info(std::size_t index) {
 }
 
 void UiaAdapter::perform(Action action, std::size_t index, const std::string& value, const BeforeMutation& before) {
+    if (action != Action::invoke && action != Action::setValue) throw unsupported();
     if (!active_) throw stale();
     try {
         const auto root = desktop();

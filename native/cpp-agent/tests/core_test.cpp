@@ -616,6 +616,18 @@ void multiBackend() {
     error(single.handle({{"id", "b"}, {"op", "snapshot"}, {"windowId", "100"}, {"backend", "UIA"}}), "BACKEND_UNAVAILABLE");
     error(single.handle({{"id", "c"}, {"op", "snapshot"}, {"windowId", "100"}, {"backend", ""}}), "INVALID_REQUEST");
 }
+
+void msaaOnlyCapabilities() {
+    Script msaa;
+    MultiSession session({{"UIA", []() -> std::unique_ptr<DesktopAdapter> {
+                                throw Error("BACKEND_UNAVAILABLE", "No desktop.");
+                            }, false},
+                          {"MSAA", [&] { return std::make_unique<Scripted>("MSAA", msaa); }, true}},
+                         "s", [](int) { return false; }, {}, 300ms);
+    const auto reply = session.handle({{"id", "capabilities"}, {"op", "getCapabilities"}});
+    check(reply.at("result").at("operations") == Json::array({"getCapabilities", "listWindows", "snapshot",
+        "findElement", "getElementInfo", "setValue", "defaultAction", "select"}), "MSAA does not advertise invoke");
+}
 void simultaneousQueries() {
     Script first, second, third;
     std::promise<void> allEntered;
@@ -696,6 +708,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         multiBackend();
+        msaaOnlyCapabilities();
         simultaneousQueries();
         simultaneousDuplicates();
         oneBudgetForSlowQueries();

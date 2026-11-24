@@ -390,6 +390,8 @@ final class JnaUiaSession implements NativeSession {
 
     @Override public JsonNode perform(DesktopAction action, String key, int processId, String value,
                                       Runnable beforeMutation) {
+        if (action != DesktopAction.INVOKE && action != DesktopAction.SET_VALUE)
+            throw new AgentException("PATTERN_UNSUPPORTED", "The pattern is unavailable.");
         try (UiaCom.Ref desktop = desktop()) {
             Entry entry = resolve(active, key, processId, desktop, false);
             Info info = inspect(entry.node());

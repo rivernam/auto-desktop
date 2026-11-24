@@ -26,6 +26,8 @@ public interface TypedDesktopAdapter extends DesktopAdapter {
                     number(request, "maxDepth", 0, 32), number(request, "maxElements", 1, 2000));
             case "getElementInfo" -> elementInfo(text(request, "key", false), processId(request));
             case "invoke" -> perform(DesktopAction.INVOKE, text(request, "key", false), processId(request), null);
+            case "defaultAction" -> perform(DesktopAction.DEFAULT_ACTION, text(request, "key", false), processId(request), null);
+            case "select" -> perform(DesktopAction.SELECT, text(request, "key", false), processId(request), null);
             case "setValue" -> perform(DesktopAction.SET_VALUE, text(request, "key", false), processId(request),
                     text(request, "value", true));
             default -> throw new AgentException("UNKNOWN_OPERATION", "Unknown desktop operation.");

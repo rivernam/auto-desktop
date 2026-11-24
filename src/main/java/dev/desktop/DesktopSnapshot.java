@@ -41,6 +41,7 @@ final class DesktopSnapshot {
             copyText(object, properties, "backend");
             // Optional diagnostics. They describe the provider and take no part in lookup.
             copyText(object, properties, "nativeRole");
+            copyText(object, properties, "referenceStrength");
             copyText(object, properties, "partialReason");
             String setValueSupport = row.path("setValueSupport").asText();
             if (setValueSupport.equals("unverified") || setValueSupport.equals("unsupported"))
@@ -48,6 +49,10 @@ final class DesktopSnapshot {
             if (row.has("offscreen")) {
                 if (!row.get("offscreen").isBoolean()) throw malformed();
                 properties.set("offscreen", row.get("offscreen"));
+            }
+            if (row.has("selected")) {
+                if (!row.get("selected").isBoolean()) throw malformed();
+                properties.set("selected", row.get("selected"));
             }
             if (row.has("bounds")) properties.set("bounds", bounds(row.get("bounds")));
             if (row.has("partial")) {

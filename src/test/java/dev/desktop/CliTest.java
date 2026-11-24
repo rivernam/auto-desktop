@@ -105,7 +105,7 @@ class CliTest {
             var output = new ByteArrayOutputStream();
             var input = new ByteArrayInputStream(("{\"id\":\"1\",\"op\":\"getCapabilities\"}\n"
                     + "{\"id\":\"2\",\"op\":\"snapshot\",\"windowId\":\"1\",\"backend\":\"JAB\"}\n"
-                    + "{\"id\":\"3\",\"op\":\"snapshot\",\"windowId\":\"1\",\"backend\":\"MSAA\"}\n")
+                    + "{\"id\":\"3\",\"op\":\"snapshot\",\"windowId\":\"1\",\"backend\":\"unknown\"}\n")
                     .getBytes(StandardCharsets.UTF_8));
             assertEquals(0, Cli.run(new String[]{"--backend", "multi", "--jab-dll", library}, input, output));
             ObjectMapper mapper = new ObjectMapper();
@@ -115,6 +115,8 @@ class CliTest {
             assertEquals("multi", capabilities.path("backend").asText());
             assertEquals("UIA", capabilities.at("/backends/0/backend").asText());
             assertEquals("JAB", capabilities.at("/backends/1/backend").asText());
+            assertEquals("MSAA", capabilities.at("/backends/2/backend").asText());
+            assertEquals(3, capabilities.path("backends").size());
             assertFalse(capabilities.at("/backends/1/available").asBoolean());
             if (System.getProperty("os.name", "").startsWith("Windows")) {
                 assertTrue(capabilities.at("/backends/1/reason").asText().contains("does not exist"), lines.get(0));

@@ -23,7 +23,7 @@ import java.util.function.IntPredicate;
 /** One local foreground session. Every request and response occupies one UTF-8 line. */
 public final class Cli {
     private static final Set<String> OPERATIONS = Set.of("getCapabilities", "listWindows", "snapshot",
-            "findElement", "getElementInfo", "invoke", "setValue");
+            "findElement", "getElementInfo", "invoke", "setValue", "defaultAction", "select");
     static final int MAX_FRAME = Utf8Frames.COMMAND_LIMIT;
     private static final ObjectMapper JSON = new ObjectMapper()
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
@@ -49,7 +49,13 @@ public final class Cli {
 
     static int run(String[] args, InputStream input, OutputStream output) throws IOException {
         Map<Integer, Instant> allowedPids = new HashMap<>();
+        Set<Integer> trustedMsaaPids = new HashSet<>();
         Set<String> allowedActions = new HashSet<>();
+        IntPredicate allowedProcess = pid -> allowedPids.containsKey(pid)
+                && ProcessHandle.of(pid).filter(ProcessHandle::isAlive)
+                        .flatMap(handle -> handle.info().startInstant())
+                        .filter(allowedPids.get(pid)::equals).isPresent();
+        IntPredicate trustedMsaa = pid -> trustedMsaaPids.contains(pid) && allowedProcess.test(pid);
         Path worker = null;
         String backend = null;
         String jabLibrary = null;
@@ -60,7 +66,7 @@ public final class Cli {
                 String value = args[i + 1];
                 switch (args[i]) {
                     case "--backend" -> {
-                        if (backend != null || !Set.of("jna", "jab", "powershell", Agent.MULTI).contains(value))
+                        if (backend != null || !Set.of("jna", "jab", "msaa", "powershell", Agent.MULTI).contains(value))
                             throw new IllegalArgumentException("Unknown or repeated backend.");
                         backend = value;
                     }
@@ -80,35 +86,41 @@ public final class Cli {
                                 .orElseThrow(() -> new IllegalArgumentException("Cannot identify allowed PID."));
                         allowedPids.put(pid, started);
                     }
+                    case "--trust-msaa-identity" -> {
+                        int pid = Integer.parseInt(value);
+                        if (pid <= 0) throw new IllegalArgumentException();
+                        trustedMsaaPids.add(pid);
+                    }
                     case "--allow-action" -> {
-                        if (!Set.of("invoke", "setValue").contains(value))
+                        if (!Set.of("invoke", "setValue", "defaultAction", "select").contains(value))
                             throw new IllegalArgumentException();
                         allowedActions.add(value);
                     }
                     default -> throw new IllegalArgumentException();
                 }
             }
+            if (!trustedMsaaPids.isEmpty() && ((!"msaa".equals(backend) && !Agent.MULTI.equals(backend))
+                    || !allowedPids.keySet().containsAll(trustedMsaaPids)))
+                throw new IllegalArgumentException("Trusted MSAA providers must also be allowed targets.");
             if (jabLibrary != null) {
                 if (!"jab".equals(backend) && !Agent.MULTI.equals(backend))
                     throw new IllegalArgumentException("--jab-dll requires --backend jab or multi.");
                 System.setProperty(JabBridge.LIBRARY_PROPERTY, jabLibrary);
             }
             // A multi-backend session opens its own adapters, one per backend.
-            selected = Agent.MULTI.equals(backend) ? DesktopAdapters.none(worker) : DesktopAdapters.open(worker, backend);
+            selected = Agent.MULTI.equals(backend) ? DesktopAdapters.none(worker)
+                    : DesktopAdapters.open(worker, backend, trustedMsaa);
         } catch (IllegalArgumentException invalid) {
             System.err.println("Usage: java -jar desktop-agent.jar [--allow-pid PID] "
-                    + "[--allow-action invoke] [--allow-action setValue] "
-                    + "[--backend jna|jab|multi|powershell OR --csharp-worker ABSOLUTE_EXE_PATH] [--jab-dll ABSOLUTE_DLL_PATH]");
+                    + "[--allow-action invoke|setValue|defaultAction|select] "
+                    + "[--backend jna|jab|msaa|multi|powershell OR --csharp-worker ABSOLUTE_EXE_PATH] "
+                    + "[--jab-dll ABSOLUTE_DLL_PATH] [--trust-msaa-identity PID]");
             System.err.println("Each allowed PID must identify a running process with a readable start time.");
             System.err.println("The optional C# worker path must identify an existing .exe.");
             return 2;
         }
         Utf8Frames source = new Utf8Frames(input, MAX_FRAME);
-        IntPredicate allowedProcess = pid -> allowedPids.containsKey(pid)
-                && ProcessHandle.of(pid).filter(ProcessHandle::isAlive)
-                        .flatMap(handle -> handle.info().startInstant())
-                        .filter(allowedPids.get(pid)::equals).isPresent();
-        try (Agent agent = selected == null ? Agent.multi(DesktopAdapters.multi(), allowedProcess, allowedActions)
+        try (Agent agent = selected == null ? Agent.multi(DesktopAdapters.multi(trustedMsaa), allowedProcess, allowedActions)
                 : new Agent(DesktopAdapters.label(worker, backend), selected, allowedProcess, allowedActions)) {
             long sequence = 0;
             while (true) {

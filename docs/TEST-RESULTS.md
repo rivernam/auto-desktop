@@ -1,5 +1,9 @@
 # 빌드 및 시험 기록
 
+## 2026-11-25 MSAA Adapter
+
+Java x64와 C++ x64·x86에서 WinForms 탐색, 표준 Win32 재조회, 테스트 COM Provider 동작, 객체 교체와 장애 복구를 검증했다. 관찰 범위, CPU·메모리 수치, 원본 및 기존 UIA·JAB·Multi-Backend 회귀 결과는 [MSAA Adapter](MSAA-ADAPTER.md)에 있다.
+
 ## 2026-11-24 Multi-Backend 안정화
 
 Java와 C++의 공유 조회 기한, UIA 재생성, JAB 응답 판정, 명령 ID 메모리와 JVM별 프로세스 실험을 다시 검증했다. 시작 실패와 도구 오류가 있던 실행도 남겼다. 각 바이너리의 해시, 실행 시간, 미실행 항목은 후속 보고서와 원본에 있다. [Multi-Backend 안정화](MULTI-BACKEND-STABILIZATION.md)

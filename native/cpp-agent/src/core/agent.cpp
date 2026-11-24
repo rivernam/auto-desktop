@@ -5,8 +5,9 @@
 
 namespace desktop {
 namespace {
-constexpr std::array<const char*, 7> operations{
-    "getCapabilities", "listWindows", "snapshot", "findElement", "getElementInfo", "invoke", "setValue"};
+constexpr std::array<const char*, 9> operations{
+    "getCapabilities", "listWindows", "snapshot", "findElement", "getElementInfo", "invoke", "setValue",
+    "defaultAction", "select"};
 constexpr std::array<const char*, 4> locatorFields{"name", "role", "automationId", "className"};
 
 Error invalid() { return {"INVALID_REQUEST", "Invalid request fields."}; }
@@ -86,8 +87,15 @@ Json capabilities(const char* backend, bool available) {
 Json capabilities(const char* backend, const Availability& availability) {
     Json result{{"backend", backend}, {"available", availability.available}, {"physicalInput", false},
                 {"screenshot", false}, {"operations", Json::array()}};
-    if (availability.available) result["operations"] = operations;
-    else result["reason"] = availability.reason;
+    if (availability.available) {
+        const bool msaa = std::string_view(backend) == "MSAA";
+        for (const char* op : operations) {
+            const auto action = parseAction(op);
+            if ((msaa && action == Action::invoke) || (!msaa && (action == Action::defaultAction || action == Action::select)))
+                continue;
+            result["operations"].push_back(op);
+        }
+    } else result["reason"] = availability.reason;
     if (availability.javaWindows)
         result["bridge"] = {{"javaWindows", availability.javaWindows->first},
                             {"connectedWindows", availability.javaWindows->second}};
@@ -109,7 +117,15 @@ const char* operation(const Json& request) {
     return "invalid";
 }
 
-bool isMutation(std::string_view op) { return op == "invoke" || op == "setValue"; }
+std::optional<Action> parseAction(std::string_view op) {
+    if (op == "invoke") return Action::invoke;
+    if (op == "setValue") return Action::setValue;
+    if (op == "defaultAction") return Action::defaultAction;
+    if (op == "select") return Action::select;
+    return {};
+}
+
+bool isMutation(std::string_view op) { return parseAction(op).has_value(); }
 
 Agent::Agent(DesktopAdapter& adapter, std::string session, AllowedProcess allowedProcess,
              std::set<Action> allowedActions, std::function<Clock::time_point()> now,
@@ -140,9 +156,8 @@ Json Agent::handle(const Json& request, RequestDeadline& deadline) {
             result = find(request);
         } else if (op == "getElementInfo") {
             result = info(request);
-        } else if (isMutation(op)) {
-            result = perform(request, id.get_ref<const std::string&>(),
-                             op == "invoke" ? Action::invoke : Action::setValue, deadline);
+        } else if (const auto action = parseAction(op)) {
+            result = perform(request, id.get_ref<const std::string&>(), *action, deadline);
         } else {
             throw Error("UNKNOWN_OPERATION", "Unknown operation.");
         }
@@ -284,7 +299,9 @@ Json Agent::perform(const Json& request, const std::string& id, Action action, R
     const auto& target = current().capture.elements[index];
     if (!allowedActions_.count(action) || !allowedProcess_(target.pid)) throw denied();
     if (!target.enabled) throw Error("PRECONDITION_FAILED", "The element is disabled.");
-    if (!(action == Action::invoke ? target.invoke : target.writable))
+    const bool offered = (action == Action::invoke && target.invoke) || (action == Action::setValue && target.writable)
+        || (action == Action::defaultAction && target.defaultAction) || (action == Action::select && target.select);
+    if (!offered)
         throw Error("PATTERN_UNSUPPORTED", "The element does not support this action.");
     const std::string empty;
     const std::string* text = &empty;
@@ -308,6 +325,8 @@ Json Agent::publicElement(std::size_t index, const Element& row) const {
     Json actions = Json::array();
     if (row.invoke) actions.push_back("invoke");
     if (row.writable) actions.push_back("setValue");
+    if (row.defaultAction) actions.push_back("defaultAction");
+    if (row.select) actions.push_back("select");
     Json bounds = nullptr;
     if (row.bounds) {
         const auto& rect = *row.bounds;
@@ -321,6 +340,8 @@ Json Agent::publicElement(std::size_t index, const Element& row) const {
                 {"enabled", row.enabled}, {"offscreen", row.offscreen}, {"actions", std::move(actions)},
                 {"backend", adapter_.backend()}};
     if (!identity.nativeRole.empty()) result["nativeRole"] = identity.nativeRole;
+    if (!row.referenceStrength.empty()) result["referenceStrength"] = row.referenceStrength;
+    if (row.selected) result["selected"] = *row.selected;
     if (identity.role == "Edit" && std::string_view(adapter_.backend()) == "JAB")
         result["setValueSupport"] = row.writable ? "unverified" : "unsupported";
     if (row.partial) {

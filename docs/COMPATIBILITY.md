@@ -37,6 +37,10 @@ Java SE 7 Update 6 이전의 JRE는 브리지(Java Access Bridge 2.0.x)를 따�
 
 Windows 장비에서 OS 에디션·빌드, CPU, Java 배포판·버전, PowerShell 버전, 대상 앱 버전과 로그인 세션을 기록한다. 일반 권한 앱에서 창을 나열하고 한 창의 스냅샷을 얻은 뒤, 트리에 표시된 패턴으로 동작을 실행하고 새 스냅샷에서 변화를 확인한다. 이름이 같은 창, 닫힌 창, 새 스냅샷 뒤의 오래된 참조, 읽기 전용 필드는 별도로 기록한다. 장기 실행 검증에는 반복 횟수, 시작·종료 시 메모리와 핸들 수, 헬퍼 종료 후 복구 결과를 남긴다. Windows UI에 연결하지 않은 Linux 빌드나 테스트 더블의 통과로 위 항목을 대체할 수 없다.
 
+## Microsoft Active Accessibility
+
+Java/JNA와 C++에서 `--backend msaa`를 제공한다. Windows 11의 Java x64와 C++ x64·x86에서 실기기 검증 범위를 기록했다. C++ x86은 Windows 11 x64의 WOW64에서 실행했다. 현재 Java 런타임, C++ 실행 파일 및 백엔드 조합의 Windows XP/XP Embedded와 네이티브 x86 OS 동작은 검증되지 않았다. [MSAA 기능 및 환경별 결과](MSAA-ADAPTER.md)
+
 ## 추가 검증 조합
 
 CentOS 6과 7, RHEL 파생 배포판에서는 먼저 사용자의 세션 버스·설치 패키지·툴킷 브리지를 확인한다. Ubuntu 22.04의 GNOME/Xorg와 GNOME/Wayland도 별도의 시험 항목이다. Windows x86/x64, WOW64, Linux i686/x86_64는 실제 설치 가능한 JVM·워커·대상 앱 조합을 기록해야 한다. 같은 JSON 규약을 처리하더라도 레거시 JVM에는 별도 바이트코드로 빌드한 코어 또는 별도 실행 파일이 필요하다.

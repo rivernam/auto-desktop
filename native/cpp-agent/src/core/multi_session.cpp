@@ -1,5 +1,6 @@
 #include "core/multi_session.hpp"
 
+#include <algorithm>
 #include <unordered_map>
 
 namespace desktop {
@@ -141,6 +142,7 @@ std::vector<Json> MultiSession::queries(const Json& id, const char* op) {
 Json MultiSession::capabilities(const Json& id) {
     auto rows = Json::array();
     bool available = false;
+    bool msaa = false, invoke = false;
     const auto replies = queries(id, "getCapabilities");
     for (std::size_t i = 0; i < slots_.size(); ++i) {
         const auto& reply = replies[i];
@@ -153,13 +155,23 @@ Json MultiSession::capabilities(const Json& id) {
             failed.reason = reply.at("error").at("message").get<std::string>();
             row = desktop::capabilities(slots_[i].config.name.c_str(), failed);
         }
-        available = available || row.at("available") == true;
+        if (row.at("available") == true) {
+            available = true;
+            if (row.at("backend") == "MSAA") msaa = true;
+            else invoke = true;
+        }
         rows.push_back(std::move(row));
     }
     Availability summary;
     summary.available = available;
     summary.reason = "No backend of this session is available.";
     auto result = desktop::capabilities("multi", summary);
+    auto& operations = result.at("operations");
+    if (available && !invoke) operations.erase(std::find(operations.begin(), operations.end(), "invoke"));
+    if (msaa) {
+        operations.push_back("defaultAction");
+        operations.push_back("select");
+    }
     result["defaultBackend"] = slots_.front().config.name;
     result["backends"] = std::move(rows);
     return {{"id", id}, {"ok", true}, {"result", std::move(result)}};

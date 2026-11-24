@@ -16,7 +16,7 @@ struct Error : std::runtime_error {
         : std::runtime_error(message), code(code), retire(retire) {}
 };
 
-enum class Action { invoke, setValue };
+enum class Action { invoke, setValue, defaultAction, select };
 
 struct Bounds {
     long x, y;
@@ -48,6 +48,10 @@ struct Element {
     bool partial = false;
     // Optional cause of partial: "limit", "provider" or "limit,provider".
     std::string partialReason;
+    std::string referenceStrength;
+    bool defaultAction = false;
+    bool select = false;
+    std::optional<bool> selected;
 };
 
 struct Window {

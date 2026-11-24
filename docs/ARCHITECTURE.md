@@ -14,10 +14,11 @@
                               ├─ WindowsAdapter → PowerShell 또는 C# → UIAutomationClient
                               ├─ JnaDesktopAdapter → 전용 스레드 → UI Automation COM (JnaUiaSession)
                               │                                  또는 Java Access Bridge (JabSession)
+                              │                                  또는 Active Accessibility COM (MsaaSession)
                               └─ 어댑터 미탑재 환경 → 미가용 capability
 ```
 
-실행 진입점과 명령 해석기는 하나다. CLI는 시작할 때 `DesktopAdapters`에서 어댑터 하나를 받아 Agent에 주입한다. OS 선택과 C# 실행 경로는 여기에서 결정한다. Linux용 AT-SPI, 레거시 Windows용 MSAA를 추가할 때도 같은 Agent를 사용한다. 현재 기본 Linux 실행에서는 `backend="none"`, `available=false`를 반환한다. Windows UIA 워커를 명시적으로 선택하면 해당 백엔드의 가용 여부를 보고한다.
+실행 진입점과 명령 해석기는 하나다. CLI는 시작할 때 `DesktopAdapters`에서 어댑터 하나를 받아 Agent에 주입한다. OS 선택과 C# 실행 경로는 여기에서 결정한다. MSAA는 같은 Agent 코어를 사용한다. Linux용 AT-SPI도 이 코어에 연결할 수 있다. 현재 기본 Linux 실행에서는 `backend="none"`, `available=false`를 반환한다. Windows UIA 워커를 명시적으로 선택하면 해당 백엔드의 가용 여부를 보고한다.
 
 | 책임 | 공통 Java 코드 | 플랫폼 어댑터 |
 |---|---|---|
@@ -32,7 +33,7 @@
 
 `--backend jab`은 같은 JNA 호스트에 Java Access Bridge 세션을 올린다. Swing과 AWT 창을 같은 명령으로 탐색하고 조작한다. C++ Agent도 같은 계약의 Adapter를 가진다. 변경 요청을 다른 백엔드로 다시 보내는 경로는 어느 모드에도 없다. [Java Access Bridge Adapter](JAVA-ACCESS-BRIDGE.md)
 
-`--backend multi`는 UIA와 JAB Adapter를 한 세션에 함께 둔다. 세션은 백엔드마다 Adapter, 전용 스레드, 최신 스냅샷을 따로 갖고, 명령 ID 기록과 허용 정책만 공유한다. 스냅샷 요청이 백엔드를 고르고, 참조는 자신을 발급한 백엔드로만 전달된다. 두 트리는 합치지 않는다. 한 백엔드의 호출이 기한을 넘기면 그 Adapter만 폐기된다. Java에서는 `Agent`가 백엔드 목록을 직접 갖고, C++에서는 `MultiSession`이 백엔드마다 `SessionWorker` 하나를 두고 요청을 나눈다. 새 Adapter(예: MSAA)는 이 목록에 항목 하나를 더하는 것으로 들어간다. [Multi-Backend 구조와 검증](MULTI-BACKEND.md)
+`--backend multi`는 UIA, JAB, MSAA Adapter를 한 세션에 함께 둔다. 세션은 백엔드마다 Adapter, 전용 스레드, 최신 스냅샷을 따로 갖고, 명령 ID 기록과 허용 정책만 공유한다. 스냅샷 요청이 백엔드를 고르고, 참조는 자신을 발급한 백엔드로만 전달된다. 각 트리는 독립된 스냅샷이다. 한 백엔드의 호출이 기한을 넘기면 그 Adapter만 폐기된다. Java에서는 `Agent`가 백엔드 목록을 직접 갖고, C++에서는 `MultiSession`이 백엔드마다 `SessionWorker` 하나를 두고 요청을 나눈다. MSAA Adapter는 위치 기반 요소를 조회 전용 참조로 보관하고, Provider의 객체 수명을 확인한 경우에만 원래 객체로 변경을 전달한다. [MSAA 참조 정책](MSAA-ADAPTER.md) [Multi-Backend 구조와 검증](MULTI-BACKEND.md)
 
 선택형 JNA 어댑터에서는 하나의 MTA 스레드가 COM 세션과 참조를 소유한다. 대기열의 요청 취소는 해당 요청에만 영향을 준다. 이미 인수된 호출이 타임아웃되면 어댑터를 폐기하고 새 요청을 막으며, COM 해제는 호출 반환 뒤에 수행한다. 별도 프로세스는 중단된 네이티브 호출이나 충돌의 격리를 위한 후보로 유지한다. [JNA 채택 및 장애 격리](JNA.md)
 
@@ -53,7 +54,7 @@ Java와 C++는 각각 Core와 Windows Adapter를 소유한다. 공통 NDJSON 계
 | 4 | 명령 큐·작업 상태·heartbeat, 지속적인 중복 방지, 재접속, 세션별 워커 감독, 인증된 로컬 IPC와 원격 명령 계약 | 지연·충돌·재시작 시 상태 보존 및 미확인 변경의 중복 실행 방지 시험. 중앙 서버 구현은 별도 범위 |
 | 5 | OS·CPU별 패키징, 로그인 시 자동 시작, 서명한 업데이트·롤백, 진단 로그 수집과 장시간 부하 시험 | 승인된 환경에서 CPU·RSS·핸들 추이, 업그레이드/롤백, 세션 잠금·해제·재연결 결과 기록 |
 
-Phase 1 이후의 API에는 `getWindow`, `select`, `toggle`, `focus`, `waitFor`가 포함된다. 물리 입력은 별도 명령 영역에 `mouseMove`, `mouseClick`, `mouseDrag`, 키보드 입력, 단축키, 캡처를 설계한다. 각 기능에는 별도의 capability와 정책 허용이 필요하다. UIA 호출 실패로 물리 입력을 발생시키는 경로는 없다. 실제 설비 조작을 도입할 때는 공정별 사전 조건, 조작 후 독립적인 상태 확인 및 승인된 환경에서의 시험이 필요하다.
+추후 공통 API 후보에는 `getWindow`, `toggle`, `focus`, `waitFor`가 포함된다. 현재 `select`는 MSAA의 `SELFLAG_TAKESELECTION`에 한정한다. 물리 입력은 별도 명령 영역에 `mouseMove`, `mouseClick`, `mouseDrag`, 키보드 입력, 단축키, 캡처를 설계한다. 각 기능에는 별도의 capability와 정책 허용이 필요하다. UIA 호출 실패로 물리 입력을 발생시키는 경로는 없다. 실제 설비 조작을 도입할 때는 공정별 사전 조건, 조작 후 독립적인 상태 확인 및 승인된 환경에서의 시험이 필요하다.
 
 ## 레거시 조회 PoC
 

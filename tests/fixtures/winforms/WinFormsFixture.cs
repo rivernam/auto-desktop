@@ -13,6 +13,7 @@ internal sealed class WinFormsFixture : Form
     private readonly FlowLayoutPanel actions = new FlowLayoutPanel();
     private readonly Timer timer = new Timer { Interval = 25 };
     private readonly TabControl tabs;
+    private ListBox fixtureList;
     private readonly TextBox edit = new TextBox { Text = "initial fixture value" };
     private readonly TextBox readOnly = new TextBox { Text = "fixed fixture value", ReadOnly = true };
     private readonly Button disabled = ButtonFor("fixtureDisabled", "Disabled action");
@@ -140,6 +141,7 @@ internal sealed class WinFormsFixture : Form
         combo.SelectedIndexChanged += delegate { WriteState("selected.txt", (string)combo.SelectedItem); };
         AddField(table, "Combo box", combo);
         var list = Identify(new ListBox { Height = 65 }, "fixtureList", "Fixture list");
+        fixtureList = list;
         list.Items.AddRange(new object[] { "Item one", "Item two", "Item three" });
         list.SelectedIndex = 0;
         list.SelectedIndexChanged += delegate { WriteState("selected.txt", (string)list.SelectedItem); };
@@ -298,6 +300,21 @@ internal sealed class WinFormsFixture : Form
         if (modal != null && Consume("close-modal")) modal.Close();
 
         SelectRequestedPage();
+
+        if (Consume("msaa-list-replace")) {
+            fixtureList.Items[1] = "Replacement item";
+            WriteState("msaa-list-state.txt", "replaced");
+        }
+        if (Consume("msaa-list-reorder")) {
+            object first = fixtureList.Items[0];
+            fixtureList.Items.RemoveAt(0);
+            fixtureList.Items.Add(first);
+            WriteState("msaa-list-state.txt", "reordered");
+        }
+        if (Consume("msaa-list-delete")) {
+            fixtureList.Items.RemoveAt(fixtureList.Items.Count - 1);
+            WriteState("msaa-list-state.txt", "deleted");
+        }
 
         if (Consume("replace-control"))
         {

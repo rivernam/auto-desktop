@@ -118,6 +118,8 @@ public final class Agent implements AutoCloseable {
                 case "getElementInfo" -> info(request);
                 case "invoke" -> perform(request, id, DesktopAction.INVOKE);
                 case "setValue" -> perform(request, id, DesktopAction.SET_VALUE);
+                case "defaultAction" -> perform(request, id, DesktopAction.DEFAULT_ACTION);
+                case "select" -> perform(request, id, DesktopAction.SELECT);
                 default -> throw new AgentException("UNKNOWN_OPERATION", "Unknown operation.");
             };
             response.put("ok", true).set("result", result);
@@ -175,6 +177,8 @@ public final class Agent implements AutoCloseable {
         ObjectNode result = object().put("backend", MULTI);
         ArrayNode rows = JsonNodeFactory.instance.arrayNode();
         boolean available = false;
+        boolean msaa = false;
+        boolean invoke = false;
         var queries = startQueries(false);
         try {
             attendQueries(true);
@@ -185,7 +189,11 @@ public final class Agent implements AutoCloseable {
                 } catch (AgentException failed) {
                     row = DesktopCapabilities.unavailable(backends.get(i).name, failed.getMessage());
                 }
-                available |= row.path("available").asBoolean();
+                if (row.path("available").asBoolean()) {
+                    available = true;
+                    if ("MSAA".equals(row.path("backend").asText())) msaa = true;
+                    else invoke = true;
+                }
                 rows.add(row);
             }
         } finally {
@@ -195,8 +203,13 @@ public final class Agent implements AutoCloseable {
         if (!available) result.put("reason", "No backend of this session is available.");
         result.put("physicalInput", false).put("screenshot", false);
         ArrayNode operations = result.putArray("operations");
-        if (available) for (String op : List.of("getCapabilities", "listWindows", "snapshot", "findElement",
-                "getElementInfo", "invoke", "setValue")) operations.add(op);
+        if (available) {
+            for (String op : List.of("getCapabilities", "listWindows", "snapshot", "findElement", "getElementInfo"))
+                operations.add(op);
+            if (invoke) operations.add("invoke");
+            operations.add("setValue");
+            if (msaa) operations.add("defaultAction").add("select");
+        }
         result.put("defaultBackend", backends.get(0).name);
         result.set("backends", rows);
         return result;

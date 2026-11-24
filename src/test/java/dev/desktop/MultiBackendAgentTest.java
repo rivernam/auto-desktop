@@ -167,6 +167,19 @@ class MultiBackendAgentTest {
         assertTrue(result.has("reason"));
     }
 
+    @Test void msaaAloneDoesNotAdvertiseInvoke() {
+        var sources = new LinkedHashMap<String, Agent.BackendSource>();
+        var unavailable = new Scripted("UIA");
+        unavailable.unavailable = "No desktop.";
+        sources.put("UIA", new Agent.BackendSource(() -> unavailable, false));
+        sources.put("MSAA", new Agent.BackendSource(() -> new Scripted("MSAA"), true));
+        try (var session = Agent.multi(sources, Set.of(), Set.of(), () -> nanos)) {
+            var ops = session.handle(send("getCapabilities")).at("/result/operations");
+            assertEquals("[\"getCapabilities\",\"listWindows\",\"snapshot\",\"findElement\","
+                    + "\"getElementInfo\",\"setValue\",\"defaultAction\",\"select\"]", ops.toString());
+        }
+    }
+
     @Test void windowListMergesByWindowAndNamesItsBackends() {
         JsonNode reply = agent.handle(send("listWindows"));
         JsonNode rows = reply.get("result");

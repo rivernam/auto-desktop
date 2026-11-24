@@ -906,6 +906,7 @@ Element JabAdapter::info(std::size_t index) {
 }
 
 void JabAdapter::perform(Action action, std::size_t index, const std::string& value, const BeforeMutation& before) {
+    if (action != Action::invoke && action != Action::setValue) throw unsupported();
     bool dispatched = false;
     try {
         ready();

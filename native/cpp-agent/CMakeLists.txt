@@ -20,10 +20,10 @@ target_include_directories(agent-core SYSTEM PUBLIC third_party)
 target_link_libraries(agent-core PUBLIC Threads::Threads)
 
 if(WIN32)
-    add_executable(cpp-agent src/main.cpp src/windows/uia_adapter.cpp src/windows/jab_adapter.cpp
+    add_executable(cpp-agent src/main.cpp src/windows/uia_adapter.cpp src/windows/jab_adapter.cpp src/windows/msaa_adapter.cpp
         src/windows/cpp-agent.manifest)
     target_compile_definitions(cpp-agent PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
-    target_link_libraries(cpp-agent PRIVATE agent-core ole32 oleaut32 user32 advapi32 uiautomationcore)
+    target_link_libraries(cpp-agent PRIVATE agent-core ole32 oleaut32 oleacc user32 advapi32 uiautomationcore)
 endif()
 
 include(CTest)
@@ -31,4 +31,9 @@ if(BUILD_TESTING)
     add_executable(agent-core-test tests/core_test.cpp)
     target_link_libraries(agent-core-test PRIVATE agent-core)
     add_test(NAME agent-core-contract COMMAND agent-core-test)
+    if(WIN32)
+        add_executable(msaa-identity-fixture ../../tests/fixtures/accessibility/msaa-identity-fixture.cpp)
+        target_compile_definitions(msaa-identity-fixture PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
+        target_link_libraries(msaa-identity-fixture PRIVATE oleacc oleaut32 ole32 user32 uuid)
+    endif()
 endif()

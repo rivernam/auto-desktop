@@ -5,27 +5,30 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.function.IntPredicate;
 
 /** Composition root. Backend selection happens once per CLI session, outside the shared core. */
 final class DesktopAdapters {
-    static DesktopAdapter open(Path csharpWorker, String backend) {
+    static DesktopAdapter open(Path csharpWorker, String backend, IntPredicate trustedMsaa) {
         if (backend != null && csharpWorker != null) throw new IllegalArgumentException("Select one backend.");
         if ("jna".equals(backend)) return new JnaDesktopAdapter();
         // An explicit choice. A Java Access Bridge failure is reported, never answered through UI Automation.
         if ("jab".equals(backend)) return JnaDesktopAdapter.javaAccessBridge();
+        if ("msaa".equals(backend)) return JnaDesktopAdapter.activeAccessibility(trustedMsaa);
         if ("powershell".equals(backend)) return new WindowsAdapter();
         return select(System.getProperty("os.name", ""), csharpWorker);
     }
 
     /**
      * The backends of a multi-backend session, default first. Each has its own thread, native
-     * session and fault state. A future adapter, such as MSAA, is one more entry here.
+     * session and fault state.
      */
-    static LinkedHashMap<String, Agent.BackendSource> multi() {
+    static LinkedHashMap<String, Agent.BackendSource> multi(IntPredicate trustedMsaa) {
         var sources = new LinkedHashMap<String, Agent.BackendSource>();
         sources.put("UIA", new Agent.BackendSource(JnaDesktopAdapter::new, true));
         // Not restarted in place: a retired bridge session may have left its library loaded for a silent JVM.
         sources.put("JAB", new Agent.BackendSource(JnaDesktopAdapter::javaAccessBridge, false));
+        sources.put("MSAA", new Agent.BackendSource(() -> JnaDesktopAdapter.activeAccessibility(trustedMsaa), true));
         return sources;
     }
 
@@ -38,6 +41,7 @@ final class DesktopAdapters {
     /** The backend name that the rows of a single-backend session carry. */
     static String label(Path csharpWorker, String backend) {
         if ("jab".equals(backend)) return "JAB";
+        if ("msaa".equals(backend)) return "MSAA";
         boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("windows");
         return backend != null || csharpWorker != null || windows ? "UIA" : "none";
     }

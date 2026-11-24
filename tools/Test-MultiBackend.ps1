@@ -530,15 +530,15 @@ function Test-AwtMixed([string]$implementation) {
         Step $row 'capabilities' {
             $cap = (Send-Mb $run @{ op = 'getCapabilities' }).result
             $rows = @($cap.backends)
-            Require-Mb ($cap.backend -ceq 'multi' -and $cap.available -and $cap.defaultBackend -ceq 'UIA' -and $rows.Count -eq 2 -and
+            Require-Mb ($cap.backend -ceq 'multi' -and $cap.available -and $cap.defaultBackend -ceq 'UIA' -and $rows.Count -eq 3 -and
                 $rows[0].backend -ceq 'UIA' -and $rows[0].available -and $rows[1].backend -ceq 'JAB' -and $rows[1].available -and
-                !$cap.physicalInput -and !$cap.screenshot -and @($cap.operations).Count -eq 7) 'Both backends must be available under the multi capability.'
+                $rows[2].backend -ceq 'MSAA' -and $rows[2].available -and !$cap.physicalInput -and !$cap.screenshot -and @($cap.operations).Count -eq 9) 'All three backends must be available under the multi capability.'
             return [ordered]@{ bridge = $rows[1].bridge }
         }
         Step $row 'windowListedOnceWithBothBackends' {
             $window = Get-MbWindow $run $awt
             $s.window = $window.id
-            Require-Mb ((Get-Backends $window.row) -ceq 'UIA,JAB') "The AWT window lists backends '$(Get-Backends $window.row)'."
+            Require-Mb ((Get-Backends $window.row) -ceq 'UIA,JAB,MSAA') "The AWT window lists backends '$(Get-Backends $window.row)'."
             Require-Mb ((Get-BackendStatus $window.status 'UIA') -ceq 'OK' -and (Get-BackendStatus $window.status 'JAB') -ceq 'OK') 'Both backends must answer the window list.'
             return [ordered]@{ windowId = $window.id; backends = @($window.row.backends) }
         }
@@ -629,7 +629,7 @@ function Test-Safety([string]$implementation) {
             Require-Mb ($implicit.backend -ceq 'UIA' -and $implicit.elements[0].backend -ceq 'UIA') 'A snapshot that names no backend must use UIA.'
         }
         Step $row 'unknownBackendRefused' {
-            [void](Get-MbSnapshot $run $s.window 'MSAA' 'BACKEND_UNAVAILABLE')
+            [void](Get-MbSnapshot $run $s.window 'NOT_CONFIGURED' 'BACKEND_UNAVAILABLE')
             [void](Send-Mb $run @{ op = 'snapshot'; windowId = $s.window; backend = 7 } 'INVALID_REQUEST')
         }
         Step $row 'latestSnapshotPerBackend' {
@@ -845,7 +845,7 @@ function Test-JabFault([string]$implementation) {
             $s.swing = (Get-MbWindow $run $swing)
             $s.awt = (Get-MbWindow $run $awt)
             $s.forms = (Get-MbWindow $run $forms)
-            Require-Mb ((Get-Backends $s.swing.row) -ceq 'UIA,JAB' -and (Get-Backends $s.awt.row) -ceq 'UIA,JAB' -and (Get-Backends $s.forms.row) -ceq 'UIA') 'Java windows list both backends and the WPF window lists UIA only.'
+            Require-Mb ((Get-Backends $s.swing.row) -ceq 'UIA,JAB,MSAA' -and (Get-Backends $s.awt.row) -ceq 'UIA,JAB,MSAA' -and (Get-Backends $s.forms.row) -ceq 'UIA,MSAA') 'Java windows list all three backends, and WPF lists UIA and MSAA.'
             return [ordered]@{ swing = @($s.swing.row.backends); awt = @($s.awt.row.backends); wpf = @($s.forms.row.backends)
                 awtRuntime = Read-Mb $awt 'framework.txt'; swingRuntime = Read-Mb $swing 'framework.txt' }
         }
@@ -884,7 +884,7 @@ function Test-JabFault([string]$implementation) {
             $formsRow = @($reply.result | Where-Object { $_.windowId -ceq $s.forms.id })
             $swingRow = @($reply.result | Where-Object { $_.windowId -ceq $s.swing.id })
             Require-Mb ((Get-BackendStatus $reply.backends 'UIA') -ceq 'OK' -and (Get-BackendStatus $reply.backends 'JAB') -ceq 'TARGET_NOT_RESPONDING') 'The window list must report the failed backend.'
-            Require-Mb ($formsRow.Count -eq 1 -and $swingRow.Count -eq 1 -and (Get-Backends $swingRow[0]) -ceq 'UIA') 'UIA rows must still be listed.'
+            Require-Mb ($formsRow.Count -eq 1 -and $swingRow.Count -eq 1 -and (Get-Backends $swingRow[0]) -ceq 'UIA,MSAA') 'UIA and MSAA rows must still be listed.'
             $cap = (Send-Mb $run @{ op = 'getCapabilities' }).result
             return [ordered]@{ backends = @($reply.backends | ForEach-Object { [ordered]@{ backend = $_.backend; status = (Get-BackendStatus $reply.backends $_.backend) } })
                 capabilities = @($cap.backends | ForEach-Object { [ordered]@{ backend = $_.backend; available = $_.available } }) }
@@ -1101,7 +1101,7 @@ function Test-Environment([string]$implementation) {
             $rows = @($cap.backends)
             Require-Mb ($cap.available -and $rows[0].available -and !$rows[1].available -and $rows[1].reason) 'The session must report the missing library for JAB only.'
             $window = Get-MbWindow $run $awt
-            Require-Mb ((Get-Backends $window.row) -ceq 'UIA' -and (Get-BackendStatus $window.status 'JAB') -ceq 'BACKEND_UNAVAILABLE') 'The window list must report JAB as unavailable.'
+            Require-Mb ((Get-Backends $window.row) -ceq 'UIA,MSAA' -and (Get-BackendStatus $window.status 'JAB') -ceq 'BACKEND_UNAVAILABLE') 'The window list must report JAB as unavailable.'
             [void](Get-MbSnapshot $run $window.id 'JAB' 'BACKEND_UNAVAILABLE')
             $shot = (Get-MbSnapshot $run $window.id 'UIA').result
             $edit = Find-Mb $run $shot (Get-AwtEditLocator $awt)
@@ -1115,7 +1115,7 @@ function Test-Environment([string]$implementation) {
         $run = Start-MbAgent $implementation 'multi' @($plain.process.Id)
         Step $row 'bridgeNotEnabledInJvm' {
             $window = Get-MbWindow $run $plain
-            Require-Mb ((Get-Backends $window.row) -ceq 'UIA' -and (Get-BackendStatus $window.status 'JAB') -ceq 'OK') 'A JVM without the bridge is listed by UIA only.'
+            Require-Mb ((Get-Backends $window.row) -ceq 'UIA,MSAA' -and (Get-BackendStatus $window.status 'JAB') -ceq 'OK') 'A JVM without the bridge is listed by UIA and MSAA.'
             $cap = (Send-Mb $run @{ op = 'getCapabilities' }).result
             $bridge = @($cap.backends)[1]
             Require-Mb ($bridge.available -and $bridge.bridge.javaWindows -gt $bridge.bridge.connectedWindows) 'The capability must show a Java window that no bridge answers for.'
@@ -1168,9 +1168,9 @@ function Test-TargetRestart([string]$implementation) {
             $clock = [Diagnostics.Stopwatch]::StartNew()
             do {
                 $window = Get-MbWindow $run $again
-                if ((Get-Backends $window.row) -cne 'UIA,JAB') { Start-Sleep -Milliseconds 100 }
-            } while ((Get-Backends $window.row) -cne 'UIA,JAB' -and $clock.ElapsedMilliseconds -lt 10000)
-            Require-Mb ((Get-Backends $window.row) -ceq 'UIA,JAB') 'Both backends must find the restarted process.'
+                if ((Get-Backends $window.row) -cne 'UIA,JAB,MSAA') { Start-Sleep -Milliseconds 100 }
+            } while ((Get-Backends $window.row) -cne 'UIA,JAB,MSAA' -and $clock.ElapsedMilliseconds -lt 10000)
+            Require-Mb ((Get-Backends $window.row) -ceq 'UIA,JAB,MSAA') 'Both backends must find the restarted process.'
             $uia = (Get-MbSnapshot $run $window.id 'UIA').result
             $jab = (Get-MbSnapshot $run $window.id 'JAB').result
             $edit = Find-Mb $run $uia (Get-AwtEditLocator $again)
@@ -1213,7 +1213,7 @@ function Measure-MbMode([string]$implementation, [string]$backendMode, $target) 
     $run = Start-MbAgent $implementation $backendMode @($target.process.Id)
     $measure = [ordered]@{ agent = $implementation; mode = $backendMode; hostAtStart = Get-MbHost }
     try {
-        $names = switch ($backendMode) { 'uia' { @('UIA') } 'jab' { @('JAB') } default { @('UIA', 'JAB') } }
+        $names = switch ($backendMode) { 'uia' { @('UIA') } 'jab' { @('JAB') } default { @('UIA', 'JAB', 'MSAA') } }
         $capabilities = Send-Mb $run @{ op = 'getCapabilities' }
         $measure.firstCapabilitiesSinceStartMs = [Math]::Round($run.clock.Elapsed.TotalMilliseconds, 1)
         $window = (Get-MbWindow $run $target).id

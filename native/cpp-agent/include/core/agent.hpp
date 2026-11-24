@@ -44,6 +44,7 @@ Json capabilities(const char* backend, bool available);
 Json capabilities(const char* backend, const Availability& availability);
 Json requestId(const Json& request);
 const char* operation(const Json& request);
+std::optional<Action> parseAction(std::string_view op);
 bool isMutation(std::string_view op);
 
 class Agent {

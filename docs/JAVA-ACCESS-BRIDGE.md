@@ -404,6 +404,8 @@ AWT 설비 화면은 버튼은 JAB, 텍스트 입력은 UIA가 필요한 실제 
 
 ## MSAA Adapter 검토
 
+아래는 MSAA 구현 전의 직접 관측 기록이다. 현재 Adapter는 관측된 위치 기반 요소에 약한 조회 전용 참조를 제공한다. [MSAA Adapter의 지원 범위와 검증 결과](MSAA-ADAPTER.md)
+
 .NET Framework WinForms의 목록 항목, 탭, DataGridView 행·셀에는 UIA가 쓸 수 있는 Runtime ID를 주지 않는다. 같은 픽스처를 MSAA(`oleacc.dll`의 `IAccessible`)로 직접 읽어 보았다. 도구는 [`tools/Probe-MsaaChildren.ps1`](../tools/Probe-MsaaChildren.ps1)이고 UI Automation과 Agent를 거치지 않는다.
 
 | 컨트롤 | MSAA에 보이는 것 | 동일성 | 조작 |

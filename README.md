@@ -62,7 +62,9 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend jab --allo
 
 ## UIA와 JAB를 한 세션에서 (Multi-Backend)
 
-AWT 창은 버튼에 JAB가, 텍스트 입력에 UIA가 필요하다. `--backend multi`로 시작하면 한 Agent 프로세스가 두 백엔드를 함께 연다. `snapshot` 요청의 `backend`로 `UIA`나 `JAB`를 고르고, 받은 참조는 그 백엔드로만 전달된다. 한 백엔드가 멈춰도 다른 백엔드는 계속 동작한다. C++ Agent도 같은 옵션을 받는다.
+레거시 WinForms·Win32 요소는 `--backend msaa`로 탐색할 수 있다. 기본 참조는 조회 전용이며 동작에는 검증된 Provider와 별도 허용이 필요하다. [MSAA Adapter](docs/MSAA-ADAPTER.md)
+
+AWT 창은 버튼에 JAB가, 텍스트 입력에 UIA가 필요하다. `--backend multi`로 시작하면 한 Agent 프로세스가 UIA, JAB, MSAA를 함께 연다. `snapshot` 요청의 `backend`로 `UIA`, `JAB`, `MSAA`를 고르고, 받은 참조는 그 백엔드로만 전달된다. 한 백엔드가 멈춰도 다른 백엔드는 계속 동작한다. C++ Agent도 같은 옵션을 받는다.
 
 ```powershell
 java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend multi --allow-pid 1234 --allow-action invoke --allow-action setValue

@@ -1,4 +1,6 @@
-# Multi-Backend Agent: UIA와 JAB를 한 세션에서
+# Multi-Backend Agent
+
+현재 Java와 C++의 `--backend multi`는 UIA, JAB, MSAA를 열며 기본 Snapshot은 UIA다. 아래 UIA/JAB 검증은 MSAA 추가 전 기록이다. [MSAA 참조 정책 및 세 백엔드 검증](MSAA-ADAPTER.md)
 
 AWT 화면은 버튼을 누르려면 Java Access Bridge(JAB)가, 텍스트를 넣으려면 UI Automation(UIA)이 필요하다. 지금까지는 백엔드마다 Agent를 따로 띄워야 했다. `--backend multi`는 두 백엔드를 한 Agent 프로세스의 한 세션에 올린다. Java/JNA Agent와 C++ Agent에 모두 구현했고, 2026-11-24에 Windows 11에서 실제 GUI로 검증했다. 요청 형식은 [API](API.md#여러-백엔드를-한-세션에서-쓰기)에 있다.
 
@@ -61,7 +63,7 @@ AWT 화면은 버튼을 누르려면 Java Access Bridge(JAB)가, 텍스트를 �
 | `listWindows` | 모든 백엔드. `windowId`와 `processId`가 같은 행을 하나로 합치고 나열한 백엔드를 적는다. 일부가 실패하면 나머지 결과와 함께 실패한 백엔드의 오류 코드를 돌려준다. |
 | `snapshot` | `backend`가 가리키는 백엔드. 없으면 기본 백엔드(UIA). `scopeRef`가 있으면 그 참조를 발급한 백엔드. |
 | `findElement` | `snapshotId`를 발급한 백엔드의 그 스냅샷. Adapter를 부르지 않는다. |
-| `getElementInfo`, `invoke`, `setValue` | `ref`를 발급한 백엔드. 다른 백엔드로 가는 경로는 없다. |
+| `getElementInfo` 및 모든 변경 명령 | `ref`를 발급한 백엔드. 다른 백엔드로 가는 경로는 없다. |
 
 기본 백엔드를 UIA로 둔 것은 단일 백엔드 클라이언트가 `--backend multi`에서 고치지 않고 돌게 하기 위해서다. 읽기 요청에만 적용되는 기본값이고, 변경 요청은 언제나 참조가 정한다.
 
