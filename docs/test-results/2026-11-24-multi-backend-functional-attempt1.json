@@ -1,0 +1,983 @@
+{
+    "schema":  1,
+    "startedUtc":  "2026-11-24T06:49:52.3441426Z",
+    "invocation":  "Run \u0027functional\u0027 { \u0026 .\\tools\\Test-MultiBackend.ps1 -Agent Both -Mode Functional -IncludeExpiry -SecondFixtureJava $j23 -OutputPath target\\multi-backend-functional.json }\n",
+    "mode":  "Functional",
+    "options":  {
+                    "agent":  "Both",
+                    "scenario":  [
+                                     "AwtMixed",
+                                     "Safety",
+                                     "JabFault",
+                                     "UiaFault",
+                                     "Environment",
+                                     "TargetRestart"
+                                 ],
+                    "includeExpiry":  true,
+                    "pairs":  3,
+                    "iterations":  20,
+                    "warmup":  3,
+                    "durationSeconds":  600,
+                    "sampleSeconds":  15
+                },
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.7705",
+                        "processorCount":  12,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-1255U",
+                        "cpuNominalMhz":  2611,
+                        "git":  {
+                                    "commit":  "c3e35c980f2b425c1ea31022d9e8cb0135bd4925",
+                                    "dirty":  false
+                                },
+                        "windows":  {
+                                        "edition":  "Professional",
+                                        "build":  "26200.7840",
+                                        "version":  "25H2"
+                                    },
+                        "javaAgent":  {
+                                          "launcher":  "x64 PE",
+                                          "java":  "java version \"17.0.10\" 2024-01-16 LTS\r\nJava(TM) SE Runtime Environment (build 17.0.10+11-LTS-240)\r\nJava HotSpot(TM) 64-Bit Server VM (build 17.0.10+11-LTS-240, mixed mode, sharing)",
+                                          "jarSha256":  "43207D026FFF888D8F934F14BBC694A2D7174BFBCC2D994F39BD4F36CAE713B2",
+                                          "jvmOptions":  [
+                                                             "-XX:+UseSerialGC",
+                                                             "-Xms16m"
+                                                         ]
+                                      },
+                        "cppAgent":  {
+                                         "architecture":  "x64 PE",
+                                         "sha256":  "38F7CC06BDB68C9C74F6C51EF60E870FADDEADAB44430B8C20A4664BD406536F"
+                                     },
+                        "fixtureJava":  "java version \"17.0.10\" 2024-01-16 LTS\r\nJava(TM) SE Runtime Environment (build 17.0.10+11-LTS-240)\r\nJava HotSpot(TM) 64-Bit Server VM (build 17.0.10+11-LTS-240, mixed mode, sharing)",
+                        "secondFixtureJava":  "openjdk version \"23.0.2\" 2025-01-21\r\nOpenJDK Runtime Environment Temurin-23.0.2+7 (build 23.0.2+7)\r\nOpenJDK 64-Bit Server VM Temurin-23.0.2+7 (build 23.0.2+7, mixed mode, sharing)",
+                        "bridge":  {
+                                       "fixtureProperty":  "javax.accessibility.assistive_technologies=com.sun.java.accessibility.AccessBridge",
+                                       "registryOrUserSettingsChanged":  false,
+                                       "windowsSideLibraries":  {
+                                                                    "javaAgentRuntime":  {
+                                                                                             "path":  "C:\\Program Files\\Java\\jdk-17\\bin\\WindowsAccessBridge-64.dll",
+                                                                                             "fileVersion":  "17.0.10.0",
+                                                                                             "architecture":  "x64 PE",
+                                                                                             "sha256":  "911611B06EBD4E4574B5317BC29DAE78814141B1E3512722DF03C4C5312FB940"
+                                                                                         },
+                                                                    "systemDirectory":  {
+                                                                                            "path":  "C:\\WINDOWS\\system32\\WindowsAccessBridge-64.dll",
+                                                                                            "fileVersion":  "17.0.10.0",
+                                                                                            "architecture":  "x64 PE",
+                                                                                            "sha256":  "911611B06EBD4E4574B5317BC29DAE78814141B1E3512722DF03C4C5312FB940"
+                                                                                        }
+                                                                },
+                                       "selection":  {
+                                                         "CppJab":  "systemDirectory, then the Java installation registered under HKLM",
+                                                         "Jab":  "javaAgentRuntime, then systemDirectory"
+                                                     },
+                                       "fixtureJvm":  {
+                                                          "launcher":  "C:\\Program Files\\Java\\jdk-17\\bin\\java.exe",
+                                                          "launcherArchitecture":  "x64 PE",
+                                                          "version":  null,
+                                                          "javaSideLibrary":  {
+                                                                                  "path":  "C:\\Program Files\\Java\\jdk-17\\bin\\javaaccessbridge.dll",
+                                                                                  "fileVersion":  "17.0.10.0",
+                                                                                  "architecture":  "x64 PE"
+                                                                              }
+                                                      }
+                                   },
+                        "wpfFixtureSha256":  "6547E1E7F35C2AFCAD87FFB4BE016DA11ED57483CDC4CB5E5DA77EBF2242204C"
+                    },
+    "status":  "FAIL",
+    "methods":  {
+                    "real":  "Only the Agent and unmodified fixture applications take part.",
+                    "faultInjection":  "The script creates the fault: a suspended target process, a bridge library path that does not exist, or a JVM started without the bridge."
+                },
+    "scenarios":  [
+                      {
+                          "scenario":  "AwtMixed",
+                          "agent":  "Java",
+                          "method":  "real",
+                          "summary":  "One Agent process drives one AWT fixture: text through UIA, buttons and the modal dialog through JAB.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "capabilities",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "bridge":  {
+                                                                             "javaWindows":  3,
+                                                                             "connectedWindows":  3
+                                                                         }
+                                                          }
+                                         },
+                                         {
+                                             "name":  "windowListedOnceWithBothBackends",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "windowId":  "9374916",
+                                                              "backends":  [
+                                                                               "UIA",
+                                                                               "JAB"
+                                                                           ]
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaSetValue",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "elements":  23,
+                                                              "fixtureValue":  "uia-first-575f80f8-c3dc-4412-b094-ddf1b0ae7f44"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabInvoke",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "elements":  22,
+                                                              "fixtureCount":  1
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaReferenceSurvivesJabSnapshot",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "jabOpensModal",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "modalWindowId":  "7998722",
+                                                              "backends":  [
+                                                                               "UIA",
+                                                                               "JAB"
+                                                                           ]
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabClosesModal",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "uiaSetValueAgainWithEarlierReference",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "fixtureValue":  "uia-second-c50a1ec3-0b91-4fb2-995c-6687446ff9b8"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaSetValueAgainWithNewSnapshot",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "fixtureValue":  "uia-third-48c734bc-3b6c-4406-8d00-4ecc9b1a4592",
+                                                              "fixtureCount":  2
+                                                          }
+                                         },
+                                         {
+                                             "name":  "sameAgentProcessThroughout",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "agentProcessId":  8948,
+                                                              "requests":  24
+                                                          }
+                                         },
+                                         {
+                                             "name":  "agentExit",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "exited":  true,
+                                                              "exitMs":  59.6,
+                                                              "exitCode":  0
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  8948,
+                          "requests":  24
+                      },
+                      {
+                          "scenario":  "AwtMixed",
+                          "agent":  "Cpp",
+                          "method":  "real",
+                          "summary":  "One Agent process drives one AWT fixture: text through UIA, buttons and the modal dialog through JAB.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "capabilities",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "bridge":  {
+                                                                             "connectedWindows":  3,
+                                                                             "javaWindows":  3
+                                                                         }
+                                                          }
+                                         },
+                                         {
+                                             "name":  "windowListedOnceWithBothBackends",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "windowId":  "724334",
+                                                              "backends":  [
+                                                                               "UIA",
+                                                                               "JAB"
+                                                                           ]
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaSetValue",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "elements":  23,
+                                                              "fixtureValue":  "uia-first-55ce47b9-96c0-44e7-a06a-9162b0b93320"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabInvoke",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "elements":  22,
+                                                              "fixtureCount":  1
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaReferenceSurvivesJabSnapshot",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "jabOpensModal",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "modalWindowId":  "8064258",
+                                                              "backends":  [
+                                                                               "UIA",
+                                                                               "JAB"
+                                                                           ]
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabClosesModal",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "uiaSetValueAgainWithEarlierReference",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "fixtureValue":  "uia-second-4c4cef31-58ed-40eb-83fb-d636189d9c1f"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaSetValueAgainWithNewSnapshot",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "fixtureValue":  "uia-third-271f2f04-6427-4302-9b06-9e5e606f54de",
+                                                              "fixtureCount":  2
+                                                          }
+                                         },
+                                         {
+                                             "name":  "sameAgentProcessThroughout",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "agentProcessId":  21076,
+                                                              "requests":  24
+                                                          }
+                                         },
+                                         {
+                                             "name":  "agentExit",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "exited":  true,
+                                                              "exitMs":  12.8,
+                                                              "exitCode":  0
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  21076,
+                          "requests":  24
+                      },
+                      {
+                          "scenario":  "Safety",
+                          "agent":  "Java",
+                          "method":  "real",
+                          "summary":  "Reference lifetime per backend, references of another backend or session, duplicate command IDs across backends, edit content.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "snapshotDefaultsToFirstBackend",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "unknownBackendRefused",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "latestSnapshotPerBackend",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "referenceOfOtherBackendRefused",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "scopedSnapshotStaysInItsBackend",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "duplicateCommandIdAcrossBackends",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "referenceOfOtherSessionRefused",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "editContentNotExposed",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "rowsInspected":  45,
+                                                              "rowsWithEditContent":  0,
+                                                              "jabEditNames":  [
+                                                                                   "Fixture edit",
+                                                                                   "Fixture read-only edit",
+                                                                                   "Fixture password"
+                                                                               ],
+                                                              "uiaEditNames":  [
+                                                                                   "",
+                                                                                   "",
+                                                                                   ""
+                                                                               ]
+                                                          }
+                                         },
+                                         {
+                                             "name":  "eachBackendExpiresOnItsOwnClock",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "uiaStaleAfterSeconds":  121,
+                                                              "jabStillValidAtAgeSeconds":  60,
+                                                              "jabStaleAfterSeconds":  121
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  22224,
+                          "requests":  43
+                      },
+                      {
+                          "scenario":  "Safety",
+                          "agent":  "Cpp",
+                          "method":  "real",
+                          "summary":  "Reference lifetime per backend, references of another backend or session, duplicate command IDs across backends, edit content.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "snapshotDefaultsToFirstBackend",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "unknownBackendRefused",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "latestSnapshotPerBackend",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "referenceOfOtherBackendRefused",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "scopedSnapshotStaysInItsBackend",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "duplicateCommandIdAcrossBackends",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "referenceOfOtherSessionRefused",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "editContentNotExposed",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "rowsInspected":  45,
+                                                              "rowsWithEditContent":  0,
+                                                              "jabEditNames":  [
+                                                                                   "Fixture edit",
+                                                                                   "Fixture read-only edit",
+                                                                                   "Fixture password"
+                                                                               ],
+                                                              "uiaEditNames":  [
+                                                                                   "",
+                                                                                   "",
+                                                                                   ""
+                                                                               ]
+                                                          }
+                                         },
+                                         {
+                                             "name":  "eachBackendExpiresOnItsOwnClock",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "uiaStaleAfterSeconds":  121,
+                                                              "jabStillValidAtAgeSeconds":  60,
+                                                              "jabStaleAfterSeconds":  121
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  16956,
+                          "requests":  43
+                      },
+                      {
+                          "scenario":  "JabFault",
+                          "agent":  "Java",
+                          "method":  "real",
+                          "summary":  "A Swing button opens a modal dialog from its listener. JAB stops answering. UIA keeps working on a WPF window in the same Agent.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "windowsAndBackends",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "swing":  [
+                                                                            "UIA",
+                                                                            "JAB"
+                                                                        ],
+                                                              "awt":  [
+                                                                          "UIA",
+                                                                          "JAB"
+                                                                      ],
+                                                              "wpf":  [
+                                                                          "UIA"
+                                                                      ],
+                                                              "awtRuntime":  "AWT / Eclipse Adoptium Java 23.0.2+7",
+                                                              "swingRuntime":  "Swing / Oracle Corporation Java 17.0.10+11-LTS-240"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "swingEditContentNotExposed",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "rowsInspected":  95,
+                                                              "rowsWithEditContent":  0
+                                                          }
+                                         },
+                                         {
+                                             "name":  "baselineBeforeFault",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "jabActionOutcomeUnknown",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "code":  "ACTION_OUTCOME_UNKNOWN",
+                                                              "ms":  8038,
+                                                              "fixtureModal":  "open"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabRequestsFailWhileSilent",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "code":  "TARGET_NOT_RESPONDING",
+                                                              "ms":  3
+                                                          }
+                                         },
+                                         {
+                                             "name":  "windowListNamesFailedBackend",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "backends":  [
+                                                                               {
+                                                                                   "backend":  "UIA",
+                                                                                   "status":  "OK"
+                                                                               },
+                                                                               {
+                                                                                   "backend":  "JAB",
+                                                                                   "status":  "TARGET_NOT_RESPONDING"
+                                                                               }
+                                                                           ],
+                                                              "capabilities":  [
+                                                                                   {
+                                                                                       "backend":  "UIA",
+                                                                                       "available":  true
+                                                                                   },
+                                                                                   {
+                                                                                       "backend":  "JAB",
+                                                                                       "available":  false
+                                                                                   }
+                                                                               ]
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaReadsAndActsAfterJabFailure",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "elements":  20,
+                                                              "fixtureValue":  "during-jab-fault-b716d511-5e3b-4cb5-99c3-549c00e235e6",
+                                                              "fixtureCount":  2
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabRecoversWithEarlierReferences",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "recoveryMs":  114,
+                                                              "fixtureCount":  2
+                                                          }
+                                         },
+                                         {
+                                             "name":  "otherJvmWhileOneJvmIsSilent",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "jabSnapshotOfHealthyJvm":  "TARGET_NOT_RESPONDING",
+                                                              "jabSnapshotMs":  3,
+                                                              "jvmIsolated":  false,
+                                                              "uiaTextOnHealthyJvm":  "awt-through-uia-b2f5873c-d243-4b91-9a49-4bb8029dff67"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "agentExitsWhileJvmIsSilent",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "exited":  true,
+                                                              "exitMs":  16.8,
+                                                              "exitCode":  0
+                                                          }
+                                         },
+                                         {
+                                             "name":  "targetsUsableByNextAgent",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "swingCount":  3,
+                                                              "awtElements":  22
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  12124,
+                          "requests":  32
+                      },
+                      {
+                          "scenario":  "JabFault",
+                          "agent":  "Cpp",
+                          "method":  "real",
+                          "summary":  "A Swing button opens a modal dialog from its listener. JAB stops answering. UIA keeps working on a WPF window in the same Agent.",
+                          "status":  "FAIL",
+                          "checks":  [
+                                         {
+                                             "name":  "windowsAndBackends",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "swing":  [
+                                                                            "UIA",
+                                                                            "JAB"
+                                                                        ],
+                                                              "awt":  [
+                                                                          "UIA",
+                                                                          "JAB"
+                                                                      ],
+                                                              "wpf":  [
+                                                                          "UIA"
+                                                                      ],
+                                                              "awtRuntime":  "AWT / Eclipse Adoptium Java 23.0.2+7",
+                                                              "swingRuntime":  "Swing / Oracle Corporation Java 17.0.10+11-LTS-240"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "swingEditContentNotExposed",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "rowsInspected":  95,
+                                                              "rowsWithEditContent":  0
+                                                          }
+                                         },
+                                         {
+                                             "name":  "baselineBeforeFault",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "jabActionOutcomeUnknown",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "code":  "ACTION_OUTCOME_UNKNOWN",
+                                                              "ms":  8018,
+                                                              "fixtureModal":  "open"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabRequestsFailWhileSilent",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "code":  "TARGET_NOT_RESPONDING",
+                                                              "ms":  0
+                                                          }
+                                         },
+                                         {
+                                             "name":  "windowListNamesFailedBackend",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "backends":  [
+                                                                               {
+                                                                                   "backend":  "UIA",
+                                                                                   "status":  "OK"
+                                                                               },
+                                                                               {
+                                                                                   "backend":  "JAB",
+                                                                                   "status":  "TARGET_NOT_RESPONDING"
+                                                                               }
+                                                                           ],
+                                                              "capabilities":  [
+                                                                                   {
+                                                                                       "backend":  "UIA",
+                                                                                       "available":  true
+                                                                                   },
+                                                                                   {
+                                                                                       "backend":  "JAB",
+                                                                                       "available":  false
+                                                                                   }
+                                                                               ]
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaReadsAndActsAfterJabFailure",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "elements":  20,
+                                                              "fixtureValue":  "during-jab-fault-9f9eab5b-c6ff-4b14-9e6b-7bbf1de0cd29",
+                                                              "fixtureCount":  2
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabRecoversWithEarlierReferences",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "recoveryMs":  123,
+                                                              "fixtureCount":  2
+                                                          }
+                                         },
+                                         {
+                                             "name":  "otherJvmWhileOneJvmIsSilent",
+                                             "status":  "FAIL",
+                                             "reason":  "invoke expected ACTION_OUTCOME_UNKNOWN, received OK."
+                                         },
+                                         {
+                                             "name":  "agentExitsWhileJvmIsSilent",
+                                             "status":  "FAIL",
+                                             "reason":  "The modal dialog must be open for this check."
+                                         },
+                                         {
+                                             "name":  "targetsUsableByNextAgent",
+                                             "status":  "NOT_RUN",
+                                             "reason":  "An earlier step of this scenario failed."
+                                         }
+                                     ],
+                          "agentProcessId":  20040,
+                          "requests":  28
+                      },
+                      {
+                          "scenario":  "UiaFault",
+                          "agent":  "Java",
+                          "method":  "faultInjection",
+                          "summary":  "The process of a WPF window is suspended. UIA exceeds its deadline. JAB keeps working on an AWT window in the same Agent.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "baselineBeforeFault",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "uiaRequestFailsOnSuspendedTarget",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "code":  "TIMEOUT",
+                                                              "ms":  10014
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabReadsAndActsAfterUiaFailure",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "earlierReferenceMs":  16,
+                                                              "fixtureCount":  3,
+                                                              "elements":  22
+                                                          }
+                                         },
+                                         {
+                                             "name":  "faultedBackendIsReported",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "capabilities":  [
+                                                                                   {
+                                                                                       "backend":  "UIA",
+                                                                                       "available":  false,
+                                                                                       "reason":  "The JNA desktop session is closed."
+                                                                                   },
+                                                                                   {
+                                                                                       "backend":  "JAB",
+                                                                                       "available":  true,
+                                                                                       "reason":  null
+                                                                                   }
+                                                                               ],
+                                                              "listWindows":  "OK",
+                                                              "listWindowsMs":  26,
+                                                              "listBackends":  [
+                                                                                   {
+                                                                                       "backend":  "UIA",
+                                                                                       "status":  "BACKEND_UNAVAILABLE"
+                                                                                   },
+                                                                                   {
+                                                                                       "backend":  "JAB",
+                                                                                       "status":  "OK"
+                                                                                   }
+                                                                               ],
+                                                              "uiaSnapshotOfOtherWindow":  "BACKEND_UNAVAILABLE"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaReturnsWithoutAgentRestart",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "recoveryMs":  1138,
+                                                              "codesWhileWaiting":  [
+                                                                                        "BACKEND_UNAVAILABLE",
+                                                                                        "OK"
+                                                                                    ],
+                                                              "fixtureValue":  "after-uia-restart-6e5eaf6c-ee5e-4ffb-8a3d-e31c585db50e",
+                                                              "fixtureCount":  4
+                                                          }
+                                         },
+                                         {
+                                             "name":  "agentExitsWhileUiaIsFaulted",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "exited":  true,
+                                                              "exitMs":  10536.6,
+                                                              "exitCode":  0,
+                                                              "uiaCodeBeforeExit":  "TIMEOUT"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "targetsUsableByNextAgent",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "awtCount":  5,
+                                                              "wpfValue":  "next-agent-d289e644-c976-412a-8f7e-a27d01466515"
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  23424,
+                          "requests":  24
+                      },
+                      {
+                          "scenario":  "UiaFault",
+                          "agent":  "Cpp",
+                          "method":  "faultInjection",
+                          "summary":  "The process of a WPF window is suspended. UIA exceeds its deadline. JAB keeps working on an AWT window in the same Agent.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "baselineBeforeFault",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "uiaRequestFailsOnSuspendedTarget",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "code":  "TIMEOUT",
+                                                              "ms":  10003
+                                                          }
+                                         },
+                                         {
+                                             "name":  "jabReadsAndActsAfterUiaFailure",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "earlierReferenceMs":  5,
+                                                              "fixtureCount":  3,
+                                                              "elements":  22
+                                                          }
+                                         },
+                                         {
+                                             "name":  "faultedBackendIsReported",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "capabilities":  [
+                                                                                   {
+                                                                                       "backend":  "UIA",
+                                                                                       "available":  false,
+                                                                                       "reason":  "The backend session was retired after a fault."
+                                                                                   },
+                                                                                   {
+                                                                                       "backend":  "JAB",
+                                                                                       "available":  true,
+                                                                                       "reason":  null
+                                                                                   }
+                                                                               ],
+                                                              "listWindows":  "OK",
+                                                              "listWindowsMs":  9,
+                                                              "listBackends":  [
+                                                                                   {
+                                                                                       "backend":  "UIA",
+                                                                                       "status":  "BACKEND_UNAVAILABLE"
+                                                                                   },
+                                                                                   {
+                                                                                       "backend":  "JAB",
+                                                                                       "status":  "OK"
+                                                                                   }
+                                                                               ],
+                                                              "uiaSnapshotOfOtherWindow":  "BACKEND_UNAVAILABLE"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "uiaReturnsWithoutAgentRestart",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "recoveryMs":  677,
+                                                              "codesWhileWaiting":  [
+                                                                                        "BACKEND_UNAVAILABLE",
+                                                                                        "OK"
+                                                                                    ],
+                                                              "fixtureValue":  "after-uia-restart-abdbf6ef-9579-4369-aff9-d505bf85ddde",
+                                                              "fixtureCount":  4
+                                                          }
+                                         },
+                                         {
+                                             "name":  "agentExitsWhileUiaIsFaulted",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "exited":  true,
+                                                              "exitMs":  10023.9,
+                                                              "exitCode":  1,
+                                                              "uiaCodeBeforeExit":  "TIMEOUT"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "targetsUsableByNextAgent",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "awtCount":  5,
+                                                              "wpfValue":  "next-agent-d8d62ace-589d-4e44-bb7d-a1eaa8a7a0c7"
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  24064,
+                          "requests":  24
+                      },
+                      {
+                          "scenario":  "Environment",
+                          "agent":  "Java",
+                          "method":  "faultInjection",
+                          "summary":  "A bridge library path that does not exist, then a JVM that did not enable the bridge. UIA stays usable in both.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "bridgeLibraryMissing",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "jabReason":  "The specified Java Access Bridge library does not exist.",
+                                                              "fixtureValue":  "without-bridge-library-0df185ce-1e06-4592-93bb-f61bc56e4f96"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "bridgeNotEnabledInJvm",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "bridge":  {
+                                                                             "javaWindows":  3,
+                                                                             "connectedWindows":  2
+                                                                         },
+                                                              "fixtureValue":  "bridge-disabled-bf97aac4-cfaa-4728-abdf-d8b3c86be3ed"
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  3616,
+                          "requests":  6
+                      },
+                      {
+                          "scenario":  "Environment",
+                          "agent":  "Cpp",
+                          "method":  "faultInjection",
+                          "summary":  "A bridge library path that does not exist, then a JVM that did not enable the bridge. UIA stays usable in both.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "bridgeLibraryMissing",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "jabReason":  "The specified Java Access Bridge library does not exist.",
+                                                              "fixtureValue":  "without-bridge-library-3963611f-2324-4100-8602-cae3f95e339f"
+                                                          }
+                                         },
+                                         {
+                                             "name":  "bridgeNotEnabledInJvm",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "bridge":  {
+                                                                             "connectedWindows":  2,
+                                                                             "javaWindows":  3
+                                                                         },
+                                                              "fixtureValue":  "bridge-disabled-9773da5d-6e2d-4682-ace0-9b6249acb39a"
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  23712,
+                          "requests":  6
+                      },
+                      {
+                          "scenario":  "TargetRestart",
+                          "agent":  "Java",
+                          "method":  "real",
+                          "summary":  "The AWT fixture ends and starts again. Both backends drop their references, find the new process and refuse to act on it.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "referencesDieWithTheProcess",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "restartedProcessIsFoundAndNotAuthorized",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "discoveryMs":  2388,
+                                                              "newProcessId":  16028
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  20608,
+                          "requests":  18
+                      },
+                      {
+                          "scenario":  "TargetRestart",
+                          "agent":  "Cpp",
+                          "method":  "real",
+                          "summary":  "The AWT fixture ends and starts again. Both backends drop their references, find the new process and refuse to act on it.",
+                          "status":  "PASS",
+                          "checks":  [
+                                         {
+                                             "name":  "referencesDieWithTheProcess",
+                                             "status":  "PASS"
+                                         },
+                                         {
+                                             "name":  "restartedProcessIsFoundAndNotAuthorized",
+                                             "status":  "PASS",
+                                             "evidence":  {
+                                                              "discoveryMs":  2568,
+                                                              "newProcessId":  11104
+                                                          }
+                                         }
+                                     ],
+                          "agentProcessId":  11412,
+                          "requests":  18
+                      }
+                  ],
+    "checkpointUtc":  "2026-11-24T06:59:05.8646885Z",
+    "parity":  {
+                   "sameVerdicts":  false,
+                   "differences":  [
+                                       {
+                                           "scenario":  "JabFault",
+                                           "java":  "windowsAndBackends=PASS;swingEditContentNotExposed=PASS;baselineBeforeFault=PASS;jabActionOutcomeUnknown=PASS;jabRequestsFailWhileSilent=PASS;windowListNamesFailedBackend=PASS;uiaReadsAndActsAfterJabFailure=PASS;jabRecoversWithEarlierReferences=PASS;otherJvmWhileOneJvmIsSilent=PASS;agentExitsWhileJvmIsSilent=PASS;targetsUsableByNextAgent=PASS",
+                                           "cpp":  "windowsAndBackends=PASS;swingEditContentNotExposed=PASS;baselineBeforeFault=PASS;jabActionOutcomeUnknown=PASS;jabRequestsFailWhileSilent=PASS;windowListNamesFailedBackend=PASS;uiaReadsAndActsAfterJabFailure=PASS;jabRecoversWithEarlierReferences=PASS;otherJvmWhileOneJvmIsSilent=FAIL;agentExitsWhileJvmIsSilent=FAIL;targetsUsableByNextAgent=NOT_RUN"
+                                       }
+                                   ]
+               },
+    "checkCounts":  {
+                        "PASS":  81,
+                        "FAIL":  2,
+                        "NOT_RUN":  1
+                    },
+    "finishedUtc":  "2026-11-24T06:59:05.9753509Z"
+}

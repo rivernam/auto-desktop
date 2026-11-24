@@ -1,0 +1,1451 @@
+{
+    "schema":  1,
+    "startedUtc":  "2026-11-24T08:54:30.8675191Z",
+    "invocation":  "$env:Path = \u0027C:\\Program Files\\Java\\jdk-17\\bin;C:\\Program Files\\dotnet;\u0027 + $env:Path; try { \u0026 ./tools/Test-MultiBackend.ps1 -Agent Both -Mode Performance -Pairs 3 -Iterations 20 -Warmup 3 -OutputPath target/multi-backend-performance.json } catch { $_.Exception.Message; $_.ScriptStackTrace; exit 3 }",
+    "mode":  "Performance",
+    "options":  {
+                    "agent":  "Both",
+                    "scenario":  [
+                                     "AwtMixed",
+                                     "Safety",
+                                     "JabFault",
+                                     "UiaFault",
+                                     "Environment",
+                                     "TargetRestart"
+                                 ],
+                    "includeExpiry":  false,
+                    "pairs":  3,
+                    "iterations":  20,
+                    "warmup":  3,
+                    "durationSeconds":  600,
+                    "sampleSeconds":  15
+                },
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.7705",
+                        "processorCount":  12,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-1255U",
+                        "cpuNominalMhz":  2611,
+                        "git":  {
+                                    "commit":  "77e41ea6a66cac72c76b8d2dd9a6831f15c9d079",
+                                    "dirty":  false
+                                },
+                        "windows":  {
+                                        "edition":  "Professional",
+                                        "build":  "26200.7840",
+                                        "version":  "25H2"
+                                    },
+                        "javaAgent":  {
+                                          "launcher":  "x64 PE",
+                                          "java":  "java version \"17.0.10\" 2024-01-16 LTS\r\nJava(TM) SE Runtime Environment (build 17.0.10+11-LTS-240)\r\nJava HotSpot(TM) 64-Bit Server VM (build 17.0.10+11-LTS-240, mixed mode, sharing)",
+                                          "jarSha256":  "3BC66454F09230F75684677869F3AC30D84E9ACDB30A29F867BB48EB06383E5B",
+                                          "jvmOptions":  [
+                                                             "-XX:+UseSerialGC",
+                                                             "-Xms16m"
+                                                         ]
+                                      },
+                        "cppAgent":  {
+                                         "architecture":  "x64 PE",
+                                         "sha256":  "83C5017C0EEB1A2EF02185D1C29E1AC9389A664346CB95E5C7548B6E879AF04E"
+                                     },
+                        "fixtureJava":  "java version \"17.0.10\" 2024-01-16 LTS\r\nJava(TM) SE Runtime Environment (build 17.0.10+11-LTS-240)\r\nJava HotSpot(TM) 64-Bit Server VM (build 17.0.10+11-LTS-240, mixed mode, sharing)",
+                        "secondFixtureJava":  null,
+                        "bridge":  {
+                                       "fixtureProperty":  "javax.accessibility.assistive_technologies=com.sun.java.accessibility.AccessBridge",
+                                       "registryOrUserSettingsChanged":  false,
+                                       "windowsSideLibraries":  {
+                                                                    "javaAgentRuntime":  {
+                                                                                             "path":  "C:\\Program Files\\Java\\jdk-17\\bin\\WindowsAccessBridge-64.dll",
+                                                                                             "fileVersion":  "17.0.10.0",
+                                                                                             "architecture":  "x64 PE",
+                                                                                             "sha256":  "911611B06EBD4E4574B5317BC29DAE78814141B1E3512722DF03C4C5312FB940"
+                                                                                         },
+                                                                    "systemDirectory":  {
+                                                                                            "path":  "C:\\WINDOWS\\system32\\WindowsAccessBridge-64.dll",
+                                                                                            "fileVersion":  "17.0.10.0",
+                                                                                            "architecture":  "x64 PE",
+                                                                                            "sha256":  "911611B06EBD4E4574B5317BC29DAE78814141B1E3512722DF03C4C5312FB940"
+                                                                                        }
+                                                                },
+                                       "selection":  {
+                                                         "CppJab":  "systemDirectory, then the Java installation registered under HKLM",
+                                                         "Jab":  "javaAgentRuntime, then systemDirectory"
+                                                     },
+                                       "fixtureJvm":  {
+                                                          "launcher":  "C:\\Program Files\\Java\\jdk-17\\bin\\java.exe",
+                                                          "launcherArchitecture":  "x64 PE",
+                                                          "version":  null,
+                                                          "javaSideLibrary":  {
+                                                                                  "path":  "C:\\Program Files\\Java\\jdk-17\\bin\\javaaccessbridge.dll",
+                                                                                  "fileVersion":  "17.0.10.0",
+                                                                                  "architecture":  "x64 PE"
+                                                                              }
+                                                      }
+                                   },
+                        "wpfFixtureSha256":  "6547E1E7F35C2AFCAD87FFB4BE016DA11ED57483CDC4CB5E5DA77EBF2242204C"
+                    },
+    "status":  "PASS",
+    "methods":  {
+                    "real":  "Only the Agent and unmodified fixture applications take part.",
+                    "faultInjection":  "The script creates the fault: a suspended target process, a bridge library path that does not exist, or a JVM started without the bridge."
+                },
+    "runs":  [
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "uia",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:31.2012259Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2441656,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  103.7,
+                     "firstListWindowsSinceStartMs":  177.5,
+                     "firstSnapshotMs":  {
+                                             "UIA":  48.4
+                                         },
+                     "elements":  {
+                                      "UIA":  23
+                                  },
+                     "readySinceStartMs":  236.2,
+                     "steadySeconds":  1.56,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  19.22,
+                                           "median":  25.98,
+                                           "p95":  41.6,
+                                           "max":  62.39
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  39.12,
+                                                    "median":  44.1,
+                                                    "p95":  52.87,
+                                                    "max":  53.28
+                                                }
+                                    },
+                     "cpuMsSteady":  531.2,
+                     "cpuMsPerIteration":  26.56,
+                     "cpuMsTotal":  671.875,
+                     "privateBytes":  4210688,
+                     "workingSetBytes":  21057536,
+                     "handles":  288,
+                     "threads":  7,
+                     "exitMs":  9.6,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:33.3063713Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2443765,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "jab",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:33.3812906Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2443828,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  282.7,
+                     "firstListWindowsSinceStartMs":  293.2,
+                     "firstSnapshotMs":  {
+                                             "JAB":  24.9
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  320.5,
+                     "steadySeconds":  0.49,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  3.54,
+                                           "median":  4.82,
+                                           "p95":  7.29,
+                                           "max":  8.22
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.94,
+                                                    "median":  12.33,
+                                                    "p95":  18.78,
+                                                    "max":  19.35
+                                                }
+                                    },
+                     "cpuMsSteady":  31.2,
+                     "cpuMsPerIteration":  1.56,
+                     "cpuMsTotal":  93.75,
+                     "privateBytes":  3153920,
+                     "workingSetBytes":  13475840,
+                     "handles":  196,
+                     "threads":  2,
+                     "exitMs":  6.8,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:34.3168286Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2444765,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "multi",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:34.3408321Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2444796,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  299,
+                     "firstListWindowsSinceStartMs":  343.2,
+                     "firstSnapshotMs":  {
+                                             "UIA":  44.1,
+                                             "JAB":  10.3
+                                         },
+                     "elements":  {
+                                      "UIA":  23,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  404.5,
+                     "steadySeconds":  1.91,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  25.76,
+                                           "median":  30.44,
+                                           "p95":  34.04,
+                                           "max":  34.97
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  43.31,
+                                                    "median":  45.71,
+                                                    "p95":  50.39,
+                                                    "max":  53.07
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.45,
+                                                    "median":  10.09,
+                                                    "p95":  14.06,
+                                                    "max":  16.27
+                                                }
+                                    },
+                     "cpuMsSteady":  546.9,
+                     "cpuMsPerIteration":  27.34,
+                     "cpuMsTotal":  781.25,
+                     "privateBytes":  4849664,
+                     "workingSetBytes":  23535616,
+                     "handles":  312,
+                     "threads":  8,
+                     "exitMs":  7.7,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:36.9455959Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2447406,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "uia",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:36.9638518Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2447421,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  398.5,
+                     "firstListWindowsSinceStartMs":  446.1,
+                     "firstSnapshotMs":  {
+                                             "UIA":  66.8
+                                         },
+                     "elements":  {
+                                      "UIA":  23
+                                  },
+                     "readySinceStartMs":  518.7,
+                     "steadySeconds":  1.66,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  21.64,
+                                           "median":  28.11,
+                                           "p95":  31.84,
+                                           "max":  32.51
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  43.16,
+                                                    "median":  49.11,
+                                                    "p95":  57.91,
+                                                    "max":  65.16
+                                                }
+                                    },
+                     "cpuMsSteady":  1062.5,
+                     "cpuMsPerIteration":  53.12,
+                     "cpuMsTotal":  1843.75,
+                     "privateBytes":  72392704,
+                     "workingSetBytes":  87355392,
+                     "handles":  463,
+                     "threads":  22,
+                     "exitMs":  25.6,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:39.4353566Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2449890,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "jab",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:39.4654147Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2449921,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  582.8,
+                     "firstListWindowsSinceStartMs":  596.1,
+                     "firstSnapshotMs":  {
+                                             "JAB":  24.9
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  623.6,
+                     "steadySeconds":  0.47,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  4.28,
+                                           "median":  6.2,
+                                           "p95":  7.82,
+                                           "max":  8.36
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.25,
+                                                    "median":  13.03,
+                                                    "p95":  16.77,
+                                                    "max":  18.06
+                                                }
+                                    },
+                     "cpuMsSteady":  312.5,
+                     "cpuMsPerIteration":  15.62,
+                     "cpuMsTotal":  890.625,
+                     "privateBytes":  63475712,
+                     "workingSetBytes":  71483392,
+                     "handles":  386,
+                     "threads":  18,
+                     "exitMs":  21.7,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:40.6512075Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2451109,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "multi",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:40.6634872Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2451109,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  642.8,
+                     "firstListWindowsSinceStartMs":  694.1,
+                     "firstSnapshotMs":  {
+                                             "UIA":  64.7,
+                                             "JAB":  16.7
+                                         },
+                     "elements":  {
+                                      "UIA":  23,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  781.4,
+                     "steadySeconds":  2.32,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  25,
+                                           "median":  31.99,
+                                           "p95":  76.44,
+                                           "max":  102.6
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  43.39,
+                                                    "median":  50.77,
+                                                    "p95":  88.31,
+                                                    "max":  98.11
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.66,
+                                                    "median":  11.95,
+                                                    "p95":  14.2,
+                                                    "max":  14.75
+                                                }
+                                    },
+                     "cpuMsSteady":  1250,
+                     "cpuMsPerIteration":  62.5,
+                     "cpuMsTotal":  2312.5,
+                     "privateBytes":  74993664,
+                     "workingSetBytes":  91836416,
+                     "handles":  491,
+                     "threads":  24,
+                     "exitMs":  25.3,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:44.1392341Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2454593,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "uia",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:44.1695905Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2454625,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  392.6,
+                     "firstListWindowsSinceStartMs":  439.5,
+                     "firstSnapshotMs":  {
+                                             "UIA":  69.4
+                                         },
+                     "elements":  {
+                                      "UIA":  23
+                                  },
+                     "readySinceStartMs":  511.3,
+                     "steadySeconds":  1.67,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  24.97,
+                                           "median":  26.42,
+                                           "p95":  36.98,
+                                           "max":  43.26
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  44.97,
+                                                    "median":  49.81,
+                                                    "p95":  56,
+                                                    "max":  65.5
+                                                }
+                                    },
+                     "cpuMsSteady":  968.8,
+                     "cpuMsPerIteration":  48.44,
+                     "cpuMsTotal":  1890.625,
+                     "privateBytes":  73650176,
+                     "workingSetBytes":  88125440,
+                     "handles":  463,
+                     "threads":  22,
+                     "exitMs":  53.7,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:46.6663917Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2457125,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "jab",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:46.7017302Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2457156,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  581.7,
+                     "firstListWindowsSinceStartMs":  594.1,
+                     "firstSnapshotMs":  {
+                                             "JAB":  21.2
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  618.7,
+                     "steadySeconds":  0.45,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  4.5,
+                                           "median":  5.44,
+                                           "p95":  8.24,
+                                           "max":  9.01
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.85,
+                                                    "median":  12.28,
+                                                    "p95":  15.48,
+                                                    "max":  16.16
+                                                }
+                                    },
+                     "cpuMsSteady":  312.5,
+                     "cpuMsPerIteration":  15.62,
+                     "cpuMsTotal":  968.75,
+                     "privateBytes":  62005248,
+                     "workingSetBytes":  70778880,
+                     "handles":  386,
+                     "threads":  18,
+                     "exitMs":  21,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:47.8648912Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2458312,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "multi",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:47.8914034Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2458343,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  659.6,
+                     "firstListWindowsSinceStartMs":  710.5,
+                     "firstSnapshotMs":  {
+                                             "UIA":  68.2,
+                                             "JAB":  14.2
+                                         },
+                     "elements":  {
+                                      "UIA":  23,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  802.9,
+                     "steadySeconds":  2.18,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  23.47,
+                                           "median":  31.45,
+                                           "p95":  54.81,
+                                           "max":  65.89
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  43.42,
+                                                    "median":  49.45,
+                                                    "p95":  61.06,
+                                                    "max":  106.64
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.88,
+                                                    "median":  11.12,
+                                                    "p95":  15.8,
+                                                    "max":  17.47
+                                                }
+                                    },
+                     "cpuMsSteady":  1156.2,
+                     "cpuMsPerIteration":  57.81,
+                     "cpuMsTotal":  2265.625,
+                     "privateBytes":  74838016,
+                     "workingSetBytes":  91521024,
+                     "handles":  491,
+                     "threads":  24,
+                     "exitMs":  26.8,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:51.2455562Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2461703,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "uia",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:51.2682438Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2461718,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  72.9,
+                     "firstListWindowsSinceStartMs":  110.1,
+                     "firstSnapshotMs":  {
+                                             "UIA":  50
+                                         },
+                     "elements":  {
+                                      "UIA":  23
+                                  },
+                     "readySinceStartMs":  163,
+                     "steadySeconds":  1.47,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  19.29,
+                                           "median":  25.52,
+                                           "p95":  32.44,
+                                           "max":  37.46
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  41.09,
+                                                    "median":  42.91,
+                                                    "p95":  48.64,
+                                                    "max":  49.99
+                                                }
+                                    },
+                     "cpuMsSteady":  531.2,
+                     "cpuMsPerIteration":  26.56,
+                     "cpuMsTotal":  703.125,
+                     "privateBytes":  4177920,
+                     "workingSetBytes":  21020672,
+                     "handles":  288,
+                     "threads":  7,
+                     "exitMs":  4.5,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:53.1272906Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2463578,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "jab",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:53.1519534Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2463609,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  271.5,
+                     "firstListWindowsSinceStartMs":  281.9,
+                     "firstSnapshotMs":  {
+                                             "JAB":  13.4
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  298,
+                     "steadySeconds":  0.4,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  3.65,
+                                           "median":  4.93,
+                                           "p95":  6.14,
+                                           "max":  6.53
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.48,
+                                                    "median":  10.04,
+                                                    "p95":  10.39,
+                                                    "max":  11.25
+                                                }
+                                    },
+                     "cpuMsSteady":  109.4,
+                     "cpuMsPerIteration":  5.47,
+                     "cpuMsTotal":  140.625,
+                     "privateBytes":  3158016,
+                     "workingSetBytes":  13463552,
+                     "handles":  196,
+                     "threads":  2,
+                     "exitMs":  5.9,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:53.9094440Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2464359,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "multi",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:53.9389389Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2464390,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  284.3,
+                     "firstListWindowsSinceStartMs":  321.8,
+                     "firstSnapshotMs":  {
+                                             "UIA":  46.9,
+                                             "JAB":  9.9
+                                         },
+                     "elements":  {
+                                      "UIA":  23,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  384.9,
+                     "steadySeconds":  1.87,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  21.89,
+                                           "median":  29.66,
+                                           "p95":  49.48,
+                                           "max":  57.73
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  40.67,
+                                                    "median":  44.78,
+                                                    "p95":  47.81,
+                                                    "max":  51.75
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  8.53,
+                                                    "median":  9.93,
+                                                    "p95":  12.29,
+                                                    "max":  16.5
+                                                }
+                                    },
+                     "cpuMsSteady":  562.5,
+                     "cpuMsPerIteration":  28.12,
+                     "cpuMsTotal":  765.625,
+                     "privateBytes":  5025792,
+                     "workingSetBytes":  23654400,
+                     "handles":  312,
+                     "threads":  8,
+                     "exitMs":  8.2,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:56.4953114Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2466953,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "uia",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:56.5172560Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2466968,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  74.9,
+                     "firstListWindowsSinceStartMs":  111.2,
+                     "firstSnapshotMs":  {
+                                             "UIA":  43.3
+                                         },
+                     "elements":  {
+                                      "UIA":  23
+                                  },
+                     "readySinceStartMs":  157.5,
+                     "steadySeconds":  1.44,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  18.69,
+                                           "median":  24.88,
+                                           "p95":  27.44,
+                                           "max":  27.53
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  39.39,
+                                                    "median":  43.83,
+                                                    "p95":  49.2,
+                                                    "max":  49.34
+                                                }
+                                    },
+                     "cpuMsSteady":  484.4,
+                     "cpuMsPerIteration":  24.22,
+                     "cpuMsTotal":  671.875,
+                     "privateBytes":  4222976,
+                     "workingSetBytes":  21065728,
+                     "handles":  288,
+                     "threads":  7,
+                     "exitMs":  5.2,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:58.3603315Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2468812,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "jab",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:58.3933027Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2468843,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  279.7,
+                     "firstListWindowsSinceStartMs":  291.1,
+                     "firstSnapshotMs":  {
+                                             "JAB":  15
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  309.6,
+                     "steadySeconds":  0.41,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  4.19,
+                                           "median":  5.52,
+                                           "p95":  8.11,
+                                           "max":  8.6
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.28,
+                                                    "median":  10.24,
+                                                    "p95":  11.51,
+                                                    "max":  13.38
+                                                }
+                                    },
+                     "cpuMsSteady":  0,
+                     "cpuMsPerIteration":  0,
+                     "cpuMsTotal":  31.25,
+                     "privateBytes":  3174400,
+                     "workingSetBytes":  13484032,
+                     "handles":  196,
+                     "threads":  2,
+                     "exitMs":  5.5,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:54:59.2003731Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2469656,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "multi",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:54:59.2225299Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2469671,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  287.7,
+                     "firstListWindowsSinceStartMs":  320.7,
+                     "firstSnapshotMs":  {
+                                             "UIA":  43.8,
+                                             "JAB":  9.1
+                                         },
+                     "elements":  {
+                                      "UIA":  23,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  378.5,
+                     "steadySeconds":  1.89,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  22.12,
+                                           "median":  29.87,
+                                           "p95":  38.75,
+                                           "max":  51.17
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  40.97,
+                                                    "median":  44.21,
+                                                    "p95":  61.48,
+                                                    "max":  61.53
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  7.68,
+                                                    "median":  9.58,
+                                                    "p95":  13.82,
+                                                    "max":  13.82
+                                                }
+                                    },
+                     "cpuMsSteady":  500,
+                     "cpuMsPerIteration":  25,
+                     "cpuMsTotal":  671.875,
+                     "privateBytes":  5087232,
+                     "workingSetBytes":  23719936,
+                     "handles":  312,
+                     "threads":  8,
+                     "exitMs":  7.9,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:55:01.7440098Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2472203,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "uia",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:55:01.7661696Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2472218,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  395.6,
+                     "firstListWindowsSinceStartMs":  440.9,
+                     "firstSnapshotMs":  {
+                                             "UIA":  66
+                                         },
+                     "elements":  {
+                                      "UIA":  23
+                                  },
+                     "readySinceStartMs":  512.6,
+                     "steadySeconds":  1.71,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  21.88,
+                                           "median":  27.51,
+                                           "p95":  44.39,
+                                           "max":  51.2
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  44.65,
+                                                    "median":  49.25,
+                                                    "p95":  58.19,
+                                                    "max":  67.72
+                                                }
+                                    },
+                     "cpuMsSteady":  968.8,
+                     "cpuMsPerIteration":  48.44,
+                     "cpuMsTotal":  2015.625,
+                     "privateBytes":  72990720,
+                     "workingSetBytes":  88064000,
+                     "handles":  463,
+                     "threads":  22,
+                     "exitMs":  16.4,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:55:04.2654504Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2474718,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "jab",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:55:04.2896807Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2474750,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  581.8,
+                     "firstListWindowsSinceStartMs":  592.3,
+                     "firstSnapshotMs":  {
+                                             "JAB":  18.5
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  614,
+                     "steadySeconds":  0.46,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  4.1,
+                                           "median":  6.57,
+                                           "p95":  8.78,
+                                           "max":  9.53
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  8.73,
+                                                    "median":  11.28,
+                                                    "p95":  17.6,
+                                                    "max":  17.77
+                                                }
+                                    },
+                     "cpuMsSteady":  343.8,
+                     "cpuMsPerIteration":  17.19,
+                     "cpuMsTotal":  937.5,
+                     "privateBytes":  63283200,
+                     "workingSetBytes":  71069696,
+                     "handles":  386,
+                     "threads":  18,
+                     "exitMs":  22.5,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:55:05.4475978Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2475906,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "multi",
+                     "hostAtStart":  {
+                                         "utc":  "2026-11-24T08:55:05.4859079Z",
+                                         "inputDesktop":  "Default",
+                                         "userIdleMs":  2475937,
+                                         "fixtures":  [
+                                                          {
+                                                              "kind":  "Awt",
+                                                              "processId":  22992,
+                                                              "window":  "foreground"
+                                                          }
+                                                      ]
+                                     },
+                     "firstCapabilitiesSinceStartMs":  666.7,
+                     "firstListWindowsSinceStartMs":  720.8,
+                     "firstSnapshotMs":  {
+                                             "UIA":  70.1,
+                                             "JAB":  14.2
+                                         },
+                     "elements":  {
+                                      "UIA":  23,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  811.1,
+                     "steadySeconds":  2.17,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  27.28,
+                                           "median":  31.92,
+                                           "p95":  60.02,
+                                           "max":  76.3
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  45.12,
+                                                    "median":  51.3,
+                                                    "p95":  63.36,
+                                                    "max":  77.16
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.4,
+                                                    "median":  11.5,
+                                                    "p95":  14.56,
+                                                    "max":  17.75
+                                                }
+                                    },
+                     "cpuMsSteady":  1187.5,
+                     "cpuMsPerIteration":  59.38,
+                     "cpuMsTotal":  2250,
+                     "privateBytes":  74821632,
+                     "workingSetBytes":  91783168,
+                     "handles":  491,
+                     "threads":  24,
+                     "exitMs":  25.5,
+                     "exitCode":  0,
+                     "hostAtEnd":  {
+                                       "utc":  "2026-11-24T08:55:08.8312689Z",
+                                       "inputDesktop":  "Default",
+                                       "userIdleMs":  2479281,
+                                       "fixtures":  [
+                                                        {
+                                                            "kind":  "Awt",
+                                                            "processId":  22992,
+                                                            "window":  "foreground"
+                                                        }
+                                                    ]
+                                   },
+                     "pair":  2
+                 }
+             ],
+    "fixtureRuntime":  "AWT / Oracle Corporation Java 17.0.10+11-LTS-240",
+    "checkpointUtc":  "2026-11-24T08:55:08.8312689Z",
+    "summary":  [
+                    {
+                        "agent":  "Java",
+                        "mode":  "uia",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  395.6,
+                        "readySinceStartMs":  512.6,
+                        "listWindowsMedianMs":  27.51,
+                        "snapshotMedianMs":  {
+                                                 "UIA":  49.25
+                                             },
+                        "snapshotP95Ms":  {
+                                              "UIA":  57.91
+                                          },
+                        "firstSnapshotMs":  {
+                                                "UIA":  66.8
+                                            },
+                        "cpuMsPerIteration":  48.44,
+                        "privateBytes":  72990720,
+                        "workingSetBytes":  88064000,
+                        "handles":  463,
+                        "threads":  22,
+                        "exitMs":  25.6
+                    },
+                    {
+                        "agent":  "Java",
+                        "mode":  "jab",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  581.8,
+                        "readySinceStartMs":  618.7,
+                        "listWindowsMedianMs":  6.2,
+                        "snapshotMedianMs":  {
+                                                 "JAB":  12.28
+                                             },
+                        "snapshotP95Ms":  {
+                                              "JAB":  16.77
+                                          },
+                        "firstSnapshotMs":  {
+                                                "JAB":  21.2
+                                            },
+                        "cpuMsPerIteration":  15.62,
+                        "privateBytes":  63283200,
+                        "workingSetBytes":  71069696,
+                        "handles":  386,
+                        "threads":  18,
+                        "exitMs":  21.7
+                    },
+                    {
+                        "agent":  "Java",
+                        "mode":  "multi",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  659.6,
+                        "readySinceStartMs":  802.9,
+                        "listWindowsMedianMs":  31.92,
+                        "snapshotMedianMs":  {
+                                                 "UIA":  50.77,
+                                                 "JAB":  11.5
+                                             },
+                        "snapshotP95Ms":  {
+                                              "UIA":  63.36,
+                                              "JAB":  14.56
+                                          },
+                        "firstSnapshotMs":  {
+                                                "UIA":  68.2,
+                                                "JAB":  14.2
+                                            },
+                        "cpuMsPerIteration":  59.38,
+                        "privateBytes":  74838016,
+                        "workingSetBytes":  91783168,
+                        "handles":  491,
+                        "threads":  24,
+                        "exitMs":  25.5
+                    },
+                    {
+                        "agent":  "Cpp",
+                        "mode":  "uia",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  74.9,
+                        "readySinceStartMs":  163,
+                        "listWindowsMedianMs":  25.52,
+                        "snapshotMedianMs":  {
+                                                 "UIA":  43.83
+                                             },
+                        "snapshotP95Ms":  {
+                                              "UIA":  49.2
+                                          },
+                        "firstSnapshotMs":  {
+                                                "UIA":  48.4
+                                            },
+                        "cpuMsPerIteration":  26.56,
+                        "privateBytes":  4210688,
+                        "workingSetBytes":  21057536,
+                        "handles":  288,
+                        "threads":  7,
+                        "exitMs":  5.2
+                    },
+                    {
+                        "agent":  "Cpp",
+                        "mode":  "jab",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  279.7,
+                        "readySinceStartMs":  309.6,
+                        "listWindowsMedianMs":  4.93,
+                        "snapshotMedianMs":  {
+                                                 "JAB":  10.24
+                                             },
+                        "snapshotP95Ms":  {
+                                              "JAB":  11.51
+                                          },
+                        "firstSnapshotMs":  {
+                                                "JAB":  15
+                                            },
+                        "cpuMsPerIteration":  1.56,
+                        "privateBytes":  3158016,
+                        "workingSetBytes":  13475840,
+                        "handles":  196,
+                        "threads":  2,
+                        "exitMs":  5.9
+                    },
+                    {
+                        "agent":  "Cpp",
+                        "mode":  "multi",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  287.7,
+                        "readySinceStartMs":  384.9,
+                        "listWindowsMedianMs":  29.87,
+                        "snapshotMedianMs":  {
+                                                 "UIA":  44.78,
+                                                 "JAB":  9.93
+                                             },
+                        "snapshotP95Ms":  {
+                                              "UIA":  50.39,
+                                              "JAB":  13.82
+                                          },
+                        "firstSnapshotMs":  {
+                                                "UIA":  44.1,
+                                                "JAB":  9.9
+                                            },
+                        "cpuMsPerIteration":  27.34,
+                        "privateBytes":  5025792,
+                        "workingSetBytes":  23654400,
+                        "handles":  312,
+                        "threads":  8,
+                        "exitMs":  7.9
+                    }
+                ],
+    "finishedUtc":  "2026-11-24T08:55:11.0887951Z"
+}

@@ -1,5 +1,23 @@
 # 빌드 및 시험 기록
 
+## 2026-11-24 Multi-Backend Agent
+
+Windows 11 Pro 25H2(빌드 26200.7840), Agent x64, 대상은 Java 17.0.10의 AWT·Swing, Temurin 23.0.2의 AWT, WPF 픽스처. 구조, 표, 판단과 재현 명령은 [Multi-Backend Agent](MULTI-BACKEND.md)에 있다.
+
+| 시험 | 결과 | 원본 |
+|---|---|---|
+| Java 단위 테스트 (`mvn -o package`) | 102개 중 98개 실행, 실패 0. 4개는 GUI 통합 테스트 | 빌드 로그 |
+| C++ 코어 테스트 (CTest) | x64 1/1, x86 1/1 | 빌드 로그 |
+| Multi 기능, 최종 실행 (6개 시나리오 × 두 Agent) | 84/84, 두 Agent의 판정이 같음 | [JSON](test-results/2026-11-24-multi-backend-functional.json) |
+| Multi 기능, 그 전의 두 실행 | 81/84(실패 2, 미실행 1)와 78/84(실패 3, 미실행 3). 재현되지 않음, 원인 미확정 | [1차](test-results/2026-11-24-multi-backend-functional-attempt1.json) · [2차](test-results/2026-11-24-multi-backend-functional-attempt2.json) |
+| 성능: UIA 단독, JAB 단독, Multi | Multi의 스냅샷 지연은 단독과 같고(차이 3 ms 이내), 준비 시간은 0.22~0.29초 길다 | [JSON](test-results/2026-11-24-multi-backend-performance.json) · [실패가 섞인 2차](test-results/2026-11-24-multi-backend-performance-attempt2.json) |
+| Multi `listWindows` 지연의 원인과 수정 | 약 1,000 ms → 66~73 ms (같은 조건) | [전](test-results/2026-11-24-multi-backend-performance-before-message-service.json) · [후](test-results/2026-11-24-multi-backend-performance-after-message-service.json) |
+| 10분 혼합 반복, Agent마다 | Java/JNA 2,989회, C++ 3,050회, 실패 0. 세션 교체 각 1회 | [JSON](test-results/2026-11-24-multi-backend-soak.json) |
+| UIA 단일 백엔드 회귀 | 298개 중 PASS 256. 이전 결과와 검사 단위까지 같음 | [JSON](test-results/2026-11-24-multi-uia-regression.json) |
+| JAB 단일 백엔드 회귀 | Swing 33/34, AWT 27/30. 이전 결과와 같음 | [JSON](test-results/2026-11-24-multi-jab-regression.json) |
+
+미실행: JAB 회귀의 121초 만료 검사, Java GUI 통합 테스트(`WindowsGuiTest`), 32비트 Agent의 GUI 시험, Java 8·11·21 대상 JVM, 1시간 이상 연속 시험. 기능 시험의 앞선 두 실행에서 나온 실패는 [따로 정리했다](MULTI-BACKEND.md#통과하지-못한-두-번의-실행). 그중 모달을 여는 클릭이 한 번 `OK`로 온 건은 미해결이다.
+
 ## 2026-11-24 Java Access Bridge Adapter
 
 Windows 11 Pro 25H2(빌드 26200), Agent x64, 대상 JVM Oracle JDK 17.0.10과 Eclipse Adoptium 23.0.2(둘 다 x64). 원인, 표와 재현 명령은 [Java Access Bridge Adapter](JAVA-ACCESS-BRIDGE.md)에 있다.

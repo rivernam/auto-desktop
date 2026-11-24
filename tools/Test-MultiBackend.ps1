@@ -55,6 +55,7 @@ public static class MbProcessControl {
     [DllImport("user32.dll")] static extern bool IsIconic(IntPtr window);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr window);
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);
 
     // "Default" while the user's desktop receives input. Null on the lock screen or a secure desktop.
     public static string InputDesktop() {
@@ -71,6 +72,9 @@ public static class MbProcessControl {
         IntPtr window = new IntPtr(handle);
         if (handle == 0) return "none";
         if (!IsWindowVisible(window)) return "hidden";
+        // A window on another virtual desktop is cloaked: it exists, and UI Automation does not list it.
+        int cloaked;
+        if (DwmGetWindowAttribute(window, 14, out cloaked, 4) == 0 && cloaked != 0) return "cloaked";
         if (IsIconic(window)) return "minimized";
         return GetForegroundWindow() == window ? "foreground" : "background";
     }
