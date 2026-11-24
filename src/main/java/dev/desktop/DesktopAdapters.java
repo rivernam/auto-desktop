@@ -3,6 +3,7 @@ package dev.desktop;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 
 /** Composition root. Backend selection happens once per CLI session, outside the shared core. */
@@ -14,6 +15,31 @@ final class DesktopAdapters {
         if ("jab".equals(backend)) return JnaDesktopAdapter.javaAccessBridge();
         if ("powershell".equals(backend)) return new WindowsAdapter();
         return select(System.getProperty("os.name", ""), csharpWorker);
+    }
+
+    /**
+     * The backends of a multi-backend session, default first. Each has its own thread, native
+     * session and fault state. A future adapter, such as MSAA, is one more entry here.
+     */
+    static LinkedHashMap<String, Agent.BackendSource> multi() {
+        var sources = new LinkedHashMap<String, Agent.BackendSource>();
+        sources.put("UIA", new Agent.BackendSource(JnaDesktopAdapter::new, true));
+        // Not restarted in place: a retired bridge session may have left its library loaded for a silent JVM.
+        sources.put("JAB", new Agent.BackendSource(JnaDesktopAdapter::javaAccessBridge, false));
+        return sources;
+    }
+
+    /** A multi-backend session takes no single adapter. It cannot be combined with a worker. */
+    static DesktopAdapter none(Path csharpWorker) {
+        if (csharpWorker != null) throw new IllegalArgumentException("Select one backend.");
+        return null;
+    }
+
+    /** The backend name that the rows of a single-backend session carry. */
+    static String label(Path csharpWorker, String backend) {
+        if ("jab".equals(backend)) return "JAB";
+        boolean windows = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("windows");
+        return backend != null || csharpWorker != null || windows ? "UIA" : "none";
     }
 
     static DesktopAdapter select(String os, Path csharpWorker) {

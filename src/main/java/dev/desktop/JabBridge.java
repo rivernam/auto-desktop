@@ -50,11 +50,14 @@ final class JabBridge extends JabApi {
         boolean FreeLibrary(Pointer module);
         int GetSystemDirectoryW(char[] buffer, int size);
         int GetCurrentProcessId();
+        int GetCurrentThreadId();
     }
 
     public interface Windows extends StdCallLibrary {
         Windows INSTANCE = Native.load("user32", Windows.class);
         boolean PeekMessageW(Pointer message, Pointer window, int first, int last, int remove);
+        int MsgWaitForMultipleObjectsEx(int count, Pointer handles, int milliseconds, int wakeMask, int flags);
+        boolean PostThreadMessageW(int thread, int message, Pointer wParam, Pointer lParam);
         boolean TranslateMessage(Pointer message);
         Pointer DispatchMessageW(Pointer message);
         int GetWindowThreadProcessId(Pointer window, IntByReference processId);
@@ -92,6 +95,8 @@ final class JabBridge extends JabApi {
     record Root(int vm, long context) {}
 
     private final Thread owner = Thread.currentThread();
+    // The Windows identifier of the owner thread, for waking it out of a message wait.
+    private final int ownerThreadId = Loader.INSTANCE.GetCurrentThreadId();
     private final Path library;
     private final Pointer module;
     private final Function[] calls = new Function[EXPORTS.length];
@@ -232,6 +237,18 @@ final class JabBridge extends JabApi {
             delivered++;
         }
         return delivered;
+    }
+
+    /** Returns when a message for this thread arrives, sent or posted, or the time has passed. */
+    @Override void await(int milliseconds) {
+        thread();
+        // QS_ALLINPUT, MWMO_INPUTAVAILABLE
+        Windows.INSTANCE.MsgWaitForMultipleObjectsEx(0, null, milliseconds, 0x04FF, 0x0004);
+    }
+
+    /** A posted WM_NULL ends the wait of the owner thread. Any thread may call this. */
+    @Override void wake() {
+        if (!closed) Windows.INSTANCE.PostThreadMessageW(ownerThreadId, 0, null, null);
     }
 
     private static Pointer window(long hwnd) { return Pointer.createConstant(hwnd); }

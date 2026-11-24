@@ -60,6 +60,17 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend jab --allo
 
 요소에는 AutomationId가 없으므로 Locator는 `name`과 `role`로 쓴다. Swing 버튼이 모달 대화상자를 직접 여는 경우와 AWT 텍스트 입력에는 Java 쪽 제약이 있다. [Adapter의 구조, 검증 결과와 제약](docs/JAVA-ACCESS-BRIDGE.md)
 
+## UIA와 JAB를 한 세션에서 (Multi-Backend)
+
+AWT 창은 버튼에 JAB가, 텍스트 입력에 UIA가 필요하다. `--backend multi`로 시작하면 한 Agent 프로세스가 두 백엔드를 함께 연다. `snapshot` 요청의 `backend`로 `UIA`나 `JAB`를 고르고, 받은 참조는 그 백엔드로만 전달된다. 한 백엔드가 멈춰도 다른 백엔드는 계속 동작한다. C++ Agent도 같은 옵션을 받는다.
+
+```powershell
+java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend multi --allow-pid 1234 --allow-action invoke --allow-action setValue
+./target/cpp-agent/Release/cpp-agent.exe --backend multi --allow-pid 1234 --allow-action invoke --allow-action setValue
+```
+
+[요청 형식](docs/API.md#여러-백엔드를-한-세션에서-쓰기) · [구조, 격리 범위, 검증 결과와 성능](docs/MULTI-BACKEND.md)
+
 ## 문서
 
 - [PowerShell·JNA 직접 COM·C# 워커 비교와 권고](docs/WINDOWS-BACKENDS.md)
@@ -73,6 +84,7 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend jab --allo
 - [Win32·MFC·VCL·Swing/AWT·WPF·WinForms 호환성 및 재현 명령](docs/UI-FRAMEWORK-COMPATIBILITY.md)
 - [소유 모달·부분 스냅샷·AWT Invoke 결함의 원인, 개선과 남은 Provider 제약](docs/UIA-AGENT-DEFECTS.md)
 - [Java Access Bridge Adapter: Swing·AWT 탐색과 조작, 참조 수명, 검증 결과](docs/JAVA-ACCESS-BRIDGE.md)
+- [Multi-Backend: UIA와 JAB를 한 Agent에서, 장애 격리, 성능과 구조 평가](docs/MULTI-BACKEND.md)
 
 ## Windows 실기기 및 레거시 검증
 

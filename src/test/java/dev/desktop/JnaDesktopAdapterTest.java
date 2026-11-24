@@ -239,4 +239,71 @@ class JnaDesktopAdapterTest {
             assertEquals("BACKEND_UNAVAILABLE", assertThrows(AgentException.class, adapter::listWindows).code());
         }
     }
+
+    @Test void aSessionWithWindowsServesThemWhileAnotherBackendWorks() throws Exception {
+        var entered = new java.util.concurrent.Semaphore(0);
+        var left = new java.util.concurrent.Semaphore(0);
+        var signal = new java.util.concurrent.Semaphore(0);
+        var threads = Collections.synchronizedSet(new HashSet<Thread>());
+        NativeSession windowed = new NativeSession() {
+            private JsonNode reply() {
+                threads.add(Thread.currentThread());
+                return JsonNodeFactory.instance.objectNode().put("available", true);
+            }
+            @Override public JsonNode capabilities() { return reply(); }
+            @Override public JsonNode listWindows() { return reply(); }
+            @Override public JsonNode snapshot(String id, int depth, int limit) { return reply(); }
+            @Override public JsonNode elementInfo(String key, int processId) { return reply(); }
+            @Override public JsonNode perform(DesktopAction action, String key, int pid, String value, Runnable before) {
+                before.run();
+                return reply();
+            }
+            @Override public void serve(java.util.function.BooleanSupplier done) {
+                threads.add(Thread.currentThread());
+                entered.release();
+                try {
+                    // Like a message wait: it ends on a wake-up, and otherwise only after a long time.
+                    while (!done.getAsBoolean()) signal.tryAcquire(30, TimeUnit.SECONDS);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                } finally {
+                    left.release();
+                }
+            }
+            @Override public void wake() { signal.release(); }
+            @Override public void close() {}
+        };
+        try (var adapter = new JnaDesktopAdapter(() -> windowed, Duration.ofSeconds(5), "JAB", "Java Access Bridge", 60_000)) {
+            adapter.capabilities();
+            adapter.attend(true);
+            assertTrue(entered.tryAcquire(2, TimeUnit.SECONDS), "The session thread serves its windows.");
+            // A request for this adapter is not held up by the service of its own windows.
+            long started = System.nanoTime();
+            adapter.listWindows();
+            assertTrue(System.nanoTime() - started < TimeUnit.SECONDS.toNanos(2));
+            assertTrue(left.tryAcquire(2, TimeUnit.SECONDS));
+            adapter.attend(false);
+
+            adapter.attend(true);
+            assertTrue(entered.tryAcquire(2, TimeUnit.SECONDS));
+            adapter.attend(false);
+            assertTrue(left.tryAcquire(2, TimeUnit.SECONDS), "The service ends when the other backend is done.");
+            adapter.snapshot("1", 2, 5);
+        }
+        assertEquals(1, threads.size(), "Requests and window service share the session thread.");
+    }
+
+    @Test void anAdapterWithoutWindowsIsNeverAskedToServe() {
+        var session = new AtomicReference<Session>();
+        try (var adapter = new JnaDesktopAdapter(() -> {
+            session.set(new Session());
+            return session.get();
+        }, Duration.ofSeconds(2))) {
+            adapter.attend(true);
+            adapter.attend(false);
+            assertNull(session.get(), "Attention alone starts no session.");
+            adapter.listWindows();
+        }
+        assertEquals(1, session.get().threads.size());
+    }
 }

@@ -8,6 +8,16 @@ import java.util.List;
  */
 abstract class JabApi implements AutoCloseable {
     abstract int pump();
+    /** Waits on the bridge thread until a window message arrives, {@link #wake} is called or the time passes. */
+    void await(int milliseconds) {
+        try {
+            Thread.sleep(Math.min(milliseconds, 5));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
+    }
+    /** Ends {@link #await} early. Callable from any thread. */
+    void wake() {}
     /** A JVM that answered before still exists and does not handle bridge messages now. */
     abstract boolean anySilent();
     abstract long[] topLevelWindows(int limit);

@@ -1,0 +1,917 @@
+{
+    "schema":  1,
+    "startedUtc":  "2026-11-24T08:12:56.3904726Z",
+    "invocation":  "Run \u0027performance\u0027 { \u0026 .\\tools\\Test-MultiBackend.ps1 -Agent Both -Mode Performance -Pairs 3 -Iterations 20 -Warmup 3 -OutputPath target\\multi-backend-performance.json }\n",
+    "mode":  "Performance",
+    "options":  {
+                    "agent":  "Both",
+                    "scenario":  [
+                                     "AwtMixed",
+                                     "Safety",
+                                     "JabFault",
+                                     "UiaFault",
+                                     "Environment",
+                                     "TargetRestart"
+                                 ],
+                    "includeExpiry":  false,
+                    "pairs":  3,
+                    "iterations":  20,
+                    "warmup":  3,
+                    "durationSeconds":  600,
+                    "sampleSeconds":  15
+                },
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.7705",
+                        "processorCount":  12,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-1255U",
+                        "cpuNominalMhz":  2611,
+                        "git":  {
+                                    "commit":  "59cf04c751ff6b150a40e06b46ca6f67b1757ed7",
+                                    "dirty":  false
+                                },
+                        "windows":  {
+                                        "edition":  "Professional",
+                                        "build":  "26200.7840",
+                                        "version":  "25H2"
+                                    },
+                        "javaAgent":  {
+                                          "launcher":  "x64 PE",
+                                          "java":  "java version \"17.0.10\" 2024-01-16 LTS\r\nJava(TM) SE Runtime Environment (build 17.0.10+11-LTS-240)\r\nJava HotSpot(TM) 64-Bit Server VM (build 17.0.10+11-LTS-240, mixed mode, sharing)",
+                                          "jarSha256":  "3BC66454F09230F75684677869F3AC30D84E9ACDB30A29F867BB48EB06383E5B",
+                                          "jvmOptions":  [
+                                                             "-XX:+UseSerialGC",
+                                                             "-Xms16m"
+                                                         ]
+                                      },
+                        "cppAgent":  {
+                                         "architecture":  "x64 PE",
+                                         "sha256":  "83C5017C0EEB1A2EF02185D1C29E1AC9389A664346CB95E5C7548B6E879AF04E"
+                                     },
+                        "fixtureJava":  "java version \"17.0.10\" 2024-01-16 LTS\r\nJava(TM) SE Runtime Environment (build 17.0.10+11-LTS-240)\r\nJava HotSpot(TM) 64-Bit Server VM (build 17.0.10+11-LTS-240, mixed mode, sharing)",
+                        "secondFixtureJava":  null,
+                        "bridge":  {
+                                       "fixtureProperty":  "javax.accessibility.assistive_technologies=com.sun.java.accessibility.AccessBridge",
+                                       "registryOrUserSettingsChanged":  false,
+                                       "windowsSideLibraries":  {
+                                                                    "javaAgentRuntime":  {
+                                                                                             "path":  "C:\\Program Files\\Java\\jdk-17\\bin\\WindowsAccessBridge-64.dll",
+                                                                                             "fileVersion":  "17.0.10.0",
+                                                                                             "architecture":  "x64 PE",
+                                                                                             "sha256":  "911611B06EBD4E4574B5317BC29DAE78814141B1E3512722DF03C4C5312FB940"
+                                                                                         },
+                                                                    "systemDirectory":  {
+                                                                                            "path":  "C:\\WINDOWS\\system32\\WindowsAccessBridge-64.dll",
+                                                                                            "fileVersion":  "17.0.10.0",
+                                                                                            "architecture":  "x64 PE",
+                                                                                            "sha256":  "911611B06EBD4E4574B5317BC29DAE78814141B1E3512722DF03C4C5312FB940"
+                                                                                        }
+                                                                },
+                                       "selection":  {
+                                                         "CppJab":  "systemDirectory, then the Java installation registered under HKLM",
+                                                         "Jab":  "javaAgentRuntime, then systemDirectory"
+                                                     },
+                                       "fixtureJvm":  {
+                                                          "launcher":  "C:\\Program Files\\Java\\jdk-17\\bin\\java.exe",
+                                                          "launcherArchitecture":  "x64 PE",
+                                                          "version":  null,
+                                                          "javaSideLibrary":  {
+                                                                                  "path":  "C:\\Program Files\\Java\\jdk-17\\bin\\javaaccessbridge.dll",
+                                                                                  "fileVersion":  "17.0.10.0",
+                                                                                  "architecture":  "x64 PE"
+                                                                              }
+                                                      }
+                                   },
+                        "wpfFixtureSha256":  "6547E1E7F35C2AFCAD87FFB4BE016DA11ED57483CDC4CB5E5DA77EBF2242204C"
+                    },
+    "status":  "FAIL",
+    "methods":  {
+                    "real":  "Only the Agent and unmodified fixture applications take part.",
+                    "faultInjection":  "The script creates the fault: a suspended target process, a bridge library path that does not exist, or a JVM started without the bridge."
+                },
+    "runs":  [
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "uia",
+                     "firstCapabilitiesSinceStartMs":  90.8,
+                     "firstListWindowsSinceStartMs":  197.5,
+                     "firstSnapshotMs":  {
+                                             "UIA":  58.5
+                                         },
+                     "elements":  {
+                                      "UIA":  23
+                                  },
+                     "readySinceStartMs":  272,
+                     "steadySeconds":  3.03,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  43.14,
+                                           "median":  59.58,
+                                           "p95":  95.18,
+                                           "max":  138.29
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  44.96,
+                                                    "median":  52.97,
+                                                    "p95":  142.4,
+                                                    "max":  211.22
+                                                }
+                                    },
+                     "cpuMsSteady":  1031.2,
+                     "cpuMsPerIteration":  51.56,
+                     "cpuMsTotal":  1265.625,
+                     "privateBytes":  4235264,
+                     "workingSetBytes":  21086208,
+                     "handles":  288,
+                     "threads":  7,
+                     "exitMs":  5.7,
+                     "exitCode":  0,
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "jab",
+                     "firstCapabilitiesSinceStartMs":  285.4,
+                     "firstListWindowsSinceStartMs":  320.7,
+                     "firstSnapshotMs":  {
+                                             "JAB":  60.6
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  384.3,
+                     "steadySeconds":  0.88,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  4.92,
+                                           "median":  7.13,
+                                           "p95":  10.17,
+                                           "max":  10.29
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  24.66,
+                                                    "median":  30.62,
+                                                    "p95":  42.14,
+                                                    "max":  56.34
+                                                }
+                                    },
+                     "cpuMsSteady":  93.8,
+                     "cpuMsPerIteration":  4.69,
+                     "cpuMsTotal":  156.25,
+                     "privateBytes":  3166208,
+                     "workingSetBytes":  13533184,
+                     "handles":  196,
+                     "threads":  2,
+                     "exitMs":  7.2,
+                     "exitCode":  0,
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "multi",
+                     "firstCapabilitiesSinceStartMs":  303.8,
+                     "firstListWindowsSinceStartMs":  376.1,
+                     "firstSnapshotMs":  {
+                                             "UIA":  85,
+                                             "JAB":  87.6
+                                         },
+                     "elements":  {
+                                      "UIA":  23,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  556.4,
+                     "steadySeconds":  4.38,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  53.63,
+                                           "median":  66.55,
+                                           "p95":  97.28,
+                                           "max":  117.42
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  72.86,
+                                                    "median":  99.61,
+                                                    "p95":  150.16,
+                                                    "max":  171.87
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  10.13,
+                                                    "median":  26.16,
+                                                    "p95":  45.04,
+                                                    "max":  63.57
+                                                }
+                                    },
+                     "cpuMsSteady":  1109.4,
+                     "cpuMsPerIteration":  55.47,
+                     "cpuMsTotal":  1312.5,
+                     "privateBytes":  5021696,
+                     "workingSetBytes":  23691264,
+                     "handles":  312,
+                     "threads":  8,
+                     "exitMs":  13,
+                     "exitCode":  0,
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "uia",
+                     "firstCapabilitiesSinceStartMs":  461.7,
+                     "firstListWindowsSinceStartMs":  534.8,
+                     "firstSnapshotMs":  {
+                                             "UIA":  119.1
+                                         },
+                     "elements":  {
+                                      "UIA":  23
+                                  },
+                     "readySinceStartMs":  656.9,
+                     "steadySeconds":  3.47,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  37.28,
+                                           "median":  59.5,
+                                           "p95":  75.43,
+                                           "max":  90.94
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  79.32,
+                                                    "median":  102.98,
+                                                    "p95":  141.13,
+                                                    "max":  147.89
+                                                }
+                                    },
+                     "cpuMsSteady":  1593.8,
+                     "cpuMsPerIteration":  79.69,
+                     "cpuMsTotal":  2812.5,
+                     "privateBytes":  73629696,
+                     "workingSetBytes":  87904256,
+                     "handles":  463,
+                     "threads":  22,
+                     "exitMs":  30.3,
+                     "exitCode":  0,
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "jab",
+                     "firstCapabilitiesSinceStartMs":  573.5,
+                     "firstListWindowsSinceStartMs":  589.2,
+                     "firstSnapshotMs":  {
+                                             "JAB":  36.5
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  628.8,
+                     "steadySeconds":  0.91,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  5.07,
+                                           "median":  7.08,
+                                           "p95":  13.17,
+                                           "max":  15.83
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  18.67,
+                                                    "median":  26.44,
+                                                    "p95":  48.88,
+                                                    "max":  96.88
+                                                }
+                                    },
+                     "cpuMsSteady":  421.9,
+                     "cpuMsPerIteration":  21.09,
+                     "cpuMsTotal":  1031.25,
+                     "privateBytes":  62042112,
+                     "workingSetBytes":  70656000,
+                     "handles":  386,
+                     "threads":  18,
+                     "exitMs":  15,
+                     "exitCode":  0,
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "multi",
+                     "firstCapabilitiesSinceStartMs":  655.9,
+                     "firstListWindowsSinceStartMs":  738.3,
+                     "firstSnapshotMs":  {
+                                             "UIA":  106,
+                                             "JAB":  25.6
+                                         },
+                     "elements":  {
+                                      "UIA":  23,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  872.2,
+                     "steadySeconds":  3.49,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  38.93,
+                                           "median":  52.06,
+                                           "p95":  64.01,
+                                           "max":  83.67
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  46.23,
+                                                    "median":  94.25,
+                                                    "p95":  126.89,
+                                                    "max":  130.4
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.01,
+                                                    "median":  26.35,
+                                                    "p95":  33.37,
+                                                    "max":  35.36
+                                                }
+                                    },
+                     "cpuMsSteady":  1437.5,
+                     "cpuMsPerIteration":  71.88,
+                     "cpuMsTotal":  2625,
+                     "privateBytes":  76034048,
+                     "workingSetBytes":  91676672,
+                     "handles":  491,
+                     "threads":  24,
+                     "exitMs":  18.1,
+                     "exitCode":  0,
+                     "pair":  0
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "uia",
+                     "firstCapabilitiesSinceStartMs":  408,
+                     "firstListWindowsSinceStartMs":  514.3,
+                     "firstSnapshotMs":  {
+                                             "UIA":  95.8
+                                         },
+                     "elements":  {
+                                      "UIA":  23
+                                  },
+                     "readySinceStartMs":  611.2,
+                     "steadySeconds":  2.84,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  33.29,
+                                           "median":  45.8,
+                                           "p95":  69.65,
+                                           "max":  70.25
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  51.95,
+                                                    "median":  95.15,
+                                                    "p95":  105.67,
+                                                    "max":  124.14
+                                                }
+                                    },
+                     "cpuMsSteady":  1062.5,
+                     "cpuMsPerIteration":  53.12,
+                     "cpuMsTotal":  2203.125,
+                     "privateBytes":  73039872,
+                     "workingSetBytes":  87818240,
+                     "handles":  463,
+                     "threads":  22,
+                     "exitMs":  21.9,
+                     "exitCode":  0,
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "jab",
+                     "firstCapabilitiesSinceStartMs":  560,
+                     "firstListWindowsSinceStartMs":  571.8,
+                     "firstSnapshotMs":  {
+                                             "JAB":  31.4
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  605.9,
+                     "steadySeconds":  0.62,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  4.9,
+                                           "median":  5.72,
+                                           "p95":  8.49,
+                                           "max":  8.82
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  18.92,
+                                                    "median":  22.47,
+                                                    "p95":  27.98,
+                                                    "max":  33
+                                                }
+                                    },
+                     "cpuMsSteady":  328.1,
+                     "cpuMsPerIteration":  16.41,
+                     "cpuMsTotal":  875,
+                     "privateBytes":  62091264,
+                     "workingSetBytes":  70926336,
+                     "handles":  386,
+                     "threads":  18,
+                     "exitMs":  28.5,
+                     "exitCode":  0,
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "multi",
+                     "firstCapabilitiesSinceStartMs":  719.8,
+                     "firstListWindowsSinceStartMs":  827.7,
+                     "firstSnapshotMs":  {
+                                             "UIA":  144.8,
+                                             "JAB":  32.5
+                                         },
+                     "elements":  {
+                                      "UIA":  23,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  1014.9,
+                     "steadySeconds":  4.35,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  45.7,
+                                           "median":  67.72,
+                                           "p95":  113.53,
+                                           "max":  130.54
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  11.68,
+                                                    "median":  108.83,
+                                                    "p95":  156.96,
+                                                    "max":  220.45
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  17.57,
+                                                    "median":  31.32,
+                                                    "p95":  43.25,
+                                                    "max":  55.25
+                                                }
+                                    },
+                     "cpuMsSteady":  1859.4,
+                     "cpuMsPerIteration":  92.97,
+                     "cpuMsTotal":  3171.875,
+                     "privateBytes":  66969600,
+                     "workingSetBytes":  82227200,
+                     "handles":  500,
+                     "threads":  25,
+                     "exitMs":  59.7,
+                     "exitCode":  0,
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "uia",
+                     "failure":  "Expected one window named \u0027MB Awt fixture 934d218e-6ee6-45f3-9713-597dc6181148\u0027 for PID 18564.",
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "jab",
+                     "firstCapabilitiesSinceStartMs":  265.5,
+                     "firstListWindowsSinceStartMs":  275.3,
+                     "firstSnapshotMs":  {
+                                             "JAB":  41.2
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  320.2,
+                     "steadySeconds":  0.79,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  4.61,
+                                           "median":  6.23,
+                                           "p95":  8.29,
+                                           "max":  9.43
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  18.95,
+                                                    "median":  27.13,
+                                                    "p95":  38.84,
+                                                    "max":  43.6
+                                                }
+                                    },
+                     "cpuMsSteady":  140.6,
+                     "cpuMsPerIteration":  7.03,
+                     "cpuMsTotal":  203.125,
+                     "privateBytes":  3178496,
+                     "workingSetBytes":  13471744,
+                     "handles":  196,
+                     "threads":  2,
+                     "exitMs":  9.3,
+                     "exitCode":  0,
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "multi",
+                     "firstCapabilitiesSinceStartMs":  303.3,
+                     "firstListWindowsSinceStartMs":  346.3,
+                     "firstSnapshotMs":  {
+                                             "UIA":  8.2,
+                                             "JAB":  32.4
+                                         },
+                     "elements":  {
+                                      "UIA":  2,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  391.5,
+                     "steadySeconds":  1.37,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  21.01,
+                                           "median":  28.22,
+                                           "p95":  63.28,
+                                           "max":  109.57
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  4.02,
+                                                    "median":  6.09,
+                                                    "p95":  9.93,
+                                                    "max":  20.14
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  8.7,
+                                                    "median":  21.02,
+                                                    "p95":  39.99,
+                                                    "max":  40.55
+                                                }
+                                    },
+                     "cpuMsSteady":  343.8,
+                     "cpuMsPerIteration":  17.19,
+                     "cpuMsTotal":  437.5,
+                     "privateBytes":  4751360,
+                     "workingSetBytes":  23384064,
+                     "handles":  312,
+                     "threads":  8,
+                     "exitMs":  10.2,
+                     "exitCode":  0,
+                     "pair":  1
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "uia",
+                     "failure":  "Expected one window named \u0027MB Awt fixture 934d218e-6ee6-45f3-9713-597dc6181148\u0027 for PID 18564.",
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "jab",
+                     "firstCapabilitiesSinceStartMs":  282.4,
+                     "firstListWindowsSinceStartMs":  291.5,
+                     "firstSnapshotMs":  {
+                                             "JAB":  23.7
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  319,
+                     "steadySeconds":  0.78,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  3.34,
+                                           "median":  6.72,
+                                           "p95":  9.76,
+                                           "max":  11.01
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  19.15,
+                                                    "median":  26.24,
+                                                    "p95":  36.66,
+                                                    "max":  38.98
+                                                }
+                                    },
+                     "cpuMsSteady":  78.1,
+                     "cpuMsPerIteration":  3.91,
+                     "cpuMsTotal":  156.25,
+                     "privateBytes":  3207168,
+                     "workingSetBytes":  13508608,
+                     "handles":  196,
+                     "threads":  2,
+                     "exitMs":  6,
+                     "exitCode":  0,
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Cpp",
+                     "mode":  "multi",
+                     "firstCapabilitiesSinceStartMs":  292.2,
+                     "firstListWindowsSinceStartMs":  335.5,
+                     "firstSnapshotMs":  {
+                                             "UIA":  13.5,
+                                             "JAB":  31.9
+                                         },
+                     "elements":  {
+                                      "UIA":  2,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  386.1,
+                     "steadySeconds":  1.45,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  25.11,
+                                           "median":  28.79,
+                                           "p95":  41.5,
+                                           "max":  57.6
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  4.74,
+                                                    "median":  6.45,
+                                                    "p95":  10.5,
+                                                    "max":  10.51
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  8.8,
+                                                    "median":  25.52,
+                                                    "p95":  52.14,
+                                                    "max":  64.83
+                                                }
+                                    },
+                     "cpuMsSteady":  375,
+                     "cpuMsPerIteration":  18.75,
+                     "cpuMsTotal":  531.25,
+                     "privateBytes":  4726784,
+                     "workingSetBytes":  23359488,
+                     "handles":  312,
+                     "threads":  8,
+                     "exitMs":  8.6,
+                     "exitCode":  0,
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "uia",
+                     "failure":  "Expected one window named \u0027MB Awt fixture 934d218e-6ee6-45f3-9713-597dc6181148\u0027 for PID 18564.",
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "jab",
+                     "firstCapabilitiesSinceStartMs":  573.1,
+                     "firstListWindowsSinceStartMs":  586.7,
+                     "firstSnapshotMs":  {
+                                             "JAB":  22.8
+                                         },
+                     "elements":  {
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  612.4,
+                     "steadySeconds":  0.77,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  6.31,
+                                           "median":  8.22,
+                                           "p95":  10.38,
+                                           "max":  24.06
+                                       },
+                     "snapshotMs":  {
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  17.16,
+                                                    "median":  24.58,
+                                                    "p95":  35.31,
+                                                    "max":  40.37
+                                                }
+                                    },
+                     "cpuMsSteady":  281.2,
+                     "cpuMsPerIteration":  14.06,
+                     "cpuMsTotal":  953.125,
+                     "privateBytes":  62025728,
+                     "workingSetBytes":  71004160,
+                     "handles":  386,
+                     "threads":  18,
+                     "exitMs":  28.2,
+                     "exitCode":  0,
+                     "pair":  2
+                 },
+                 {
+                     "agent":  "Java",
+                     "mode":  "multi",
+                     "firstCapabilitiesSinceStartMs":  632.3,
+                     "firstListWindowsSinceStartMs":  692.2,
+                     "firstSnapshotMs":  {
+                                             "UIA":  20.2,
+                                             "JAB":  34
+                                         },
+                     "elements":  {
+                                      "UIA":  2,
+                                      "JAB":  22
+                                  },
+                     "readySinceStartMs":  753.2,
+                     "steadySeconds":  1.54,
+                     "listWindowsMs":  {
+                                           "count":  20,
+                                           "min":  25.29,
+                                           "median":  31.15,
+                                           "p95":  82.19,
+                                           "max":  116.95
+                                       },
+                     "snapshotMs":  {
+                                        "UIA":  {
+                                                    "count":  20,
+                                                    "min":  5.16,
+                                                    "median":  7.84,
+                                                    "p95":  10.87,
+                                                    "max":  11.69
+                                                },
+                                        "JAB":  {
+                                                    "count":  20,
+                                                    "min":  9.47,
+                                                    "median":  23.02,
+                                                    "p95":  39.55,
+                                                    "max":  39.8
+                                                }
+                                    },
+                     "cpuMsSteady":  718.8,
+                     "cpuMsPerIteration":  35.94,
+                     "cpuMsTotal":  1625,
+                     "privateBytes":  75739136,
+                     "workingSetBytes":  92172288,
+                     "handles":  491,
+                     "threads":  24,
+                     "exitMs":  27.1,
+                     "exitCode":  0,
+                     "pair":  2
+                 }
+             ],
+    "fixtureRuntime":  "AWT / Oracle Corporation Java 17.0.10+11-LTS-240",
+    "checkpointUtc":  "2026-11-24T08:14:12.1461834Z",
+    "summary":  [
+                    {
+                        "agent":  "Java",
+                        "mode":  "uia",
+                        "runs":  2,
+                        "firstCapabilitiesSinceStartMs":  408,
+                        "readySinceStartMs":  611.2,
+                        "listWindowsMedianMs":  45.8,
+                        "snapshotMedianMs":  {
+                                                 "UIA":  95.15
+                                             },
+                        "snapshotP95Ms":  {
+                                              "UIA":  105.67
+                                          },
+                        "firstSnapshotMs":  {
+                                                "UIA":  95.8
+                                            },
+                        "cpuMsPerIteration":  53.12,
+                        "privateBytes":  73039872,
+                        "workingSetBytes":  87818240,
+                        "handles":  463,
+                        "threads":  22,
+                        "exitMs":  21.9
+                    },
+                    {
+                        "agent":  "Java",
+                        "mode":  "jab",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  573.1,
+                        "readySinceStartMs":  612.4,
+                        "listWindowsMedianMs":  7.08,
+                        "snapshotMedianMs":  {
+                                                 "JAB":  24.58
+                                             },
+                        "snapshotP95Ms":  {
+                                              "JAB":  35.31
+                                          },
+                        "firstSnapshotMs":  {
+                                                "JAB":  31.4
+                                            },
+                        "cpuMsPerIteration":  16.41,
+                        "privateBytes":  62042112,
+                        "workingSetBytes":  70926336,
+                        "handles":  386,
+                        "threads":  18,
+                        "exitMs":  28.2
+                    },
+                    {
+                        "agent":  "Java",
+                        "mode":  "multi",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  655.9,
+                        "readySinceStartMs":  872.2,
+                        "listWindowsMedianMs":  52.06,
+                        "snapshotMedianMs":  {
+                                                 "UIA":  94.25,
+                                                 "JAB":  26.35
+                                             },
+                        "snapshotP95Ms":  {
+                                              "UIA":  126.89,
+                                              "JAB":  39.55
+                                          },
+                        "firstSnapshotMs":  {
+                                                "UIA":  106,
+                                                "JAB":  32.5
+                                            },
+                        "cpuMsPerIteration":  71.88,
+                        "privateBytes":  75739136,
+                        "workingSetBytes":  91676672,
+                        "handles":  491,
+                        "threads":  24,
+                        "exitMs":  27.1
+                    },
+                    {
+                        "agent":  "Cpp",
+                        "mode":  "uia",
+                        "runs":  1,
+                        "firstCapabilitiesSinceStartMs":  90.8,
+                        "readySinceStartMs":  272,
+                        "listWindowsMedianMs":  59.58,
+                        "snapshotMedianMs":  {
+                                                 "UIA":  52.97
+                                             },
+                        "snapshotP95Ms":  {
+                                              "UIA":  142.4
+                                          },
+                        "firstSnapshotMs":  {
+                                                "UIA":  58.5
+                                            },
+                        "cpuMsPerIteration":  51.56,
+                        "privateBytes":  4235264,
+                        "workingSetBytes":  21086208,
+                        "handles":  288,
+                        "threads":  7,
+                        "exitMs":  5.7
+                    },
+                    {
+                        "agent":  "Cpp",
+                        "mode":  "jab",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  282.4,
+                        "readySinceStartMs":  320.2,
+                        "listWindowsMedianMs":  6.72,
+                        "snapshotMedianMs":  {
+                                                 "JAB":  27.13
+                                             },
+                        "snapshotP95Ms":  {
+                                              "JAB":  38.84
+                                          },
+                        "firstSnapshotMs":  {
+                                                "JAB":  41.2
+                                            },
+                        "cpuMsPerIteration":  4.69,
+                        "privateBytes":  3178496,
+                        "workingSetBytes":  13508608,
+                        "handles":  196,
+                        "threads":  2,
+                        "exitMs":  7.2
+                    },
+                    {
+                        "agent":  "Cpp",
+                        "mode":  "multi",
+                        "runs":  3,
+                        "firstCapabilitiesSinceStartMs":  303.3,
+                        "readySinceStartMs":  391.5,
+                        "listWindowsMedianMs":  28.79,
+                        "snapshotMedianMs":  {
+                                                 "UIA":  6.45,
+                                                 "JAB":  25.52
+                                             },
+                        "snapshotP95Ms":  {
+                                              "UIA":  10.5,
+                                              "JAB":  45.04
+                                          },
+                        "firstSnapshotMs":  {
+                                                "UIA":  13.5,
+                                                "JAB":  32.4
+                                            },
+                        "cpuMsPerIteration":  18.75,
+                        "privateBytes":  4751360,
+                        "workingSetBytes":  23384064,
+                        "handles":  312,
+                        "threads":  8,
+                        "exitMs":  10.2
+                    }
+                ],
+    "finishedUtc":  "2026-11-24T08:14:14.0727665Z"
+}

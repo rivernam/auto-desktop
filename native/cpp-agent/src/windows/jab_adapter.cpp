@@ -527,8 +527,12 @@ private:
 
 class JabAdapter final : public DesktopAdapter {
 public:
-    explicit JabAdapter(const std::wstring& library) : bridge_(library) {}
-    ~JabAdapter() override { clear(); }
+    explicit JabAdapter(const std::wstring& library)
+        : bridge_(library), wake_(CreateEventW(nullptr, FALSE, FALSE, nullptr)) {}
+    ~JabAdapter() override {
+        clear();
+        if (wake_) CloseHandle(wake_);
+    }
 
     const char* backend() const override { return "JAB"; }
     Availability availability() override;
@@ -539,6 +543,8 @@ public:
     void clear() noexcept override;
     std::chrono::milliseconds idleInterval() const override { return std::chrono::milliseconds(250); }
     void idle() noexcept override;
+    void serve(const std::function<bool()>& done) noexcept override;
+    void wake() noexcept override { if (wake_) SetEvent(wake_); }
 
 private:
     struct Entry {
@@ -577,6 +583,8 @@ private:
                std::optional<std::size_t> parentIndex, int depth, int maxDepth, std::size_t limit);
 
     Bridge bridge_;
+    // Ends the wait inside serve() when a request for this backend arrives.
+    HANDLE wake_ = nullptr;
     std::optional<NativeCapture> active_;
     // References of closed captures whose JVM was not answering.
     std::map<long, std::vector<JObject>> deferred_;
@@ -615,6 +623,16 @@ void JabAdapter::idle() noexcept {
     if (!bridge_.loaded()) return;
     bridge_.pump();
     releaseDeferred();
+}
+
+void JabAdapter::serve(const std::function<bool()>& done) noexcept {
+    // The bridge keeps a hidden window on this thread. A UI Automation client that walks the desktop
+    // sends it messages and waits for the answer, so they are handled as they arrive.
+    while (!done()) {
+        if (bridge_.loaded()) bridge_.pump();
+        if (wake_) MsgWaitForMultipleObjectsEx(1, &wake_, 250, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+        else Sleep(10);
+    }
 }
 
 void JabAdapter::ready() {

@@ -50,6 +50,21 @@ public interface DesktopAdapter extends ReadOnlyDesktopAdapter<JsonNode>, AutoCl
         return call(command);
     }
 
+    /**
+     * True once a fault retired this adapter and its native session has been released. A session
+     * that owns several backends may then replace it without waiting on the faulted call.
+     */
+    default boolean finished() {
+        return false;
+    }
+
+    /**
+     * While on, another backend of the same session is inside a request. An adapter whose provider
+     * owns windows in this process answers their messages meanwhile, so that request never waits
+     * for this adapter's thread.
+     */
+    default void attend(boolean on) {}
+
     /** Compatibility entry point for existing JSON worker adapters. */
     JsonNode call(ObjectNode request);
 

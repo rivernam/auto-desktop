@@ -119,6 +119,10 @@ final class DesktopSnapshot {
 
     boolean expired(long now) { return now - capturedAt >= TTL_NANOS; }
 
+    String id() { return id; }
+
+    boolean has(String ref) { return byRef.containsKey(ref); }
+
     Element resolve(String ref) {
         Element element = byRef.get(ref);
         if (element == null) throw stale();
