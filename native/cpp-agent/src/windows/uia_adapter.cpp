@@ -7,6 +7,8 @@
 
 #include <array>
 #include <charconv>
+#include <set>
+#include <utility>
 
 namespace desktop::windows {
 namespace {
@@ -215,6 +217,25 @@ HWND parseWindow(const std::string& id) {
     return reinterpret_cast<HWND>(static_cast<std::uintptr_t>(value));
 }
 
+// The owner of a visible top-level window, or null when the window is hidden, unowned or a child.
+// UI Automation places an owned window below its owner in every view, never below the desktop.
+HWND ownerOf(HWND handle) {
+    if (!IsWindowVisible(handle) || GetAncestor(handle, GA_PARENT) != GetDesktopWindow()) return nullptr;
+    return GetWindow(handle, GW_OWNER);
+}
+
+using OwnedWindows = std::vector<std::pair<HWND, HWND>>;
+
+BOOL CALLBACK collectOwned(HWND handle, LPARAM state) {
+    auto& found = *reinterpret_cast<OwnedWindows*>(state);
+    try {
+        if (const HWND owner = ownerOf(handle)) found.emplace_back(handle, owner);
+    } catch (const std::bad_alloc&) {
+        return FALSE;
+    }
+    return found.size() < 4096;
+}
+
 bool windowProcess(HWND handle, int pid) {
     DWORD live = 0;
     return pid > 0 && GetWindowThreadProcessId(handle, &live) && live == static_cast<DWORD>(pid);
@@ -265,13 +286,14 @@ private:
 
     ElementPtr desktop();
     ElementPtr window(HWND handle, UiaElement* root);
+    ElementPtr ownedWindow(HWND handle, HWND owner);
     ElementPtr walk(UiaElement* element, HRESULT (STDMETHODCALLTYPE IUIAutomationTreeWalker::*step)
                     (UiaElement*, UiaElement**));
     bool same(UiaElement* a, UiaElement* b);
     static bool identityMatches(const Entry& entry, UiaElement* live);
     bool parentsMatch(const NativeCapture& capture, const Entry& selected);
     const Entry& resolve(const NativeCapture& capture, std::size_t index, UiaElement* root, bool scope = false);
-    void visit(NativeCapture& native, Capture& rows, ElementPtr node, std::shared_ptr<const Entry> parent,
+    bool visit(NativeCapture& native, Capture& rows, ElementPtr node, std::shared_ptr<const Entry> parent,
                std::optional<std::size_t> parentIndex, int depth, int maxDepth, std::size_t limit);
 };
 
@@ -307,8 +329,24 @@ ElementPtr UiaAdapter::window(HWND handle, UiaElement* root) {
                        != windowNumber(handle)) throw missing();
         auto parent = walk(result.Get(), &IUIAutomationTreeWalker::GetParentElement);
         if (parent && same(parent.Get(), root)) return result;
+        // Accept exactly the owned windows that windows() reports.
+        const HWND owner = ownerOf(handle);
+        if (parent && owner && windowNumber(property(parent.Get(), &UiaElement::get_CurrentNativeWindowHandle))
+                               == windowNumber(owner)) return result;
     } catch (const ComFailure&) {}
     throw missing();
+}
+
+// The element of a visible owned top-level window whose UIA parent is its Win32 owner, or null.
+ElementPtr UiaAdapter::ownedWindow(HWND handle, HWND owner) {
+    ElementPtr result;
+    check(client_->automation->ElementFromHandle(handle, result.GetAddressOf()));
+    if (!result || windowNumber(property(result.Get(), &UiaElement::get_CurrentNativeWindowHandle))
+                   != windowNumber(handle)) return {};
+    const auto parent = walk(result.Get(), &IUIAutomationTreeWalker::GetParentElement);
+    if (!parent || windowNumber(property(parent.Get(), &UiaElement::get_CurrentNativeWindowHandle))
+                   != windowNumber(owner)) return {};
+    return result;
 }
 
 bool UiaAdapter::available() {
@@ -329,18 +367,37 @@ std::vector<Window> UiaAdapter::windows() {
         try {
             const auto root = desktop();
             std::vector<Window> result;
+            std::set<std::uint32_t> listed;
             int visited = 0;
+            const auto describe = [&](UiaElement* element, std::uint32_t handle, std::uint32_t owner) {
+                const int pid = property(element, &UiaElement::get_CurrentProcessId);
+                if (pid <= 0) return;
+                bool clipped = false;
+                result.push_back({std::to_string(handle), pid, protectsChildren(element)
+                    ? "" : label(element, &UiaElement::get_CurrentName, clipped),
+                    owner ? std::to_string(owner) : std::string()});
+                listed.insert(handle);
+            };
             auto node = walk(root.Get(), &IUIAutomationTreeWalker::GetFirstChildElement);
             while (node) {
                 if (++visited > 4096) throw precondition();
                 const auto handle = windowNumber(property(node.Get(), &UiaElement::get_CurrentNativeWindowHandle));
-                const int pid = property(node.Get(), &UiaElement::get_CurrentProcessId);
-                if (handle && pid > 0) {
-                    bool clipped = false;
-                    result.push_back({std::to_string(handle), pid, protectsChildren(node.Get())
-                        ? "" : label(node.Get(), &UiaElement::get_CurrentName, clipped)});
-                }
+                if (handle) describe(node.Get(), handle, 0);
                 node = walk(node.Get(), &IUIAutomationTreeWalker::GetNextSiblingElement);
+            }
+            // An owned modal or popup hangs below its owner in every UIA view, so the walk above
+            // never reaches it.
+            OwnedWindows owned;
+            EnumWindows(collectOwned, reinterpret_cast<LPARAM>(&owned));
+            for (const auto& [handle, owner] : owned) {
+                if (listed.count(windowNumber(handle))) continue;
+                if (++visited > 4096) throw precondition();
+                try {
+                    if (const auto window = ownedWindow(handle, owner))
+                        describe(window.Get(), windowNumber(handle), windowNumber(owner));
+                } catch (const ComFailure&) {
+                    // The window closed during enumeration.
+                }
             }
             return result;
         } catch (const ComFailure& failure) {
@@ -387,7 +444,9 @@ const UiaAdapter::Entry& UiaAdapter::resolve(const NativeCapture& capture, std::
     }
 }
 
-void UiaAdapter::visit(NativeCapture& native, Capture& rows, ElementPtr node, std::shared_ptr<const Entry> parent,
+// Returns false when the node was omitted. Every cause of truncation marks the row whose own
+// subtree is incomplete.
+bool UiaAdapter::visit(NativeCapture& native, Capture& rows, ElementPtr node, std::shared_ptr<const Entry> parent,
                        std::optional<std::size_t> parentIndex, int depth, int maxDepth, std::size_t limit) {
     ++native.visited;
     auto current = inspect(node.Get());
@@ -397,7 +456,7 @@ void UiaAdapter::visit(NativeCapture& native, Capture& rows, ElementPtr node, st
     if (runtime.empty()) {
         if (depth == 0) throw stale();
         rows.truncated = true;
-        return;
+        return false;
     }
     auto entry = std::make_shared<Entry>(Entry{std::move(node), std::move(parent), current.row.pid,
                                                 std::move(runtime), current.row.identity});
@@ -405,18 +464,24 @@ void UiaAdapter::visit(NativeCapture& native, Capture& rows, ElementPtr node, st
     const auto index = native.entries.size();
     native.entries.push_back(entry);
     current.row.parent = parentIndex;
+    current.row.partial = current.row.identity.clipped;
     rows.truncated = rows.truncated || current.row.identity.clipped;
     rows.elements.push_back(std::move(current.row));
-    if (current.protectedContent) return;
+    if (current.protectedContent) return true;
+    const auto cut = [&] {
+        rows.truncated = true;
+        rows.elements[index].partial = true;
+    };
     auto child = walk(entry->node.Get(), &IUIAutomationTreeWalker::GetFirstChildElement);
     while (child) {
         if (depth >= maxDepth || native.visited >= limit) {
-            rows.truncated = true;
-            return;
+            cut();
+            return true;
         }
-        visit(native, rows, child, entry, index, depth + 1, maxDepth, limit);
+        if (!visit(native, rows, child, entry, index, depth + 1, maxDepth, limit)) cut();
         child = walk(child.Get(), &IUIAutomationTreeWalker::GetNextSiblingElement);
     }
+    return true;
 }
 
 Capture UiaAdapter::capture(const std::string& windowId, std::optional<std::size_t> scope, int depth, int limit) {

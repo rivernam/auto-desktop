@@ -19,7 +19,7 @@ target_include_directories(agent-core SYSTEM PUBLIC third_party)
 target_link_libraries(agent-core PUBLIC Threads::Threads)
 
 if(WIN32)
-    add_executable(cpp-agent src/main.cpp src/windows/uia_adapter.cpp)
+    add_executable(cpp-agent src/main.cpp src/windows/uia_adapter.cpp src/windows/cpp-agent.manifest)
     target_compile_definitions(cpp-agent PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
     target_link_libraries(cpp-agent PRIVATE agent-core ole32 oleaut32 user32 uiautomationcore)
 endif()

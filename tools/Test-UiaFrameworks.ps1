@@ -153,9 +153,11 @@ function Get-FrameworkEnvironment {
         $info.cppAgent = @{ architecture = Get-PeArchitecture $CppAgent; sha256 = (Get-FileHash -LiteralPath $CppAgent).Hash }
         $cache = Join-Path (Split-Path (Split-Path $CppAgent)) 'CMakeCache.txt'
         if ([IO.File]::Exists($cache)) {
+            # Windows PowerShell 5.1 attaches provider objects to each line that Get-Content returns, and
+            # ConvertTo-Json then walks them to the full report depth. Keep plain strings.
             $info.cppAgent.build = @(Get-Content -LiteralPath $cache | Where-Object {
                 $_ -match '^CMAKE_(GENERATOR|GENERATOR_PLATFORM|GENERATOR_TOOLSET|CXX_FLAGS_RELEASE):'
-            })
+            } | ForEach-Object { "$_" })
         }
         $system = Join-Path (Split-Path (Split-Path $CppAgent)) 'CMakeFiles'
         if (Test-Path -LiteralPath $system -PathType Container) {
@@ -222,7 +224,7 @@ $CppAgent = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSP
 $javaExe = (Get-Command java.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
 $order = if ($Backend -ne 'Both') { @($Backend) } elseif ($CppFirst) { @('Cpp', 'JNA') } else { @('JNA', 'Cpp') }
 $report = [ordered]@{
-    schema = 1; mode = $Mode; startedUtc = [DateTime]::UtcNow.ToString('o')
+    schema = 2; mode = $Mode; startedUtc = [DateTime]::UtcNow.ToString('o')
     options = @{ frameworks = $Framework; order = $order; pairs = $Pairs; iterations = $Iterations; warmup = $Warmup;
         fixtureRoot = $FixtureRoot; fixtureJava = $FixtureJava; enableJab = [bool]$EnableJab;
         accessibilityDiagnostics = [bool]$DiagnoseAccessibility }
@@ -308,6 +310,11 @@ try {
     $report.counts = Get-FrameworkCounts $report.results
     $checks = @($report.results | ForEach-Object { $_.checks } | Where-Object { $null -ne $_ })
     $report.checkCounts = Get-FrameworkCounts $checks
+    # Every check that did not pass names its cause. UNCLASSIFIED ones are open questions about the Agent.
+    $report.classificationCounts = [ordered]@{}
+    foreach ($group in $checks | Where-Object { $_.classification } | Group-Object { $_.classification } | Sort-Object Name) {
+        $report.classificationCounts[$group.Name] = $group.Count
+    }
     $report.finishedUtc = [DateTime]::UtcNow.ToString('o')
     Save-UiaJson (ConvertTo-Json -InputObject $report -Depth 30) $OutputPath
 }

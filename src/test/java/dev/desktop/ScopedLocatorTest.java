@@ -53,6 +53,35 @@ class ScopedLocatorTest {
         error("INCOMPLETE_SNAPSHOT", find(scope, ref(scope, 0), "Absent"));
     }
 
+    @Test void markedPartialRowsLimitLookupToScopesThatWereCapturedWhole() {
+        desktop.truncated = true;
+        desktop.partial = Set.of("root", "right");
+        JsonNode window = result(capture());
+        assertTrue(window.path("truncated").asBoolean());
+        assertTrue(window.at("/elements/0/partial").asBoolean());
+        assertTrue(window.at("/elements/3/partial").asBoolean());
+        for (int whole : new int[] {1, 2, 4}) assertFalse(window.path("elements").path(whole).has("partial"));
+
+        // The left branch was captured whole, so a match or a miss inside it is conclusive.
+        String left = ref(window, 1);
+        assertEquals(ref(window, 2), result(find(window, left, "Save")).path("ref").asText());
+        error("ELEMENT_NOT_FOUND", find(window, left, "Preview"));
+        // A cut branch and the whole window can still hide a match.
+        error("INCOMPLETE_SNAPSHOT", find(window, ref(window, 3), "Save"));
+        error("INCOMPLETE_SNAPSHOT", find(window, ref(window, 0), "Editor"));
+        error("INCOMPLETE_SNAPSHOT", find(window, null, "Editor"));
+        // A duplicate already captured is reported before completeness, as for an unmarked snapshot.
+        error("AMBIGUOUS_ELEMENT", find(window, null, "Save"));
+    }
+
+    @Test void partialMarkWithoutTruncationIsRejectedAsAnInconsistentCapture() {
+        desktop.partial = Set.of("right");
+        error("WORKER_PROTOCOL", capture());
+        desktop.partial = Set.of();
+        desktop.malformedPartial = true;
+        error("WORKER_PROTOCOL", capture());
+    }
+
     @Test void malformedWrongWindowExpiredOrForeignScopesNeverReachAdapter() {
         JsonNode window = result(capture());
         String previous = ref(window, 1);
@@ -112,11 +141,15 @@ class ScopedLocatorTest {
         boolean scopeTruncated;
         int scopeCaptures;
         String scopeFailure;
+        Set<String> partial = Set.of();
+        boolean malformedPartial;
 
-        private static ObjectNode row(String key, String parent, String name) {
+        private ObjectNode row(String key, String parent, String name) {
             ObjectNode row = JsonNodeFactory.instance.objectNode().put("key", key).put("parentKey", parent)
                     .put("name", name).put("processId", 42).put("enabled", true);
             row.putArray("actions").add("invoke");
+            if (partial.contains(key)) row.put("partial", true);
+            if (malformedPartial) row.put("partial", "yes");
             return row;
         }
 

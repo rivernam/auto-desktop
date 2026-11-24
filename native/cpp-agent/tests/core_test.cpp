@@ -28,7 +28,10 @@ public:
 
     ~Fixture() override { if (onClose) onClose(); }
 
-    std::vector<Window> windows() override { return {{"42", 123, "Fixture"}}; }
+    bool forceTruncated = false;
+    std::vector<std::size_t> partialRows;
+
+    std::vector<Window> windows() override { return {{"42", 123, "Fixture"}, {"43", 123, "Dialog", "42"}}; }
     Capture capture(const std::string&, std::optional<std::size_t> scope, int depth, int limit) override {
         if (captureFails) throw Error("WINDOW_NOT_FOUND", "Missing fixture.");
         Element root;
@@ -53,7 +56,8 @@ public:
         if (depth == 0) limit = 1;
         const bool truncated = limit < static_cast<int>(rows.size());
         if (truncated) rows.resize(static_cast<std::size_t>(limit));
-        return {std::move(rows), truncated};
+        for (const auto index : partialRows) rows.at(index).partial = true;
+        return {std::move(rows), truncated || forceTruncated};
     }
     Element info(std::size_t index) override {
         return capture("42", {}, 12, 20).elements.at(index);
@@ -104,7 +108,13 @@ void core() {
     error(find({{"automationId", "button"}}, edit), "ELEMENT_NOT_FOUND");
     error(find({{"pid", "123"}}, root), "INVALID_REQUEST");
     error(request(agent, "snapshot", {{"windowId", "42"}, {"maxDepth", 1.0}}), "INVALID_REQUEST");
-    check(request(agent, "invoke", {{"ref", button}}).at("ok") == true, "invoke dispatched");
+    const auto invoked = request(agent, "invoke", {{"ref", button}});
+    check(invoked.at("ok") == true && invoked.at("result").at("performed") == true, "invoke dispatched");
+    // A provider's return shows dispatch only. The reply must never claim an observed effect.
+    check(invoked.at("result").at("effectVerified") == false, "dispatch is not a verified effect");
+    const auto windows = request(agent, "listWindows").at("result");
+    check(windows.size() == 2 && !windows[0].contains("ownerWindowId") && windows[0].at("windowId") == "42"
+          && windows[1].at("ownerWindowId") == "42" && windows[1].at("processId") == 123, "owned window row");
     error(request(agent, "invoke", {{"ref", button}}), "DUPLICATE_COMMAND");
     check(fixture.mutations == 1, "duplicate did not dispatch");
     check(request(agent, "setValue", {{"ref", edit}, {"value", ""}}, "empty").at("ok") == true, "empty value");
@@ -134,6 +144,43 @@ void core() {
     error(request(agent, "snapshot", {{"windowId", "42"}}), "WINDOW_NOT_FOUND");
     error(request(agent, "getElementInfo", {{"ref", next.at("elements")[0].at("ref")}}), "STALE_REFERENCE");
     check(fixture.clears == 2, "failed capture cleared adapter cache");
+}
+
+void completeness() {
+    Fixture fixture;
+    Agent agent(fixture, "partial", [](int) { return true; }, {Action::invoke});
+    fixture.forceTruncated = true;
+    fixture.partialRows = {0, 2};
+    const auto snap = request(agent, "snapshot", {{"windowId", "42"}}).at("result");
+    const auto& rows = snap.at("elements");
+    check(snap.at("truncated") == true && rows.at(0).at("partial") == true && rows.at(2).at("partial") == true
+          && !rows.at(1).contains("partial") && !rows.at(3).contains("partial"), "partial rows are named");
+    const auto find = [&](const Json& locator, const Json& scope) {
+        Json args{{"snapshotId", snap.at("snapshotId")}, {"locator", locator}};
+        if (!scope.is_null()) args["scopeRef"] = scope;
+        return request(agent, "findElement", std::move(args));
+    };
+    // The first button was captured whole, so a match or a miss inside it is conclusive.
+    const auto whole = rows.at(1).at("ref");
+    check(find({{"automationId", "button"}}, whole).at("result").at("ref") == whole, "whole scope lookup");
+    error(find({{"automationId", "absent"}}, whole), "ELEMENT_NOT_FOUND");
+    // A cut branch and the whole window can still hide a match.
+    error(find({{"automationId", "another"}}, rows.at(2).at("ref")), "INCOMPLETE_SNAPSHOT");
+    error(find({{"automationId", "button"}}, rows.at(0).at("ref")), "INCOMPLETE_SNAPSHOT");
+    error(find({{"automationId", "button"}}, nullptr), "INCOMPLETE_SNAPSHOT");
+    error(find({{"name", "Duplicate"}}, nullptr), "AMBIGUOUS_ELEMENT");
+    check(request(agent, "getElementInfo", {{"ref", rows.at(2).at("ref")}}).at("result").at("partial") == true
+          && !request(agent, "getElementInfo", {{"ref", whole}}).at("result").contains("partial"),
+          "live info keeps capture completeness");
+    // Without named rows a truncated snapshot proves nothing about any scope.
+    fixture.partialRows.clear();
+    const auto unmarked = request(agent, "snapshot", {{"windowId", "42"}}).at("result");
+    error(request(agent, "findElement", {{"snapshotId", unmarked.at("snapshotId")},
+          {"locator", {{"automationId", "button"}}}, {"scopeRef", unmarked.at("elements")[1].at("ref")}}),
+          "INCOMPLETE_SNAPSHOT");
+    fixture.forceTruncated = false;
+    fixture.partialRows = {1};
+    error(request(agent, "snapshot", {{"windowId", "42"}}), "WORKER_PROTOCOL");
 }
 
 void history() {
@@ -226,6 +273,7 @@ void workerTimeout(bool afterDispatch) {
 int main() {
     try {
         core();
+        completeness();
         history();
         framing();
         deadline();

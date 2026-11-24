@@ -61,6 +61,7 @@ mvn '-Ddesktop.windowsIT=true' '-Ddesktop.csharpIT=true' "-Ddesktop.csharpWorker
 - [OS·런타임 호환성 및 레거시 검증 전략](docs/COMPATIBILITY.md)
 - [빌드·테스트 결과와 남은 실기기 시험](docs/TEST-RESULTS.md)
 - [Win32·MFC·VCL·Swing/AWT·WPF·WinForms 호환성 및 재현 명령](docs/UI-FRAMEWORK-COMPATIBILITY.md)
+- [소유 모달·부분 스냅샷·AWT Invoke 결함의 원인, 개선과 남은 Provider 제약](docs/UIA-AGENT-DEFECTS.md)
 
 ## Windows 실기기 및 레거시 검증
 

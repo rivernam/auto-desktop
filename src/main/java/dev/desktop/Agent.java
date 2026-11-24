@@ -113,7 +113,12 @@ public final class Agent {
         actions.checkUnused(id);
         String ref = string(request, "ref", 128);
         DesktopSnapshot.Element target = currentSnapshot().resolve(ref);
-        return actions.dispatch(adapter, id, action, target, request.path("value"));
+        JsonNode result = actions.dispatch(adapter, id, action, target, request.path("value"));
+        // The provider accepted the call. Only the application can show that it had an effect.
+        if (result instanceof ObjectNode reply && !reply.has("effectVerified")) {
+            return reply.deepCopy().put("effectVerified", false);
+        }
+        return result;
     }
 
     private static String string(ObjectNode node, String field, int limit) {

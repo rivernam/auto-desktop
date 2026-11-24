@@ -11,6 +11,7 @@ import com.sun.jna.platform.win32.Ole32;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 import com.sun.jna.win32.StdCallLibrary;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -30,6 +31,15 @@ final class UiaCom implements AutoCloseable {
         Pointer OpenInputDesktop(int flags, int inherit, int access);
         int CloseDesktop(Pointer desktop);
         int GetUserObjectInformationW(Pointer obj, int index, Pointer data, int bytes, IntByReference used);
+        boolean EnumWindows(WindowVisitor visitor, Pointer data);
+        Pointer GetWindow(Pointer window, int command);
+        Pointer GetAncestor(Pointer window, int flags);
+        Pointer GetDesktopWindow();
+        boolean IsWindowVisible(Pointer window);
+    }
+
+    public interface WindowVisitor extends StdCallLibrary.StdCallCallback {
+        boolean callback(Pointer window, Pointer data);
     }
 
     public interface AutomationApi extends StdCallLibrary {
@@ -184,6 +194,34 @@ final class UiaCom implements AutoCloseable {
         checked(vcall(object.pointer(), slot, call));
         Pointer value = out.getValue();
         return nullable && value == null ? null : new Ref(value);
+    }
+
+    private static long handle(Pointer window) { return Pointer.nativeValue(window) & 0xffff_ffffL; }
+
+    /**
+     * The owner of a visible top-level window, or 0 when the window is hidden, unowned or a child.
+     * UI Automation places an owned window below its owner in every view, never below the desktop.
+     */
+    long owner(long hwnd) {
+        thread();
+        var api = DesktopApi.INSTANCE;
+        Pointer window = Pointer.createConstant(hwnd);
+        if (!api.IsWindowVisible(window) || handle(api.GetAncestor(window, 1)) != handle(api.GetDesktopWindow()))
+            return 0; // GA_PARENT
+        return handle(api.GetWindow(window, 4)); // GW_OWNER
+    }
+
+    /** Visible, owned top-level windows in Z order as {window, owner} pairs. */
+    long[][] ownedWindows(int limit) {
+        thread();
+        var found = new ArrayList<long[]>();
+        DesktopApi.INSTANCE.EnumWindows((window, data) -> {
+            long hwnd = handle(window);
+            long owner = owner(hwnd);
+            if (owner != 0) found.add(new long[]{hwnd, owner});
+            return found.size() < limit;
+        }, null);
+        return found.toArray(long[][]::new);
     }
 
     Ref root() { return output(client, 5, false); }
