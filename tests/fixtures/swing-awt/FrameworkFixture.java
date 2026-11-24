@@ -432,8 +432,9 @@ public final class FrameworkFixture {
     private boolean consume(String name) {
         try {
             return Files.deleteIfExists(stateDirectory.resolve(name));
-        } catch (IOException failure) {
-            throw new UncheckedIOException("Consuming " + name, failure);
+        } catch (IOException busy) {
+            // The writer still holds the command file. The next poll consumes it.
+            return false;
         }
     }
 
