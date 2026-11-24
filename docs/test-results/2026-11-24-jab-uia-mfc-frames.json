@@ -1,0 +1,168 @@
+{
+ "schema": 1,
+ "date": "2026-11-24",
+ "purpose": "MFC SDI frame, MDI frame and property sheet opened through Invoke on the dialog fixture, then listed and captured by each UI Automation agent. Run by hand after the regression, which covers the dialog only.",
+ "fixture": "tests/fixtures/mfc built with MSVC 14.44 and the MFC component, x64",
+ "agents": {
+  "java": "Java/JNA, --backend jna",
+  "cpp": "C++, default UI Automation backend"
+ },
+ "results": {
+  "java": {
+   "Open SDI frame": {
+    "invoke": "OK",
+    "windows": [
+     {
+      "windowId": "10750724",
+      "name": "<title> SDI",
+      "owned": false,
+      "elements": 3,
+      "truncated": false,
+      "roles": {
+       "Window": 1,
+       "Edit": 1,
+       "TitleBar": 1
+      },
+      "rootClass": "AfxFrameOrView140su",
+      "named": [
+       "MFC frames 5d2ce850 SDI"
+      ]
+     }
+    ]
+   },
+   "Open MDI frame": {
+    "invoke": "OK",
+    "windows": [
+     {
+      "windowId": "4197128",
+      "name": "<title> MDI",
+      "owned": false,
+      "elements": 9,
+      "truncated": false,
+      "roles": {
+       "Window": 3,
+       "Pane": 1,
+       "Edit": 2,
+       "TitleBar": 3
+      },
+      "rootClass": "AfxMDIFrame140su",
+      "named": [
+       "MFC frames 5d2ce850 MDI",
+       "Fixture document two",
+       "Fixture document one"
+      ]
+     }
+    ]
+   },
+   "Open property sheet": {
+    "invoke": "OK",
+    "windows": [
+     {
+      "windowId": "54921604",
+      "name": "<title> properties",
+      "owned": true,
+      "elements": 10,
+      "truncated": false,
+      "roles": {
+       "Window": 1,
+       "Text": 1,
+       "Edit": 1,
+       "Button": 3,
+       "Tab": 1,
+       "TabItem": 2,
+       "TitleBar": 1
+      },
+      "rootClass": "#32770",
+      "named": [
+       "MFC frames 5d2ce850 properties",
+       "확인",
+       "취소",
+       "적용(A)",
+       "General",
+       "Advanced"
+      ]
+     }
+    ],
+    "closed": true
+   }
+  },
+  "cpp": {
+   "Open SDI frame": {
+    "invoke": "OK",
+    "windows": [
+     {
+      "windowId": "4262664",
+      "name": "<title> SDI",
+      "owned": false,
+      "elements": 3,
+      "truncated": false,
+      "roles": {
+       "Window": 1,
+       "Edit": 1,
+       "TitleBar": 1
+      },
+      "rootClass": "AfxFrameOrView140su",
+      "named": [
+       "MFC frames 52ea1544 SDI"
+      ]
+     }
+    ]
+   },
+   "Open MDI frame": {
+    "invoke": "OK",
+    "windows": [
+     {
+      "windowId": "5180506",
+      "name": "<title> MDI",
+      "owned": false,
+      "elements": 9,
+      "truncated": false,
+      "roles": {
+       "Window": 3,
+       "Pane": 1,
+       "Edit": 2,
+       "TitleBar": 3
+      },
+      "rootClass": "AfxMDIFrame140su",
+      "named": [
+       "MFC frames 52ea1544 MDI",
+       "Fixture document two",
+       "Fixture document one"
+      ]
+     }
+    ]
+   },
+   "Open property sheet": {
+    "invoke": "OK",
+    "windows": [
+     {
+      "windowId": "54987140",
+      "name": "<title> properties",
+      "owned": true,
+      "elements": 10,
+      "truncated": false,
+      "roles": {
+       "Window": 1,
+       "Text": 1,
+       "Edit": 1,
+       "Button": 3,
+       "Tab": 1,
+       "TabItem": 2,
+       "TitleBar": 1
+      },
+      "rootClass": "#32770",
+      "named": [
+       "MFC frames 52ea1544 properties",
+       "확인",
+       "취소",
+       "적용(A)",
+       "General",
+       "Advanced"
+      ]
+     }
+    ],
+    "closed": true
+   }
+  }
+ }
+}

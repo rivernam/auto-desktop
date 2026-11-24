@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sun.jna.platform.win32.Kernel32;
 import dev.desktop.protocol.Utf8Frames;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,7 +27,15 @@ public final class Cli {
             .enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
 
     public static void main(String[] args) throws IOException {
-        System.exit(run(args, System.in, System.out));
+        int status = run(args, System.in, System.out);
+        System.out.flush();
+        // A provider thread that never returned holds native state that a normal exit would wait on.
+        if (JnaDesktopAdapter.abandonedNativeThread() || JabBridge.detachWouldBlock()) {
+            System.err.flush();
+            // Unloading Java Access Bridge sends untimed messages to every JVM, so library detach is skipped.
+            Kernel32.INSTANCE.TerminateProcess(Kernel32.INSTANCE.GetCurrentProcess(), status);
+        }
+        System.exit(status);
     }
 
     static int run(String[] args, InputStream input, OutputStream output) throws IOException {
@@ -34,6 +43,7 @@ public final class Cli {
         Set<String> allowedActions = new HashSet<>();
         Path worker = null;
         String backend = null;
+        String jabLibrary = null;
         DesktopAdapter selected;
         try {
             for (int i = 0; i < args.length; i += 2) {
@@ -41,9 +51,14 @@ public final class Cli {
                 String value = args[i + 1];
                 switch (args[i]) {
                     case "--backend" -> {
-                        if (backend != null || !Set.of("jna", "powershell").contains(value))
+                        if (backend != null || !Set.of("jna", "jab", "powershell").contains(value))
                             throw new IllegalArgumentException("Unknown or repeated backend.");
                         backend = value;
+                    }
+                    case "--jab-dll" -> {
+                        if (jabLibrary != null || !Path.of(value).isAbsolute())
+                            throw new IllegalArgumentException("Specify one absolute Java Access Bridge library.");
+                        jabLibrary = value;
                     }
                     case "--csharp-worker" -> {
                         if (worker != null) throw new IllegalArgumentException("Specify one C# worker.");
@@ -64,10 +79,15 @@ public final class Cli {
                     default -> throw new IllegalArgumentException();
                 }
             }
+            if (jabLibrary != null) {
+                if (!"jab".equals(backend)) throw new IllegalArgumentException("--jab-dll requires --backend jab.");
+                System.setProperty(JabBridge.LIBRARY_PROPERTY, jabLibrary);
+            }
             selected = DesktopAdapters.open(worker, backend);
         } catch (IllegalArgumentException invalid) {
             System.err.println("Usage: java -jar desktop-agent.jar [--allow-pid PID] "
-                    + "[--allow-action invoke] [--allow-action setValue] [--backend jna|powershell OR --csharp-worker ABSOLUTE_EXE_PATH]");
+                    + "[--allow-action invoke] [--allow-action setValue] "
+                    + "[--backend jna|jab|powershell OR --csharp-worker ABSOLUTE_EXE_PATH] [--jab-dll ABSOLUTE_DLL_PATH]");
             System.err.println("Each allowed PID must identify a running process with a readable start time.");
             System.err.println("The optional C# worker path must identify an existing .exe.");
             return 2;

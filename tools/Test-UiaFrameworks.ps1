@@ -3,7 +3,8 @@
 param(
     [ValidateSet('Win32', 'Mfc', 'DelphiVcl', 'Swing', 'Awt', 'Wpf', 'WinFormsFramework', 'WinFormsModern', 'Qt', 'ChromiumElectron', 'CustomRendering')]
     [string[]]$Framework = @('Win32', 'Mfc', 'DelphiVcl', 'Swing', 'Awt', 'Wpf', 'WinFormsFramework', 'WinFormsModern'),
-    [ValidateSet('JNA', 'Cpp', 'Both')][string]$Backend = 'Both',
+    # Jab and CppJab select the Java Access Bridge backend of the Java and C++ Agents. BothJab runs the two.
+    [ValidateSet('JNA', 'Cpp', 'Both', 'Jab', 'CppJab', 'BothJab')][string]$Backend = 'Both',
     [ValidateSet('Functional', 'Performance')][string]$Mode = 'Functional',
     [string]$Jar = 'target/desktop-agent.jar',
     [string]$CppAgent = 'target/cpp-agent/Release/cpp-agent.exe',
@@ -16,12 +17,19 @@ param(
     [ValidateRange(0, 10)][int]$Warmup = 2,
     [switch]$CppFirst,
     [switch]$EnableJab,
+    # Java Access Bridge runs: an explicit bridge library, a second Java runtime for the multi-JVM check,
+    # and the 121 s wait that proves reference expiry.
+    [string]$JabDll,
+    [string]$SecondFixtureJava,
+    [switch]$IncludeExpiry,
     [switch]$DiagnoseAccessibility,
     [switch]$RequirePass
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'UiaTest.Common.ps1')
 . (Join-Path $PSScriptRoot 'UiaFrameworkCases.ps1')
+. (Join-Path $PSScriptRoot 'JabFrameworkCases.ps1')
+$bridgeRun = $Backend -in 'Jab', 'CppJab', 'BothJab'
 
 function Get-FrameworkLaunch([string]$name) {
     $wpf = Join-Path $PSScriptRoot '../src/test/resources/windows-gui-fixture.ps1'
@@ -45,7 +53,8 @@ function Get-FrameworkLaunch([string]$name) {
         $java = Get-Command $FixtureJava -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
         if (!$java) { return @{ reason = 'Fixture Java runtime missing.' } }
         $classPath = [IO.Path]::GetDirectoryName($binary)
-        $jab = if ($EnableJab) { '-Djavax.accessibility.assistive_technologies=com.sun.java.accessibility.AccessBridge ' }
+        # The bridge is enabled for this fixture process only. No user or system setting is changed.
+        $jab = if ($EnableJab -or $bridgeRun) { '-Djavax.accessibility.assistive_technologies=com.sun.java.accessibility.AccessBridge ' }
         return @{ executable = $java.Source; before = "$jab-cp ""$classPath"" FrameworkFixture $($name.ToLowerInvariant())";
             source = $binary; version = (Read-Diagnostic $java.Source '-version').stderr }
     }
@@ -129,7 +138,7 @@ function Get-FrameworkEnvironment {
     $info.driverBitness = [IntPtr]::Size * 8
     $info.git = Get-UiaGitInfo
     $info.javaAgentOptions = $JvmOptions
-    $info.jab = [ordered]@{ fixtureProcessOverride = [bool]$EnableJab; registryOrUserSettingsChanged = $false }
+    $info.jab = [ordered]@{ fixtureProcessOverride = [bool]($EnableJab -or $bridgeRun); registryOrUserSettingsChanged = $false }
     if ($env:OS -eq 'Windows_NT') {
         $nt = Get-ItemProperty 'HKLM:/SOFTWARE/Microsoft/Windows NT/CurrentVersion' -ErrorAction SilentlyContinue
         $info.windows = @{ edition = $nt.EditionID; version = $nt.DisplayVersion; build = "$($nt.CurrentBuildNumber).$($nt.UBR)" }
@@ -222,11 +231,15 @@ $FixtureRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFrom
 $Jar = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Jar)
 $CppAgent = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($CppAgent)
 $javaExe = (Get-Command java.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source
-$order = if ($Backend -ne 'Both') { @($Backend) } elseif ($CppFirst) { @('Cpp', 'JNA') } else { @('JNA', 'Cpp') }
+$order = if ($Backend -eq 'Both') { @('JNA', 'Cpp') } elseif ($Backend -eq 'BothJab') { @('Jab', 'CppJab') } else { @($Backend) }
+if ($CppFirst) { [array]::Reverse($order) }
+if ($JabDll) { $JabDll = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($JabDll) }
+if ($SecondFixtureJava) { $SecondFixtureJava = (Get-Command $SecondFixtureJava -CommandType Application | Select-Object -First 1).Source }
 $report = [ordered]@{
     schema = 2; mode = $Mode; startedUtc = [DateTime]::UtcNow.ToString('o')
     options = @{ frameworks = $Framework; order = $order; pairs = $Pairs; iterations = $Iterations; warmup = $Warmup;
-        fixtureRoot = $FixtureRoot; fixtureJava = $FixtureJava; enableJab = [bool]$EnableJab;
+        fixtureRoot = $FixtureRoot; fixtureJava = $FixtureJava; enableJab = [bool]($EnableJab -or $bridgeRun);
+        jabDll = $JabDll; secondFixtureJava = $SecondFixtureJava; includeExpiry = [bool]$IncludeExpiry;
         accessibilityDiagnostics = [bool]$DiagnoseAccessibility }
     invocation = $MyInvocation.Line
     environment = Get-FrameworkEnvironment
@@ -243,8 +256,9 @@ try {
                 $row = [ordered]@{ framework = $name; backend = $implementation; status = 'NOT_RUN'; fixture = $fixtureRecord }
                 if ($launch.reason) { $row.reason = $launch.reason }
                 elseif (!$report.environment.interactiveDesktop) { $row.reason = 'An unlocked interactive Windows desktop is required.' }
-                elseif ($implementation -eq 'JNA' -and (!$javaExe -or ![IO.File]::Exists($Jar))) { $row.reason = 'JNA runtime or JAR is missing.' }
-                elseif ($implementation -eq 'Cpp' -and ![IO.File]::Exists($CppAgent)) { $row.reason = 'C++ Agent executable is missing.' }
+                elseif ((Test-JabBackend $implementation) -and $name -notin 'Swing', 'Awt') { $row.reason = 'Java Access Bridge serves AWT and Swing windows only.' }
+                elseif ($implementation -in 'JNA', 'Jab' -and (!$javaExe -or ![IO.File]::Exists($Jar))) { $row.reason = 'JNA runtime or JAR is missing.' }
+                elseif ($implementation -in 'Cpp', 'CppJab' -and ![IO.File]::Exists($CppAgent)) { $row.reason = 'C++ Agent executable is missing.' }
                 $report.results.Add($row)
                 $row
             }
@@ -267,19 +281,22 @@ try {
             if ([IO.File]::Exists((Join-Path $stateDir 'framework.txt'))) { $fixtureRecord.runtime = Read-State 'framework.txt' }
             if ([IO.File]::Exists((Join-Path $stateDir 'runtime.txt'))) { $fixtureRecord.runtime = Read-State 'runtime.txt' }
             $fixtureRecord.sha256 = (Get-FileHash -LiteralPath $launch.source).Hash
-            $spec = Get-FrameworkSpec $name
+            $spec = if ($bridgeRun) { Get-JabSpec } else { Get-FrameworkSpec $name }
+            if ($bridgeRun) { $fixtureRecord.bridge = Get-JabEnvironment $launch }
             if ($eligible.Count -eq 2) {
                 foreach ($row in $eligible) { Read-FrameworkBaseline $row }
                 $report.comparisons.Add((Compare-FrameworkTrees $name $eligible))
             }
-            foreach ($row in $eligible) { Invoke-FrameworkFunction $row $spec }
+            foreach ($row in $eligible) {
+                if ($bridgeRun) { Invoke-JabFunction $row $spec $launch } else { Invoke-FrameworkFunction $row $spec }
+            }
             $observedWindow = ($eligible | Where-Object { $_.windowId } | Select-Object -First 1).windowId
             if ($observedWindow -match '^\d+$') {
                 try { $fixtureRecord.effectiveDpi = [FrameworkInputDesktop]::Dpi([long]$observedWindow, $fixture.Id) } catch {}
             }
             if ($DiagnoseAccessibility) { $fixtureRecord.accessibility = Get-FrameworkAccessibility $name $eligible }
             if ($Mode -eq 'Performance') { Measure-FrameworkSessions $eligible $spec }
-            Test-FrameworkLifetime $eligible
+            if ($bridgeRun) { Test-JabLifetime $eligible $launch } else { Test-FrameworkLifetime $eligible }
         } catch {
             foreach ($row in $eligible) {
                 $row.status = 'FAIL'

@@ -268,10 +268,104 @@ void workerTimeout(bool afterDispatch) {
     check(created != caller && created == destroyed, "adapter released on its owning thread");
     check(performed == (afterDispatch ? 1 : 0), "timeout did not allow a late or duplicate mutation");
 }
+// A second provider behind the same core: its own backend name, capability detail, role and
+// completeness diagnostics, idle ticks, and errors that leave the session usable.
+class Bridged final : public DesktopAdapter {
+public:
+    bool loaded = true;
+    bool silent = false;
+    int* ticks = nullptr;
+    std::thread::id* tickThread = nullptr;
+
+    const char* backend() const override { return "JAB"; }
+    Availability availability() override {
+        Availability result;
+        result.available = loaded;
+        result.reason = "The specified Java Access Bridge library does not exist.";
+        if (loaded) result.javaWindows = std::make_pair(3, 2);
+        return result;
+    }
+    std::chrono::milliseconds idleInterval() const override { return 10ms; }
+    void idle() noexcept override {
+        if (ticks) ++*ticks;
+        if (tickThread) *tickThread = std::this_thread::get_id();
+    }
+    std::vector<Window> windows() override {
+        if (!loaded) throw Error("BACKEND_UNAVAILABLE", "The specified Java Access Bridge library does not exist.");
+        if (silent) throw Error("TARGET_NOT_RESPONDING", "A JVM is not answering Java Access Bridge.");
+        return {{"7", 5, "Swing"}};
+    }
+    Capture capture(const std::string&, std::optional<std::size_t>, int, int) override {
+        Element root;
+        root.pid = 5;
+        root.identity = {"Swing", "Window", "", ""};
+        root.identity.nativeRole = "frame";
+        root.partial = true;
+        root.partialReason = "limit";
+        Element gauge;
+        gauge.pid = 5;
+        gauge.parent = 0;
+        gauge.identity = {"Gauge", "Custom", "", ""};
+        gauge.identity.nativeRole = "dial";
+        return {{root, gauge}, true};
+    }
+    Element info(std::size_t index) override { return capture("7", {}, 1, 2).elements.at(index); }
+    void perform(Action, std::size_t, const std::string&, const BeforeMutation& before) override { before(); }
+    void clear() noexcept override {}
+};
+
+void secondBackend() {
+    int ticks = 0;
+    std::thread::id created, ticked;
+    Bridged* provider = nullptr;
+    {
+        SessionWorker worker([&] {
+            created = std::this_thread::get_id();
+            auto adapter = std::make_unique<Bridged>();
+            adapter->ticks = &ticks;
+            adapter->tickThread = &ticked;
+            provider = adapter.get();
+            return adapter;
+        }, "bridge", [](int) { return true; }, {Action::invoke}, 2000ms, "JAB");
+        const auto caps = worker.handle({{"id", "caps"}, {"op", "getCapabilities"}}).at("result");
+        check(caps.at("backend") == "JAB" && caps.at("available") == true && caps.at("bridge").at("javaWindows") == 3
+              && caps.at("bridge").at("connectedWindows") == 2 && caps.at("operations").size() == 7,
+              "bridge capabilities carry the window counts");
+        const auto snap = worker.handle({{"id", "snap"}, {"op", "snapshot"}, {"windowId", "7"}}).at("result");
+        const auto& rows = snap.at("elements");
+        check(rows[0].at("backend") == "JAB" && rows[0].at("nativeRole") == "frame"
+              && rows[0].at("partialReason") == "limit" && rows[1].at("role") == "Custom"
+              && rows[1].at("nativeRole") == "dial" && !rows[1].contains("partialReason"),
+              "rows carry the provider role and the cause of a cut");
+        const auto live = worker.handle({{"id", "info"}, {"op", "getElementInfo"}, {"ref", rows[0].at("ref")}});
+        check(live.at("result").at("partialReason") == "limit" && live.at("result").at("nativeRole") == "frame",
+              "a live read keeps the completeness of the capture");
+        provider->silent = true;
+        error(worker.handle({{"id", "busy"}, {"op", "listWindows"}}), "TARGET_NOT_RESPONDING");
+        provider->silent = false;
+        check(worker.handle({{"id", "again"}, {"op", "listWindows"}}).at("ok") == true,
+              "a silent target does not retire the session");
+        std::this_thread::sleep_for(200ms);
+        check(worker.handle({{"id", "late"}, {"op", "listWindows"}}).at("ok") == true, "idle ticks leave the session usable");
+    }
+    check(ticks >= 3 && ticked == created, "an idle session is ticked on the thread that owns the provider");
+
+    SessionWorker missing([] {
+        auto adapter = std::make_unique<Bridged>();
+        adapter->loaded = false;
+        return adapter;
+    }, "missing", [](int) { return true; }, {}, 2000ms, "JAB");
+    const auto caps = missing.handle({{"id", "caps"}, {"op", "getCapabilities"}}).at("result");
+    check(caps.at("backend") == "JAB" && caps.at("available") == false && caps.at("operations").empty()
+          && caps.at("reason") == "The specified Java Access Bridge library does not exist." && !caps.contains("bridge"),
+          "a provider that cannot start is a capability with its reason, on its own backend");
+    error(missing.handle({{"id", "list"}, {"op", "listWindows"}}), "BACKEND_UNAVAILABLE");
+}
 } // namespace
 
 int main() {
     try {
+        secondBackend();
         core();
         completeness();
         history();

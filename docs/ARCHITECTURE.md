@@ -12,7 +12,8 @@
                          │  실행 정책, 중복 ID, 결과 미상 처리
                          └─ DesktopAdapter
                               ├─ WindowsAdapter → PowerShell 또는 C# → UIAutomationClient
-                              ├─ JnaDesktopAdapter → MTA → UI Automation COM
+                              ├─ JnaDesktopAdapter → 전용 스레드 → UI Automation COM (JnaUiaSession)
+                              │                                  또는 Java Access Bridge (JabSession)
                               └─ 어댑터 미탑재 환경 → 미가용 capability
 ```
 
@@ -29,6 +30,8 @@
 
 기본 모드의 WindowsAdapter는 첫 백엔드 요청 시 JAR에 포함된 스크립트를 로컬 임시 파일로 추출하고 Windows PowerShell을 실행한다. 선택형 C# 모드에서는 CLI 시작 시 받은 절대 경로의 EXE를 같은 파이프 계약으로 실행한다. 두 모드 모두 작업 프로세스의 MTA 스레드가 관리형 UIA 요소와 Control View 트리를 소유한다. 스냅샷에는 공개 속성만 투영하고 네이티브 객체는 최근 캡처 하나에만 보관한다. 다음 캡처가 기존 객체에 대한 참조를 해제하며 프로세스 종료가 최종 리소스 해제 경계다. 스레드 풀에서 파이프 쓰기와 응답 읽기를 수행하며 Java 호출자는 최대 10초 기다린다. 제한을 넘기거나 응답을 해석할 수 없으면 작업 프로세스를 폐기한다. 다음 요청에서 새 프로세스를 시작할 수 있다. 변경 명령 전송 후 응답을 잃으면 결과가 불명확하므로 자동 재시도하지 않는다.
 
+`--backend jab`은 같은 JNA 호스트에 Java Access Bridge 세션을 올린다. Swing과 AWT 창을 같은 명령으로 탐색하고 조작하며, 한 세션은 한 백엔드만 쓴다. 변경 요청을 다른 백엔드로 다시 보내는 경로는 없다. C++ Agent도 같은 계약의 Adapter를 가진다. 여러 접근성 기술을 한 Agent에 두는 방식과 UIA·JAB의 공존 규칙은 [Java Access Bridge Adapter](JAVA-ACCESS-BRIDGE.md)에 있다.
+
 선택형 JNA 어댑터에서는 하나의 MTA 스레드가 COM 세션과 참조를 소유한다. 대기열의 요청 취소는 해당 요청에만 영향을 준다. 이미 인수된 호출이 타임아웃되면 어댑터를 폐기하고 새 요청을 막으며, COM 해제는 호출 반환 뒤에 수행한다. 별도 프로세스는 중단된 네이티브 호출이나 충돌의 격리를 위한 후보로 유지한다. [JNA 채택 및 장애 격리](JNA.md)
 
 CLI는 대상 앱과 같은 사용자·로그인 세션에서 실행한다. 일반 권한과 높은 무결성 수준으로 실행한 프로세스 사이에는 UI 접근 제한이 있다. GUI 작업을 Windows Session 0의 서비스에서 직접 실행하는 방식은 지원하지 않는다. 후속 서비스 모델에서는 서비스가 작업 큐를 관리하고, 사용자의 대화형 세션에서 실행한 별도 워커가 실제 GUI에 접근하도록 한다. Linux에서도 사용자 접근성 버스와 디스플레이 자격 증명이 해당 GUI 세션에 속한다.
@@ -39,6 +42,7 @@ CLI는 대상 앱과 같은 사용자·로그인 세션에서 실행한다. 일�
 |---|---|---|
 | 0 | 두 참고 프로젝트, OS 지원 범위, 런타임·네이티브 연동 대안 검토 | 기술 결정서와 호환성 표 |
 | 1 | UIA 트리와 패턴 워커, Java 명령·정책·참조 관리, 지속형 CLI, 모킹 및 WPF 테스트 | Linux 빌드·단위 테스트와 별도로 Windows 10/11에서 앱의 값·클릭 카운터 및 커서 전후 좌표 확인 |
+| 1b | Java Access Bridge Adapter. Swing과 AWT 창의 트리, Locator, 버튼 실행과 텍스트 입력 (Java/JNA와 C++) | Windows 11에서 Java 17·23 대상 JVM의 실제 카운터·입력값·모달 상태, 참조 무효화와 핸들 반환 확인. 구형 JVM과 x86은 미실행 |
 | 2 | XP SP3/x86과 XP Embedded 이미지에서 실행 가능한 JVM·Win32 헬퍼 조합 조사. MSAA의 IAccessible, accDoDefaultAction, 속성 조회 구현. UIA 설치본별 탐지 | 현대 Windows와 동일 JSON 계약 테스트, 구형 컨트롤의 지원·미지원 패턴, 실제 x86/x64 조합 및 리소스 회수 결과 |
 | 3 | Ubuntu 22.04에서 AT-SPI2/D-Bus 탐색 및 Action·EditableText 어댑터 개발. CentOS 5는 AT-SPI1/CORBA와 구형 ABI로 별도 빌드. CentOS 6/7·RHEL은 설치된 접근성 버스 탐지 | 각 이미지와 데스크톱에서 직접 수행한 트리·동작 테스트. X11의 XTest·캡처와 Wayland RemoteDesktop/ScreenCast 포털의 동의·권한 결과를 각각 기록 |
 | 4 | 명령 큐·작업 상태·heartbeat, 지속적인 중복 방지, 재접속, 세션별 워커 감독, 인증된 로컬 IPC와 원격 명령 계약 | 지연·충돌·재시작 시 상태 보존 및 미확인 변경의 중복 실행 방지 시험. 중앙 서버 구현은 별도 범위 |

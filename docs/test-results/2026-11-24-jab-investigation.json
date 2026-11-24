@@ -1,0 +1,480 @@
+{
+ "schema": 1,
+ "date": "2026-11-24",
+ "purpose": "Experiments that shaped the Java Access Bridge adapter and the environment facts behind every NOT_RUN entry. Run by hand on the same Windows 11 host as the functional reports. The regression runner repeats the ones marked repeatedByRunner.",
+ "host": {
+  "windows": "Windows 11 Pro 25H2 build 26200",
+  "cpu": "12th Gen Intel Core i7-1255U, 12 logical processors",
+  "displayScale": "125 % (effective DPI 120), one monitor"
+ },
+ "installedJavaRuntimes": [
+  {
+   "path": "C:\\Program Files\\Java\\jdk-17",
+   "version": "Oracle JDK 17.0.10+11 LTS",
+   "architecture": "x64",
+   "bridgeLibraries": [
+    "bin\\windowsaccessbridge-64.dll 17.0.10.0",
+    "bin\\javaaccessbridge.dll 17.0.10.0"
+   ],
+   "registered": "HKLM\\SOFTWARE\\JavaSoft\\JDK\\17.0.10"
+  },
+  {
+   "path": "%USERPROFILE%\\.p2\\pool\\plugins\\org.eclipse.justj.openjdk.hotspot.jre.full.win32.x86_64_23.0.2.v20250131-0604\\jre",
+   "version": "Eclipse Adoptium 23.0.2+7 (bundled with an Eclipse IDE installation)",
+   "architecture": "x64",
+   "bridgeLibraries": [
+    "bin\\windowsaccessbridge-64.dll",
+    "bin\\javaaccessbridge.dll"
+   ],
+   "registered": false
+  },
+  {
+   "path": "C:\\Windows\\System32\\WindowsAccessBridge-64.dll",
+   "version": "17.0.10.0, identical to the JDK 17 file",
+   "architecture": "x64"
+  }
+ ],
+ "notInstalled": {
+  "javaRuntimes": [
+   "Java 6",
+   "Java 7",
+   "Java 8",
+   "Java 11",
+   "Java 21",
+   "any 32-bit Java runtime"
+  ],
+  "bridgeLibraries": [
+   "WindowsAccessBridge-32.dll",
+   "legacy WindowsAccessBridge.dll"
+  ],
+  "policy": "No runtime was downloaded or installed for this work. Every combination that needs one is NOT_RUN."
+ },
+ "bridgeIdentity": {
+  "tool": "a throwaway Java program that called JabBridge directly",
+  "observations": [
+   {
+    "targetJvm": "Oracle JDK 17.0.10 x64, Swing",
+    "vmIdIsWindow": true,
+    "vmWindowClass": "#32770",
+    "vmWindowProcessEqualsTarget": true,
+    "hwndRoundTrip": true,
+    "bridgeBounds": [
+     224,
+     224,
+     737,
+     670
+    ],
+    "win32WindowRect": [
+     224,
+     224,
+     737,
+     670
+    ]
+   },
+   {
+    "targetJvm": "Oracle JDK 17.0.10 x64, AWT",
+    "vmIdIsWindow": true,
+    "vmWindowClass": "#32770",
+    "vmWindowProcessEqualsTarget": true,
+    "hwndRoundTrip": true,
+    "bridgeBounds": [
+     32,
+     32,
+     570,
+     422
+    ],
+    "win32WindowRect": [
+     32,
+     32,
+     570,
+     422
+    ]
+   },
+   {
+    "targetJvm": "Eclipse Adoptium 23.0.2 x64, Swing",
+    "vmIdIsWindow": true,
+    "vmWindowClass": "#32770",
+    "vmWindowProcessEqualsTarget": true,
+    "hwndRoundTrip": true,
+    "bridgeBounds": [
+     64,
+     64,
+     737,
+     670
+    ],
+    "win32WindowRect": [
+     64,
+     64,
+     737,
+     670
+    ],
+    "note": "Reached through the JDK 17 WindowsAccessBridge-64.dll. getVersionInfo reported 23.0.2 for the JVM side."
+   },
+   {
+    "targetJvm": "Oracle JDK 17.0.10 x64, Swing, bridge not enabled",
+    "isJavaWindow": false,
+    "note": "Three bridge-enabled windows were found among 26 visible top-level windows. This one was not."
+   }
+  ],
+  "initializationMs": 364,
+  "isJavaWindowOver26WindowsMs": 10.9,
+  "conclusion": "The JVM identifier is the handle of the bridge window inside the target JVM. Bounds are physical pixels on this 125 % display for Java 17 and 23."
+ },
+ "swingModalClick": {
+  "fixture": "tests/fixtures/swing-awt/FrameworkFixture.java, JButton \"Open fixture modal\" whose listener calls JDialog.setVisible(true)",
+  "firstImplementation": {
+   "invokeReply": "OK, performed=true",
+   "elapsedMs": 8016,
+   "modalOpened": true,
+   "nextRequest": "listWindows ended as TIMEOUT after 10 s and the session was retired",
+   "finding": "doAccessibleActions returned non-zero after the library gave up waiting. The reply buffer of the library is not initialized, so the value carried no information."
+  },
+  "currentImplementation": {
+   "invokeReply": "ACTION_OUTCOME_UNKNOWN",
+   "elapsedMs": 8025,
+   "modalOpened": true,
+   "whileOpen": "listWindows answers TARGET_NOT_RESPONDING within 1 ms",
+   "afterTheFixtureClosedTheDialog": "listWindows answered OK in the same session"
+  },
+  "source": "JDK 17 src.zip, jdk.accessibility/com/sun/java/accessibility/internal/AccessBridge.java: doAccessibleActions runs AccessibleAction.doAccessibleAction through InvocationUtils.invokeAndWait, which posts an InvocationEvent and calls lock.wait() without a timeout (lines 4154-4182 and 7282-7300). javax.swing.AbstractButton.doClick fires the action listeners synchronously.",
+  "conclusion": "JAB_PROVIDER_LIMITATION. A listener that opens a modal dialog keeps the bridge thread of the JVM blocked until the dialog closes.",
+  "repeatedByRunner": "modalOpenedByInvoke and exitWhileTargetSilent in the Swing rows."
+ },
+ "awtTextInput": {
+  "fixture": "java.awt.TextField \"Fixture edit\"",
+  "result": "setTextContents returned FALSE within 6 ms and value.txt kept its content",
+  "source": "AccessBridge.setTextContents returns false unless the context is an AccessibleEditableText (line 4195). java.awt.TextComponent.AccessibleAWTTextComponent implements AccessibleText only.",
+  "conclusion": "JAB_PROVIDER_LIMITATION",
+  "repeatedByRunner": "setValueAndEmpty in the AWT rows."
+ },
+ "awtButton": {
+  "fixture": "java.awt.Button \"Increment fixture counter\"",
+  "result": "doAccessibleActions returned TRUE within 20 ms and count.txt rose by one in every repetition, on both agents",
+  "source": "java.awt.Button.AccessibleAWTButton.doAccessibleAction posts an ActionEvent to the event queue (Button.java lines 631-642), so the call returns before the listener runs.",
+  "harnessNote": "An ad-hoc reader that opened count.txt at the moment of the reply made the fixture's atomic replace fail on Windows. The fixture now retries the replace.",
+  "repeatedByRunner": "invokeAndDuplicateRequest, replacement, modalOpenedByInvoke in the AWT rows."
+ },
+ "x86Agent": {
+  "agent": "target/cpp-agent-x86/Release/cpp-agent.exe --backend jab",
+  "withoutLibrary": {
+   "available": false,
+   "reason": "No WindowsAccessBridge-32.dll was found in the Windows system directory or a registered Java installation.",
+   "listWindows": "BACKEND_UNAVAILABLE"
+  },
+  "with64BitLibrary": {
+   "available": false,
+   "reason": "The Java Access Bridge library does not match this 32-bit agent process.",
+   "listWindows": "BACKEND_UNAVAILABLE"
+  },
+  "status": "NOT_RUN for exploration and actions: no 32-bit bridge library and no 32-bit JVM on this host."
+ },
+ "mfc": {
+  "status": "RUN after the first report",
+  "before": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\atlmfc\\include\\afxwin.h is absent. vswhere lists no ATL or MFC package.",
+  "installed": "Microsoft.VisualStudio.Component.VC.ATLMFC through the Visual Studio Installer, with the approval of the user. atlmfc\\include\\afxwin.h and atlmfc\\lib\\x64\\uafxcw.lib exist afterwards.",
+  "command": "\"C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\setup.exe\" modify --installPath \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\" --add Microsoft.VisualStudio.Component.VC.ATLMFC --quiet --norestart",
+  "firstRun": "18 of 21 on both agents. The modal check failed and two later checks did not run: the fixture wrote the dialog result (canceled) into modal.txt, where the Win32 fixture and the runner use modal-result.txt for the result and modal.txt=closed. The agents had opened, listed, captured and closed the dialog.",
+  "fixtureChange": "tests/fixtures/mfc/fixture.cpp now writes <popup>-result.txt and then closed, as the Win32 fixture does.",
+  "result": "21 of 21 on both agents, identical trees of 79 elements. See 2026-11-24-jab-uia-mfc.json (the working tree held the fixture change, so git.dirty is true) and 2026-11-24-jab-uia-mfc-frames.json.",
+  "notRun": "The x86 MFC build, MSAA comparison of owner-drawn controls beyond the 256-node probe, and menus."
+ },
+ "delphiVcl": {
+  "status": "NOT_RUN",
+  "checked": "dcc32, dcc64, bds and msbuild are not on PATH. No Embarcadero or Borland registry key or installation directory exists. No Free Pascal or Lazarus either.",
+  "required": "An Embarcadero Delphi installation with a licensed Win32 compiler, VCL and DataSnap/MIDAS. The build steps are in tests/fixtures/delphi-vcl/README.md.",
+  "note": "The fixture was not rewritten for another toolkit."
+ },
+ "msaaWinForms": {
+  "tool": "tools/Probe-MsaaChildren.ps1 (IAccessible through oleacc.dll, no UI Automation and no Agent)",
+  "fixture": "tests/fixtures/winforms, .NET Framework CLR 4.0.30319.42000 / 64-bit",
+  "commonControlsPage": [
+   {
+    "role": "page tab list",
+    "windowClass": "WindowsForms10.SysTabControl32.app.0.34f5582_r8_ad1",
+    "childCount": 4,
+    "firstChildren": [
+     {
+      "kind": "childId 1",
+      "role": "page tab",
+      "roleId": 37,
+      "named": true,
+      "defaultAction": "전환",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 2",
+      "role": "page tab",
+      "roleId": 37,
+      "named": true,
+      "defaultAction": "전환",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 3",
+      "role": "page tab",
+      "roleId": 37,
+      "named": true,
+      "defaultAction": "전환",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     }
+    ]
+   },
+   {
+    "role": "list",
+    "windowClass": "ComboLBox",
+    "childCount": 3,
+    "firstChildren": [
+     {
+      "kind": "childId 1",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 2",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 3",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     }
+    ]
+   },
+   {
+    "role": "list",
+    "windowClass": "WindowsForms10.LISTBOX.app.0.34f5582_r8_ad1",
+    "childCount": 3,
+    "firstChildren": [
+     {
+      "kind": "childId 1",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 2",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 3",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     }
+    ]
+   }
+  ],
+  "listSelection": {
+   "call": "accSelect(SELFLAG_TAKESELECTION, 2) on the ListBox",
+   "returned": true,
+   "fixtureStateBefore": "Choice one",
+   "fixtureStateAfter": "Choice one",
+   "finding": "The call returned and the SelectedIndexChanged handler of the application did not run."
+  },
+  "tabActivation": {
+   "call": "accDoDefaultAction(2) on the TabControl",
+   "returned": true,
+   "finding": "The second page became the visible one: the DataGridView and TreeView below were reachable afterwards."
+  },
+  "gridPage": [
+   {
+    "role": "page tab list",
+    "windowClass": "WindowsForms10.SysTabControl32.app.0.34f5582_r8_ad1",
+    "childCount": 5,
+    "firstChildren": [
+     {
+      "kind": "childId 1",
+      "role": "page tab",
+      "roleId": 37,
+      "named": true,
+      "defaultAction": "전환",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 2",
+      "role": "page tab",
+      "roleId": 37,
+      "named": true,
+      "defaultAction": "전환",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 3",
+      "role": "page tab",
+      "roleId": 37,
+      "named": true,
+      "defaultAction": "전환",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     }
+    ]
+   },
+   {
+    "role": "list",
+    "windowClass": "ComboLBox",
+    "childCount": 3,
+    "firstChildren": [
+     {
+      "kind": "childId 1",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 2",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 3",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     }
+    ]
+   },
+   {
+    "role": "list",
+    "windowClass": "WindowsForms10.LISTBOX.app.0.34f5582_r8_ad1",
+    "childCount": 3,
+    "firstChildren": [
+     {
+      "kind": "childId 1",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 2",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 3",
+      "role": "list item",
+      "roleId": 34,
+      "named": true,
+      "defaultAction": "두 번 클릭",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     }
+    ]
+   },
+   {
+    "role": "table",
+    "windowClass": "WindowsForms10.Window.8.app.0.34f5582_r8_ad1",
+    "childCount": 2002,
+    "firstChildren": [
+     {
+      "kind": "object",
+      "role": "row",
+      "roleId": 28,
+      "named": true,
+      "defaultAction": null,
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": "different"
+     },
+     {
+      "kind": "object",
+      "role": "row",
+      "roleId": 28,
+      "named": true,
+      "defaultAction": null,
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": "different"
+     },
+     {
+      "kind": "object",
+      "role": "row",
+      "roleId": 28,
+      "named": true,
+      "defaultAction": null,
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": "different"
+     }
+    ]
+   },
+   {
+    "role": "outline",
+    "windowClass": "WindowsForms10.SysTreeView32.app.0.34f5582_r8_ad1",
+    "childCount": 650,
+    "firstChildren": [
+     {
+      "kind": "childId 638",
+      "role": null,
+      "roleId": 44,
+      "named": true,
+      "defaultAction": "축소",
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 650",
+      "role": null,
+      "roleId": 44,
+      "named": true,
+      "defaultAction": null,
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     },
+     {
+      "kind": "childId 649",
+      "role": null,
+      "roleId": 44,
+      "named": true,
+      "defaultAction": null,
+      "hasIdentityInterface": false,
+      "sameObjectOnRefetch": null
+     }
+    ]
+   }
+  ],
+  "conclusion": "MSAA shows the ListBox items and tabs that UI Automation gives no usable runtime ID for. Each is a simple element named only by its parent window and its position. DataGridView rows are objects without an identity interface, and two fetches of the same row give two COM objects. MSAA therefore offers no identity stronger than position for these elements."
+ }
+}

@@ -41,6 +41,7 @@ private:
 
 Json failure(Json id, const Error& error);
 Json capabilities(const char* backend, bool available);
+Json capabilities(const char* backend, const Availability& availability);
 Json requestId(const Json& request);
 const char* operation(const Json& request);
 bool isMutation(std::string_view op);

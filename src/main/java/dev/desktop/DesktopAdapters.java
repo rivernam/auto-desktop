@@ -10,6 +10,8 @@ final class DesktopAdapters {
     static DesktopAdapter open(Path csharpWorker, String backend) {
         if (backend != null && csharpWorker != null) throw new IllegalArgumentException("Select one backend.");
         if ("jna".equals(backend)) return new JnaDesktopAdapter();
+        // An explicit choice. A Java Access Bridge failure is reported, never answered through UI Automation.
+        if ("jab".equals(backend)) return JnaDesktopAdapter.javaAccessBridge();
         if ("powershell".equals(backend)) return new WindowsAdapter();
         return select(System.getProperty("os.name", ""), csharpWorker);
     }

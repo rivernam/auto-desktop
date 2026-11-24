@@ -15,9 +15,12 @@ public:
     using AdapterFactory = std::function<std::unique_ptr<DesktopAdapter>()>;
 
     SessionWorker(AdapterFactory factory, std::string session, AllowedProcess allowedProcess,
-                  std::set<Action> actions, std::chrono::milliseconds budget = requestBudget);
+                  std::set<Action> actions, std::chrono::milliseconds budget = requestBudget,
+                  std::string backend = "UIA");
     ~SessionWorker();
     Json handle(Json request);
+    // Replaces the default end of a process whose provider thread never returned.
+    void onAbandon(std::function<void()> handler) { abandon_ = std::move(handler); }
 
 private:
     struct Work {
@@ -38,6 +41,8 @@ private:
     CommandHistory history_;
     std::promise<void> exited_;
     const std::chrono::milliseconds budget_;
+    const std::string backend_;
+    std::function<void()> abandon_;
     std::thread thread_;
 };
 } // namespace desktop

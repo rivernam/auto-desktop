@@ -1,12 +1,13 @@
 #include "core/session_worker.hpp"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 
 namespace desktop {
 SessionWorker::SessionWorker(AdapterFactory factory, std::string session, AllowedProcess process,
-                             std::set<Action> actions, std::chrono::milliseconds budget)
-    : budget_(budget),
+                             std::set<Action> actions, std::chrono::milliseconds budget, std::string backend)
+    : budget_(budget), backend_(std::move(backend)),
       thread_([this, factory = std::move(factory), session = std::move(session),
                process = std::move(process), actions = std::move(actions)]() mutable {
           run(factory, session, std::move(process), std::move(actions));
@@ -18,7 +19,8 @@ SessionWorker::~SessionWorker() {
     if (exited_.get_future().wait_for(requestBudget) != std::future_status::ready) {
         // A provider can prevent even Release from returning. End the process
         // so its resources are reclaimed, without unwinding a live COM apartment.
-        std::fputs("UI Automation apartment did not shut down.\n", stderr);
+        std::fputs("The provider session thread did not shut down.\n", stderr);
+        if (abandon_) abandon_();
         std::quick_exit(1);
     }
     thread_.join();
@@ -51,10 +53,11 @@ Json SessionWorker::handle(Json request) {
         const std::lock_guard<std::mutex> lock(mutex_);
         if (stopped_) {
             if (std::string_view(op) == "getCapabilities")
-                return {{"id", std::move(id)}, {"ok", true}, {"result", capabilities("UIA", false)}};
+                return {{"id", std::move(id)}, {"ok", true}, {"result", capabilities(backend_.c_str(), false)}};
             if (isMutation(op) && history_.contains(id.get_ref<const std::string&>()))
                 return failure(std::move(id), {"DUPLICATE_COMMAND", "This command ID has already been dispatched."});
-            return failure(std::move(id), {"BACKEND_UNAVAILABLE", "Restart the retired UI Automation session."});
+            return failure(std::move(id), {"BACKEND_UNAVAILABLE", backend_ == "UIA"
+                ? "Restart the retired UI Automation session." : "Restart the retired provider session."});
         }
         pending_ = work;
     }
@@ -64,7 +67,8 @@ Json SessionWorker::handle(Json request) {
     stop();
     if (dispatched)
         return failure(std::move(id), {"ACTION_OUTCOME_UNKNOWN", "The provider did not confirm the action."});
-    return failure(std::move(id), {"TIMEOUT", "UI Automation exceeded the request deadline."});
+    return failure(std::move(id), {"TIMEOUT", backend_ == "UIA"
+        ? "UI Automation exceeded the request deadline." : "The provider exceeded the request deadline."});
 }
 
 void SessionWorker::run(const AdapterFactory& factory, const std::string& session, AllowedProcess process,
@@ -76,8 +80,11 @@ void SessionWorker::run(const AdapterFactory& factory, const std::string& sessio
         {
             std::unique_lock<std::mutex> lock(mutex_);
             const auto ready = [&] { return stopped_ || pending_; };
-            if (agent && agent->nextExpiry() != Clock::time_point::max()) {
-                ready_.wait_until(lock, agent->nextExpiry(), ready);
+            auto wake = agent ? agent->nextExpiry() : Clock::time_point::max();
+            const auto tick = adapter ? adapter->idleInterval() : std::chrono::milliseconds::zero();
+            if (tick.count() > 0) wake = std::min(wake, Clock::now() + tick);
+            if (wake != Clock::time_point::max()) {
+                ready_.wait_until(lock, wake, ready);
             } else {
                 ready_.wait(lock, ready);
             }
@@ -86,6 +93,7 @@ void SessionWorker::run(const AdapterFactory& factory, const std::string& sessio
         }
         if (!work) {
             agent->expire();
+            adapter->idle();
             continue;
         }
         Json reply;

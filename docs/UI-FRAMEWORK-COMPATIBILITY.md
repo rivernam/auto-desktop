@@ -1,6 +1,8 @@
 # 설비 UI 프레임워크 호환성
 
-2026-11-24에 소유 모달, 부분 스냅샷, AWT Invoke를 고치고 다시 검증했다. 프레임워크별 결과 표와 접근성 기술 절은 그 결과를 반영한다. 성능 수치, 실행 환경과 체크 개수는 2026-11-23 실행의 기록이다. [원인, 조치와 남은 제약](UIA-AGENT-DEFECTS.md)
+2026-11-24에 Java Access Bridge 백엔드를 추가했다. Swing과 AWT의 JAB 결과는 아래 "UIA와 JAB 결과" 표와 [Java Access Bridge Adapter](JAVA-ACCESS-BRIDGE.md)에 있고, 이 문서의 나머지 표는 UIA 백엔드의 결과다. JAB를 넣은 뒤 UIA 회귀를 다시 돌려 같은 결과를 확인했다([원본](test-results/2026-11-24-jab-uia-regression.json)).
+
+같은 날 그에 앞서 소유 모달, 부분 스냅샷, AWT Invoke를 고치고 다시 검증했다. 프레임워크별 결과 표와 접근성 기술 절은 그 결과를 반영한다. 성능 수치, 실행 환경과 체크 개수는 2026-11-23 실행의 기록이다. [원인, 조치와 남은 제약](UIA-AGENT-DEFECTS.md)
 
 ## 검증 방법
 
@@ -15,7 +17,7 @@ Invoke와 SetValue의 응답을 실제 GUI의 카운터와 입력값에 대조�
 | UI 프레임워크 | JNA 탐색 | C++ 탐색 | JNA 조작 | C++ 조작 | 접근성 기술과 제약 |
 |---|---|---|---|---|---|
 | Win32 Native x64 | PASS | PASS | PASS | PASS | 기본 트리 76개와 목록 하위 범위, 일반·owner-drawn 버튼, 편집, 교체 검증. 소유 대화상자를 창 목록에서 찾아 자체 스냅샷으로 닫았다. |
-| MFC | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | 실제 MFC Dialog, SDI, MDI, Property Sheet 소스 준비. 설치된 VS의 ATL 경로에 MFC 헤더와 라이브러리가 없다. |
+| MFC x64 | PASS | PASS | PASS | PASS | 2026-11-24에 MFC 구성 요소를 설치해 실행했다. 대화상자 79개 요소에서 두 Agent 21/21, 트리 일치. SDI·MDI 프레임과 Property Sheet는 창 목록과 스냅샷까지 확인했다. x86 빌드와 메뉴는 미실행. [결과](test-results/2026-11-24-jab-uia-mfc.json) · [프레임](test-results/2026-11-24-jab-uia-mfc-frames.json) |
 | Delphi VCL | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | 실제 TStringGrid/TDBGrid/TTreeView/TListView, owner-drawn 및 TCustomControl 소스 준비. Delphi 컴파일러 부재. |
 | Swing | PARTIAL | PARTIAL | NOT_RUN | NOT_RUN | UIA에는 창과 내부 프레임만 보였다. 컨트롤은 Java Access Bridge에서 관찰됐다. |
 | AWT | PARTIAL | PARTIAL | PARTIAL | PARTIAL | UIA에서 HWND 기반 버튼·Edit·List를 읽고 두 Agent에서 편집 필드 변경을 확인했다. 버튼은 Invoke가 반환되어도 카운터가 증가하지 않았다. 직접 보낸 `BM_CLICK`과 MSAA 기본 동작도 같아 Provider 제약으로 분류했다. |
@@ -25,6 +27,20 @@ Invoke와 SetValue의 응답을 실제 GUI의 카운터와 입력값에 대조�
 | Qt Widgets | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | P1. 로컬 Qt 도구와 픽스처가 없다. |
 | Chromium/Electron | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | P2. 전용 픽스처 미구성. |
 | DirectX/OpenGL/Canvas | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | P2. 시각 경로 미구성. |
+
+### UIA와 JAB 결과
+
+| UI 환경 | UIA 탐색 | UIA 조작 | JAB 탐색 | JAB 조작 |
+|---|---|---|---|---|
+| Swing, Java 17 x64 | PARTIAL (창 틀만) | NOT_RUN (요소 없음) | PASS (95개 요소) | PARTIAL. 버튼·텍스트 통과, 모달을 여는 버튼은 Java 쪽 제약 |
+| Swing, Java 23 x64 | NOT_RUN | NOT_RUN | PASS | PARTIAL, 위와 같음 |
+| AWT, Java 17 x64 | PARTIAL | PARTIAL. 텍스트 통과, 버튼 무반응 | PASS (22개 요소) | PARTIAL. 버튼·모달 통과, 텍스트는 Java 쪽 제약 |
+| AWT, Java 23 x64 | NOT_RUN | NOT_RUN | PASS | PARTIAL, 위와 같음 |
+| Swing·AWT, Java 21 | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN |
+| Swing·AWT, Java 8 x86/x64 | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN |
+| Swing·AWT, Java 6·7 x86 | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN |
+
+JAB 열은 Java/JNA와 C++ 두 Agent에서 같다. `NOT_RUN`인 JVM은 이 PC에 설치돼 있지 않다. AWT 화면은 버튼에 JAB, 텍스트 입력에 UIA가 필요하다.
 
 조작 열에서 `PASS`는 해당 시험이 검증한 Invoke/SetValue를 뜻한다. CheckBox Toggle, ComboBox/Tab 선택, ExpandCollapse, 스크롤, 가상 항목 실체화 및 Grid 셀 편집에는 별도 패턴이 필요하다. Win32의 10,000행 가상 목록은 2,000개 창 캡처와 60개 범위 캡처에서 모두 제한을 표시했다. `INCOMPLETE_SNAPSHOT`이 잘린 트리의 전체 검색을 차단했다. [기능 원본](test-results/2026-11-23-uia-frameworks-functional.json) · [WPF 가상 항목 UIA 모델](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-workingwithvirtualizeditems)
 
@@ -85,6 +101,7 @@ Win32 x64, 확장 WPF와 .NET 9 WinForms에서 프레임워크별 2쌍의 새 �
 
 - 실제 프레임워크 픽스처와 진단 코드 [Win32](../tests/fixtures/win32/) · [MFC](../tests/fixtures/mfc/) · [Delphi VCL](../tests/fixtures/delphi-vcl/) · [Swing/AWT 및 JAB](../tests/fixtures/swing-awt/) · [WinForms](../tests/fixtures/winforms/) · [MSAA](../tests/fixtures/accessibility/) · [WPF 확장](../src/test/resources/windows-gui-fixture.ps1)
 - Agent의 빈 Runtime ID 처리 [Java COM](../src/main/java/dev/desktop/UiaCom.java) · [Java/JNA 캡처](../src/main/java/dev/desktop/JnaUiaSession.java) · [C++ UIA](../native/cpp-agent/src/windows/uia_adapter.cpp)
+- Java Access Bridge Adapter [Java](../src/main/java/dev/desktop/JabSession.java) · [C++](../native/cpp-agent/src/windows/jab_adapter.cpp) · [JAB 검사](../tools/JabFrameworkCases.ps1)
 - 실행 및 회귀 검증 [프레임워크 실행기](../tools/Test-UiaFrameworks.ps1) · [기능과 성능 체크](../tools/UiaFrameworkCases.ps1) · [Runtime ID 회귀](../tools/tests/Test-WinFormsRuntimeIds.ps1)
 
 ## 빌드와 재현
@@ -133,4 +150,4 @@ $junitTemp = (New-Item -ItemType Directory -Force target/framework-junit-tmp).Fu
 mvn -o '-Ddesktop.windowsIT=true' '-Ddesktop.csharpIT=true' '-Ddesktop.jnaIT=true' "-Ddesktop.csharpWorker=$worker" "-DargLine=-Djava.io.tmpdir=$junitTemp" '-Dtest=WindowsGuiTest' test
 ```
 
-`-Backend JNA`, `-Backend Cpp`, `-Backend Both`로 선택한다. `-RequirePass`는 모든 해당 기능·동등성·성능 판정이 통과해야 성공으로 종료한다. `-FixtureJava`로 GUI 픽스처 JVM을 바꾸고, `-EnableJab`으로 해당 JVM 프로세스의 브리지만 활성화한다. MSAA 진단은 PID/HWND 범위에서 최대 256개 항목을 읽는다. JAB 진단은 x64 JDK의 로컬 DLL에서 역할·상태·인터페이스를 조회하며 텍스트 값을 읽지 않는다. [Swing/AWT와 JAB 빌드 절차](../tests/fixtures/swing-awt/README.md) · [Oracle JDK 21 접근성 도구](https://docs.oracle.com/en/java/javase/21/docs/specs/man/index.html)
+`-Backend JNA`, `-Backend Cpp`, `-Backend Both`로 UIA 백엔드를, `-Backend Jab`, `-Backend CppJab`, `-Backend BothJab`으로 두 Agent의 JAB 백엔드를 선택한다. JAB 백엔드는 Swing과 AWT 픽스처에서만 실행된다. `-RequirePass`는 모든 해당 기능·동등성·성능 판정이 통과해야 성공으로 종료한다. `-FixtureJava`로 GUI 픽스처 JVM을 바꾸고, `-EnableJab`으로 해당 JVM 프로세스의 브리지만 활성화한다. MSAA 진단은 PID/HWND 범위에서 최대 256개 항목을 읽는다. JAB 진단은 x64 JDK의 로컬 DLL에서 역할·상태·인터페이스를 조회하며 텍스트 값을 읽지 않는다. [Swing/AWT와 JAB 빌드 절차](../tests/fixtures/swing-awt/README.md) · [Oracle JDK 21 접근성 도구](https://docs.oracle.com/en/java/javase/21/docs/specs/man/index.html)
