@@ -251,6 +251,8 @@ function Complete-MbScenario($row, $run) {
     if ($run) {
         $row.agentProcessId = $run.processId
         $row.requests = $run.requests.Count
+        # The last requests of a scenario that did not pass, with their codes and latencies.
+        if ($row.status -ne 'PASS') { $row.requestLog = @($run.requests | Select-Object -Last 60) }
     }
     $row.Remove('aborted')
 }
@@ -555,8 +557,13 @@ function Test-JabFault([string]$implementation) {
         }
         # JVM isolation is a separate question from backend isolation: the second JVM is healthy.
         Step $row 'otherJvmWhileOneJvmIsSilent' {
-            [void](Send-Mb $run @{ op = 'invoke'; ref = $s.opener.ref } 'ACTION_OUTCOME_UNKNOWN' 30000)
-            Wait-Mb $swing 'modal.txt' 'open'
+            # A click that opens a modal dialog cannot return before the dialog closes. Keep what happened if it does.
+            $second = Send-Mb $run @{ op = 'invoke'; ref = $s.opener.ref } '' 30000
+            $opened = Wait-JabFile $swing.stateDir 'modal.txt' 'open' 5000
+            if ($second.code -cne 'ACTION_OUTCOME_UNKNOWN' -or !$opened) {
+                $probe = Get-MbInfo $run $s.increment.ref ''
+                throw "The second modal-opening click answered $($second.code) after $([Math]::Round($second.ms)) ms. Modal opened within 5 s: $opened. Fixture modal state: $(Read-Mb $swing 'modal.txt'). Next bridge request: $($probe.code) after $([Math]::Round($probe.ms)) ms."
+            }
             $viaJab = Get-MbSnapshot $run $s.awt.id 'JAB' ''
             $viaUia = (Get-MbSnapshot $run $s.awt.id 'UIA').result
             $edit = Find-Mb $run $viaUia (Get-AwtEditLocator $awt)
