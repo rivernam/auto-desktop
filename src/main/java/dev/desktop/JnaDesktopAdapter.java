@@ -37,6 +37,8 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
     private boolean retired;
     // Guarded by this. Why the session never started, repeated to later requests.
     private String startFailure;
+    // Guarded by this. Set by close(), which ends the adapter for good.
+    private boolean closed;
 
     private static final class Request {
         // Guarded by the adapter monitor, including the claim by the apartment thread.
@@ -270,7 +272,13 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         apartment.shutdown();
     }
 
+    /** A provider that cannot start is not retried. Its reason stays in the capabilities. */
+    @Override public synchronized boolean finished() {
+        return retired && !closed && startFailure == null && apartment.isTerminated();
+    }
+
     @Override public void close() {
+        synchronized (this) { closed = true; }
         retire();
         if (Thread.currentThread() == apartmentThread) return;
         try {

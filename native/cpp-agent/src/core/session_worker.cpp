@@ -6,11 +6,13 @@
 
 namespace desktop {
 SessionWorker::SessionWorker(AdapterFactory factory, std::string session, AllowedProcess process,
-                             std::set<Action> actions, std::chrono::milliseconds budget, std::string backend)
-    : budget_(budget), backend_(std::move(backend)),
+                             std::set<Action> actions, std::chrono::milliseconds budget, std::string backend,
+                             CommandHistory* sharedHistory)
+    : history_(sharedHistory ? *sharedHistory : ownHistory_), budget_(budget), backend_(std::move(backend)),
       thread_([this, factory = std::move(factory), session = std::move(session),
                process = std::move(process), actions = std::move(actions)]() mutable {
           run(factory, session, std::move(process), std::move(actions));
+          finished_ = true;
           exited_.set_value();
       }) {}
 
@@ -24,6 +26,11 @@ SessionWorker::~SessionWorker() {
         std::quick_exit(1);
     }
     thread_.join();
+}
+
+bool SessionWorker::stopped() {
+    const std::lock_guard<std::mutex> lock(mutex_);
+    return stopped_;
 }
 
 void SessionWorker::stop() {
@@ -46,6 +53,16 @@ Json SessionWorker::handle(Json request) {
             || utf16Length(raw->get_ref<const std::string&>()) > 32)
             return failure(std::move(id), {"INVALID_REQUEST", "Invalid operation field."});
         return failure(std::move(id), {"UNKNOWN_OPERATION", "Unknown operation."});
+    }
+    if (std::string_view(op) == "snapshot" && request.contains("backend")) {
+        // A session has the backends it was started with. A request for another one is never
+        // answered through this one.
+        const auto& named = request["backend"];
+        if (!named.is_string() || isBlank(named.get_ref<const std::string&>())
+            || utf16Length(named.get_ref<const std::string&>()) > 32)
+            return failure(std::move(id), {"INVALID_REQUEST", "Invalid request fields."});
+        if (named.get_ref<const std::string&>() != backend_)
+            return failure(std::move(id), {"BACKEND_UNAVAILABLE", "This session does not include the requested backend."});
     }
     auto work = std::make_shared<Work>(std::move(request), Clock::now() + budget_);
     auto reply = work->reply.get_future();

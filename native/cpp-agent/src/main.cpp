@@ -1,4 +1,4 @@
-#include "core/session_worker.hpp"
+#include "core/multi_session.hpp"
 #include "windows/jab_adapter.hpp"
 #include "windows/uia_adapter.hpp"
 
@@ -17,6 +17,8 @@ struct Policy {
     std::set<Action> actions;
     // An explicit choice. A Java Access Bridge failure is reported, never answered through UI Automation.
     bool jab = false;
+    // UI Automation and Java Access Bridge side by side, each named by the request that uses it.
+    bool multi = false;
     bool backendGiven = false;
     std::wstring jabLibrary;
 };
@@ -45,9 +47,11 @@ std::optional<Policy> parsePolicy(int argc, char** argv) {
             policy.started[pid] = *started;
         } else if (flag == "--allow-action" && isMutation(value)) {
             policy.actions.insert(value == "invoke" ? Action::invoke : Action::setValue);
-        } else if (flag == "--backend" && !policy.backendGiven && (value == "uia" || value == "jab")) {
+        } else if (flag == "--backend" && !policy.backendGiven
+                   && (value == "uia" || value == "jab" || value == "multi")) {
             policy.backendGiven = true;
             policy.jab = value == "jab";
+            policy.multi = value == "multi";
         } else if (flag == "--jab-dll" && policy.jabLibrary.empty() && !value.empty()) {
             policy.jabLibrary = widePath(value);
             // A relative path would be resolved against the working directory.
@@ -57,7 +61,7 @@ std::optional<Policy> parsePolicy(int argc, char** argv) {
             return {};
         }
     }
-    if (!policy.jabLibrary.empty() && !policy.jab) return {};
+    if (!policy.jabLibrary.empty() && !policy.jab && !policy.multi) return {};
     return policy;
 }
 } // namespace
@@ -67,7 +71,7 @@ int main(int argc, char** argv) {
         auto policy = parsePolicy(argc, argv);
         if (!policy) {
             std::cerr << "Usage: cpp-agent.exe [--allow-pid PID] [--allow-action invoke] [--allow-action setValue] "
-                         "[--backend uia|jab] [--jab-dll ABSOLUTE_DLL_PATH]\n"
+                         "[--backend uia|jab|multi] [--jab-dll ABSOLUTE_DLL_PATH]\n"
                          "Each allowed PID must identify a running process with a readable start time.\n";
             return 2;
         }
@@ -78,22 +82,40 @@ int main(int argc, char** argv) {
         const bool jab = policy->jab;
         int status = 0;
         {
-            SessionWorker::AdapterFactory factory = windows::makeAdapter;
-            if (jab) factory = [library = policy->jabLibrary] { return windows::makeJabAdapter(library); };
-            SessionWorker session(std::move(factory), windows::sessionToken(),
-                [started = std::move(policy->started)](int pid) {
-                    const auto allowed = started.find(pid);
-                    return allowed != started.end() && windows::processStart(pid) == allowed->second;
-                }, std::move(policy->actions), requestBudget, jab ? "JAB" : "UIA");
+            const SessionWorker::AdapterFactory bridge = [library = policy->jabLibrary] {
+                return windows::makeJabAdapter(library);
+            };
+            AllowedProcess allowed = [started = std::move(policy->started)](int pid) {
+                const auto known = started.find(pid);
+                return known != started.end() && windows::processStart(pid) == known->second;
+            };
             // Unloading Java Access Bridge sends untimed messages to every JVM, so library detach is skipped.
-            if (jab) session.onAbandon([] { TerminateProcess(GetCurrentProcess(), 1); });
+            const auto endWithoutDetach = [] { TerminateProcess(GetCurrentProcess(), 1); };
+            std::optional<SessionWorker> single;
+            std::optional<MultiSession> several;
+            std::function<Json(Json)> handle;
+            if (policy->multi) {
+                // The bridge is not restarted in place: a retired bridge session may have left its
+                // library loaded for a silent JVM.
+                several.emplace(std::vector<MultiSession::Backend>{{"UIA", windows::makeAdapter, true},
+                                                                   {"JAB", bridge, false}},
+                                windows::sessionToken(), std::move(allowed), std::move(policy->actions));
+                several->onAbandon(endWithoutDetach);
+                handle = [&several](Json request) { return several->handle(std::move(request)); };
+            } else {
+                single.emplace(jab ? bridge : SessionWorker::AdapterFactory(windows::makeAdapter),
+                               windows::sessionToken(), std::move(allowed), std::move(policy->actions),
+                               requestBudget, jab ? "JAB" : "UIA");
+                if (jab) single->onAbandon(endWithoutDetach);
+                handle = [&single](Json request) { return single->handle(std::move(request)); };
+            }
             std::string frame;
             std::uint64_t sequence = 0;
             while (status == 0 && readFrame(std::cin, frame)) {
                 const auto start = Clock::now();
                 auto request = parseFrame(frame);
                 const auto* op = operation(request);
-                const auto reply = session.handle(std::move(request));
+                const auto reply = handle(std::move(request));
                 const auto code = reply.at("ok").get<bool>() ? "OK" : reply.at("error").at("code").get<std::string>();
                 std::cerr << "seq=" << ++sequence << " op=" << op << " status=" << code << " elapsedMs="
                           << std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - start).count() << '\n';

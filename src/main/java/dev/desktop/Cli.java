@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntPredicate;
 
 /** One local foreground session. Every request and response occupies one UTF-8 line. */
 public final class Cli {
@@ -51,7 +52,7 @@ public final class Cli {
                 String value = args[i + 1];
                 switch (args[i]) {
                     case "--backend" -> {
-                        if (backend != null || !Set.of("jna", "jab", "powershell").contains(value))
+                        if (backend != null || !Set.of("jna", "jab", "powershell", Agent.MULTI).contains(value))
                             throw new IllegalArgumentException("Unknown or repeated backend.");
                         backend = value;
                     }
@@ -80,24 +81,27 @@ public final class Cli {
                 }
             }
             if (jabLibrary != null) {
-                if (!"jab".equals(backend)) throw new IllegalArgumentException("--jab-dll requires --backend jab.");
+                if (!"jab".equals(backend) && !Agent.MULTI.equals(backend))
+                    throw new IllegalArgumentException("--jab-dll requires --backend jab or multi.");
                 System.setProperty(JabBridge.LIBRARY_PROPERTY, jabLibrary);
             }
-            selected = DesktopAdapters.open(worker, backend);
+            // A multi-backend session opens its own adapters, one per backend.
+            selected = Agent.MULTI.equals(backend) ? DesktopAdapters.none(worker) : DesktopAdapters.open(worker, backend);
         } catch (IllegalArgumentException invalid) {
             System.err.println("Usage: java -jar desktop-agent.jar [--allow-pid PID] "
                     + "[--allow-action invoke] [--allow-action setValue] "
-                    + "[--backend jna|jab|powershell OR --csharp-worker ABSOLUTE_EXE_PATH] [--jab-dll ABSOLUTE_DLL_PATH]");
+                    + "[--backend jna|jab|multi|powershell OR --csharp-worker ABSOLUTE_EXE_PATH] [--jab-dll ABSOLUTE_DLL_PATH]");
             System.err.println("Each allowed PID must identify a running process with a readable start time.");
             System.err.println("The optional C# worker path must identify an existing .exe.");
             return 2;
         }
         Utf8Frames source = new Utf8Frames(input, MAX_FRAME);
-        try (DesktopAdapter adapter = selected) {
-            Agent agent = new Agent(adapter, pid -> allowedPids.containsKey(pid)
-                    && ProcessHandle.of(pid).filter(ProcessHandle::isAlive)
-                            .flatMap(handle -> handle.info().startInstant())
-                            .filter(allowedPids.get(pid)::equals).isPresent(), allowedActions);
+        IntPredicate allowedProcess = pid -> allowedPids.containsKey(pid)
+                && ProcessHandle.of(pid).filter(ProcessHandle::isAlive)
+                        .flatMap(handle -> handle.info().startInstant())
+                        .filter(allowedPids.get(pid)::equals).isPresent();
+        try (Agent agent = selected == null ? Agent.multi(DesktopAdapters.multi(), allowedProcess, allowedActions)
+                : new Agent(DesktopAdapters.label(worker, backend), selected, allowedProcess, allowedActions)) {
             long sequence = 0;
             while (true) {
                 String frame;

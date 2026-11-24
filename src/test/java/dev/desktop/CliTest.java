@@ -92,6 +92,41 @@ class CliTest {
         }
     }
 
+    @Test void multiBackendIsSelectedByNameAndReportsEachBackend(@TempDir Path directory) throws Exception {
+        String library = directory.resolve("WindowsAccessBridge-64.dll").toString();
+        String previous = System.getProperty(JabBridge.LIBRARY_PROPERTY);
+        try {
+            for (String[] args : List.of(new String[]{"--backend", "multi", "--csharp-worker", "worker.exe"},
+                    new String[]{"--backend", "multi", "--backend", "jab"},
+                    new String[]{"--backend", "multi", "--jab-dll", "WindowsAccessBridge-64.dll"})) {
+                assertEquals(2, Cli.run(args, InputStream.nullInputStream(), OutputStream.nullOutputStream()));
+            }
+            // The named bridge library is absent. The session says so for that backend and keeps the other.
+            var output = new ByteArrayOutputStream();
+            var input = new ByteArrayInputStream(("{\"id\":\"1\",\"op\":\"getCapabilities\"}\n"
+                    + "{\"id\":\"2\",\"op\":\"snapshot\",\"windowId\":\"1\",\"backend\":\"JAB\"}\n"
+                    + "{\"id\":\"3\",\"op\":\"snapshot\",\"windowId\":\"1\",\"backend\":\"MSAA\"}\n")
+                    .getBytes(StandardCharsets.UTF_8));
+            assertEquals(0, Cli.run(new String[]{"--backend", "multi", "--jab-dll", library}, input, output));
+            ObjectMapper mapper = new ObjectMapper();
+            List<String> lines = output.toString(StandardCharsets.UTF_8).lines().toList();
+            assertEquals(3, lines.size());
+            JsonNode capabilities = mapper.readTree(lines.get(0)).get("result");
+            assertEquals("multi", capabilities.path("backend").asText());
+            assertEquals("UIA", capabilities.at("/backends/0/backend").asText());
+            assertEquals("JAB", capabilities.at("/backends/1/backend").asText());
+            assertFalse(capabilities.at("/backends/1/available").asBoolean());
+            if (System.getProperty("os.name", "").startsWith("Windows")) {
+                assertTrue(capabilities.at("/backends/1/reason").asText().contains("does not exist"), lines.get(0));
+            }
+            assertEquals("BACKEND_UNAVAILABLE", mapper.readTree(lines.get(1)).at("/error/code").asText());
+            assertEquals("BACKEND_UNAVAILABLE", mapper.readTree(lines.get(2)).at("/error/code").asText());
+        } finally {
+            if (previous == null) System.clearProperty(JabBridge.LIBRARY_PROPERTY);
+            else System.setProperty(JabBridge.LIBRARY_PROPERTY, previous);
+        }
+    }
+
     @Test void invalidPolicyStopsBeforeReadingCommands() throws Exception {
         InputStream unreadable = new InputStream() {
             @Override public int read() { throw new AssertionError("read before policy validation"); }

@@ -12,6 +12,7 @@ endif()
 find_package(Threads REQUIRED)
 add_library(agent-core STATIC
     src/core/agent.cpp
+    src/core/multi_session.cpp
     src/core/session_worker.cpp
     src/protocol/ndjson.cpp)
 target_include_directories(agent-core PUBLIC include)

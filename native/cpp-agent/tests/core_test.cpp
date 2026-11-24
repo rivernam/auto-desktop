@@ -1,4 +1,5 @@
 #include "core/agent.hpp"
+#include "core/multi_session.hpp"
 #include "core/session_worker.hpp"
 #include "protocol/ndjson.hpp"
 
@@ -361,10 +362,201 @@ void secondBackend() {
           "a provider that cannot start is a capability with its reason, on its own backend");
     error(missing.handle({{"id", "list"}, {"op", "listWindows"}}), "BACKEND_UNAVAILABLE");
 }
+// Two scripted backends behind one multi-backend session.
+struct Script {
+    std::atomic<int> mutations{0};
+    std::atomic<int> sessions{0};
+    std::atomic<bool> silent{false};
+    std::atomic<bool> blocked{false};
+    std::shared_future<void> release;
+};
+
+class Scripted final : public DesktopAdapter {
+public:
+    Scripted(const char* name, Script& script) : name_(name), script_(script) { ++script_.sessions; }
+    const char* backend() const override { return name_; }
+    std::vector<Window> windows() override {
+        if (script_.silent) throw Error("TARGET_NOT_RESPONDING", "The target is not answering.");
+        // Bound the fake provider even if the test itself fails.
+        if (script_.blocked) script_.release.wait_for(3s);
+        const bool uia = std::string_view(name_) == "UIA";
+        return {{"100", 42, std::string(name_) + " title"}, {uia ? "200" : "300", 42, "Only here", "100"}};
+    }
+    Capture capture(const std::string&, std::optional<std::size_t>, int, int) override {
+        if (script_.silent) throw Error("TARGET_NOT_RESPONDING", "The target is not answering.");
+        Element root;
+        root.pid = 42;
+        root.identity = {"Shared", "Window", "", ""};
+        Element button;
+        button.pid = 42;
+        button.parent = 0;
+        button.identity = {"Shared", "Button", "", ""};
+        button.invoke = true;
+        button.writable = true;
+        return {{root, button}, false};
+    }
+    Element info(std::size_t index) override {
+        if (script_.silent) throw Error("TARGET_NOT_RESPONDING", "The target is not answering.");
+        return capture("100", {}, 1, 2).elements.at(index);
+    }
+    void perform(Action, std::size_t, const std::string&, const BeforeMutation& before) override {
+        before();
+        ++script_.mutations;
+    }
+    void clear() noexcept override {}
+
+private:
+    const char* name_;
+    Script& script_;
+};
+
+void multiBackend() {
+    Script uia, jab;
+    std::promise<void> unblock;
+    uia.release = jab.release = unblock.get_future().share();
+    {
+        MultiSession session({{"UIA", [&] { return std::make_unique<Scripted>("UIA", uia); }, true},
+                              {"JAB", [&] { return std::make_unique<Scripted>("JAB", jab); }, false}},
+                             "s", [](int pid) { return pid == 42; }, {Action::invoke, Action::setValue}, 300ms);
+        int sequence = 0;
+        const auto send = [&](const char* op, Json args = Json::object()) {
+            args["id"] = "m" + std::to_string(++sequence);
+            args["op"] = op;
+            return session.handle(std::move(args));
+        };
+        const auto capture = [&](const char* backend) {
+            Json args{{"windowId", "100"}};
+            if (backend) args["backend"] = backend;
+            const auto reply = send("snapshot", std::move(args));
+            check(reply.at("ok") == true, "multi snapshot");
+            return reply.at("result");
+        };
+        const auto button = [](const Json& snapshot) { return snapshot.at("elements")[1].at("ref"); };
+
+        const auto caps = send("getCapabilities").at("result");
+        check(caps.at("backend") == "multi" && caps.at("available") == true && caps.at("operations").size() == 7
+              && caps.at("defaultBackend") == "UIA" && caps.at("backends")[0].at("backend") == "UIA"
+              && caps.at("backends")[1].at("backend") == "JAB" && caps.at("backends")[1].at("available") == true,
+              "multi capabilities list each backend");
+
+        auto listed = send("listWindows");
+        const auto& rows = listed.at("result");
+        check(rows.size() == 3 && rows[0].at("windowId") == "100" && rows[0].at("name") == "UIA title"
+              && rows[0].at("backends") == Json::array({"UIA", "JAB"}) && rows[1].at("backends") == Json::array({"UIA"})
+              && rows[1].at("ownerWindowId") == "100" && rows[2].at("windowId") == "300"
+              && rows[2].at("backends") == Json::array({"JAB"}), "one row per window with its backends");
+        check(listed.at("backends") == Json::array({{{"backend", "UIA"}, {"ok", true}}, {{"backend", "JAB"}, {"ok", true}}}),
+              "window list carries one status per backend");
+
+        const auto first = capture(nullptr);
+        check(first.at("backend") == "UIA" && first.at("elements")[0].at("backend") == "UIA", "default backend");
+        const auto bridged = capture("JAB");
+        check(bridged.at("backend") == "JAB" && bridged.at("elements")[1].at("backend") == "JAB", "explicit backend");
+        error(send("snapshot", {{"windowId", "100"}, {"backend", "MSAA"}}), "BACKEND_UNAVAILABLE");
+        error(send("snapshot", {{"windowId", "100"}, {"backend", 7}}), "INVALID_REQUEST");
+
+        // Each backend keeps its own latest snapshot.
+        check(send("getElementInfo", {{"ref", button(first)}}).at("ok") == true, "a bridge capture kept the UIA references");
+        const auto second = capture("UIA");
+        error(send("getElementInfo", {{"ref", button(first)}}), "STALE_REFERENCE");
+        error(send("findElement", {{"snapshotId", first.at("snapshotId")}, {"locator", {{"role", "Button"}}}}),
+              "STALE_REFERENCE");
+        check(send("getElementInfo", {{"ref", button(bridged)}}).at("result").at("backend") == "JAB",
+              "a UIA capture kept the bridge references");
+        check(send("findElement", {{"snapshotId", bridged.at("snapshotId")}, {"locator", {{"role", "Button"}}}})
+                  .at("result").at("ref") == button(bridged), "lookup in the named snapshot");
+
+        // A reference is stale for every other backend.
+        error(send("snapshot", {{"windowId", "100"}, {"backend", "JAB"}, {"scopeRef", button(second)}}), "STALE_REFERENCE");
+        error(send("findElement", {{"snapshotId", bridged.at("snapshotId")}, {"scopeRef", button(second)},
+                                   {"locator", {{"role", "Button"}}}}), "STALE_REFERENCE");
+        error(send("invoke", {{"ref", "other-session-1"}}), "STALE_REFERENCE");
+        error(send("invoke", {{"ref", 5}}), "INVALID_REQUEST");
+
+        // An action goes to the backend that issued the reference. Command IDs are shared.
+        const auto done = session.handle({{"id", "command"}, {"op", "setValue"}, {"ref", button(second)}, {"value", "x"}});
+        check(done.at("result").at("performed") == true && done.at("result").at("effectVerified") == false
+              && uia.mutations == 1 && jab.mutations == 0, "action reached its own backend only");
+        error(session.handle({{"id", "command"}, {"op", "invoke"}, {"ref", button(bridged)}}), "DUPLICATE_COMMAND");
+        check(send("invoke", {{"ref", button(bridged)}}).at("ok") == true && jab.mutations == 1 && uia.mutations == 1,
+              "bridge action");
+
+        // A silent bridge target fails its own requests and nothing else.
+        jab.silent = true;
+        error(send("getElementInfo", {{"ref", button(bridged)}}), "TARGET_NOT_RESPONDING");
+        listed = send("listWindows");
+        check(listed.at("ok") == true && listed.at("result").size() == 2
+              && listed.at("backends")[1].at("ok") == false
+              && listed.at("backends")[1].at("error").at("code") == "TARGET_NOT_RESPONDING",
+              "a partial window list names the backend that failed");
+        check(send("invoke", {{"ref", button(second)}}).at("ok") == true && uia.mutations == 2, "UIA works beside a silent bridge");
+        jab.silent = false;
+        check(send("invoke", {{"ref", button(bridged)}}).at("ok") == true && jab.mutations == 2,
+              "bridge references survive the silence");
+
+        // A provider call that outlives the deadline retires its backend only.
+        uia.blocked = true;
+        listed = send("listWindows");
+        check(listed.at("ok") == true && listed.at("backends")[0].at("error").at("code") == "TIMEOUT"
+              && listed.at("result")[0].at("backends") == Json::array({"JAB"}), "timed-out backend is reported");
+        error(send("snapshot", {{"windowId", "100"}}), "BACKEND_UNAVAILABLE");
+        error(send("invoke", {{"ref", button(second)}}), "BACKEND_UNAVAILABLE");
+        const auto during = send("getCapabilities").at("result");
+        check(during.at("available") == true && during.at("backends")[0].at("available") == false
+              && during.at("backends")[0].contains("reason") && during.at("backends")[1].at("available") == true,
+              "capabilities name the retired backend");
+        check(send("invoke", {{"ref", button(bridged)}}).at("ok") == true && jab.mutations == 3,
+              "bridge works beside a retired UIA session");
+
+        // Once the provider call returns, the retired backend is replaced. Its old references stay dead.
+        uia.blocked = false;
+        unblock.set_value();
+        Json restarted;
+        for (int attempt = 0; attempt < 100; ++attempt) {
+            restarted = send("snapshot", {{"windowId", "100"}});
+            if (restarted.at("ok") == true) break;
+            std::this_thread::sleep_for(20ms);
+        }
+        check(restarted.at("ok") == true && uia.sessions == 2, "a released backend restarts in place");
+        error(send("invoke", {{"ref", button(second)}}), "STALE_REFERENCE");
+        check(button(restarted.at("result")) != button(second), "a replaced worker issues new references");
+        check(send("invoke", {{"ref", button(restarted.at("result"))}}).at("ok") == true && uia.mutations == 3,
+              "the replacement accepts its own references");
+        check(send("invoke", {{"ref", button(bridged)}}).at("ok") == true && jab.mutations == 4 && jab.sessions == 1,
+              "a restart of one backend leaves the other and its references alone");
+    }
+
+    // A backend that may not restart stays retired. The session keeps its other backend.
+    Script fixed, stuck;
+    std::promise<void> late;
+    stuck.release = late.get_future().share();
+    MultiSession session({{"UIA", [&] { return std::make_unique<Scripted>("UIA", fixed); }, true},
+                          {"JAB", [&] { return std::make_unique<Scripted>("JAB", stuck); }, false}},
+                         "t", [](int) { return true; }, {Action::invoke}, 200ms);
+    stuck.blocked = true;
+    auto listed = session.handle({{"id", "1"}, {"op", "listWindows"}});
+    check(listed.at("backends")[1].at("error").at("code") == "TIMEOUT", "bridge timeout");
+    stuck.blocked = false;
+    late.set_value();
+    std::this_thread::sleep_for(100ms);
+    error(session.handle({{"id", "2"}, {"op", "snapshot"}, {"windowId", "100"}, {"backend", "JAB"}}), "BACKEND_UNAVAILABLE");
+    check(stuck.sessions == 1 && session.handle({{"id", "3"}, {"op", "snapshot"}, {"windowId", "100"}}).at("ok") == true,
+          "only a restartable backend is replaced");
+
+    // A single-backend session refuses a snapshot that names another backend.
+    Script alone;
+    SessionWorker single([&] { return std::make_unique<Scripted>("JAB", alone); }, "one", [](int) { return true; },
+                         {}, 2000ms, "JAB");
+    const auto own = single.handle({{"id", "a"}, {"op", "snapshot"}, {"windowId", "100"}, {"backend", "JAB"}});
+    check(own.at("ok") == true && !own.at("result").contains("backend"), "a single-backend reply keeps its shape");
+    error(single.handle({{"id", "b"}, {"op", "snapshot"}, {"windowId", "100"}, {"backend", "UIA"}}), "BACKEND_UNAVAILABLE");
+    error(single.handle({{"id", "c"}, {"op", "snapshot"}, {"windowId", "100"}, {"backend", ""}}), "INVALID_REQUEST");
+}
 } // namespace
 
 int main() {
     try {
+        multiBackend();
         secondBackend();
         core();
         completeness();
