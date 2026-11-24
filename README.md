@@ -50,6 +50,16 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --csharp-worker "$wo
 mvn '-Ddesktop.windowsIT=true' '-Ddesktop.csharpIT=true' "-Ddesktop.csharpWorker=$worker" '-Dtest=WindowsGuiTest' test
 ```
 
+## Swing과 AWT 창 (Java Access Bridge)
+
+Swing과 AWT 창은 UI Automation에 창 틀만 보인다. `--backend jab`으로 시작하면 같은 명령으로 그 안의 컨트롤을 탐색하고 버튼 실행과 텍스트 입력을 보낸다. 대상 JVM은 Java Access Bridge를 켠 상태여야 한다. Agent는 대상 JVM의 설정을 바꾸지 않는다.
+
+```powershell
+java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend jab --allow-pid 1234 --allow-action invoke --allow-action setValue
+```
+
+요소에는 AutomationId가 없으므로 Locator는 `name`과 `role`로 쓴다. Swing 버튼이 모달 대화상자를 직접 여는 경우와 AWT 텍스트 입력에는 Java 쪽 제약이 있다. [Adapter의 구조, 검증 결과와 제약](docs/JAVA-ACCESS-BRIDGE.md)
+
 ## 문서
 
 - [PowerShell·JNA 직접 COM·C# 워커 비교와 권고](docs/WINDOWS-BACKENDS.md)
@@ -62,6 +72,7 @@ mvn '-Ddesktop.windowsIT=true' '-Ddesktop.csharpIT=true' "-Ddesktop.csharpWorker
 - [빌드·테스트 결과와 남은 실기기 시험](docs/TEST-RESULTS.md)
 - [Win32·MFC·VCL·Swing/AWT·WPF·WinForms 호환성 및 재현 명령](docs/UI-FRAMEWORK-COMPATIBILITY.md)
 - [소유 모달·부분 스냅샷·AWT Invoke 결함의 원인, 개선과 남은 Provider 제약](docs/UIA-AGENT-DEFECTS.md)
+- [Java Access Bridge Adapter: Swing·AWT 탐색과 조작, 참조 수명, 검증 결과](docs/JAVA-ACCESS-BRIDGE.md)
 
 ## Windows 실기기 및 레거시 검증
 

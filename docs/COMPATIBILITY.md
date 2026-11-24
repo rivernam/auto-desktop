@@ -19,6 +19,20 @@ Microsoft 문서상 UIA는 XP의 .NET Framework에서 처음 제공됐고 Window
 
 CentOS 5용 경로는 대상 이미지의 CPU, 커널, libc, 설치한 GNOME·AT-SPI 패키지와 실제 세션을 조사하는 것부터 시작한다. 구형 CORBA 백엔드를 구현한다면 대상 ABI로 만든 경량 프로세스를 현행 Java 코어와 분리하고 참조 수명·오류 계약을 공유하는 방안을 검토할 수 있다. 현재 배포물에는 조회 전용 Java 7 호스트와 진단 절차가 있다. CORBA 어댑터와 원격 연결은 후속 범위다. [CentOS 5 종료 공지](https://lists.centos.org/hyperkitty/list/announce%40lists.centos.org/thread/EOTT33WN2JKJKQRDTIAQYH7L6A3D4Q6P/) · [GNOME의 AT-SPI 전환 설명](https://github.com/GNOME/at-spi2-core/blob/main/README.md) · [접근성 버스 시작 조건](https://github.com/GNOME/at-spi2-core/blob/main/bus/README.md)
 
+## Java GUI와 Java Access Bridge
+
+Swing과 AWT 설비 프로그램에는 Agent의 실행 환경과 별개로 **대상 GUI JVM**의 조건이 있다. Agent를 실행하는 Java(17 이상)나 C++ 실행 파일의 버전과 대상 프로그램의 Java 버전은 서로 다른 문제다.
+
+| 조건 | 내용 |
+|---|---|
+| 대상 JVM의 브리지 | 대상 JVM이 `com.sun.java.accessibility.AccessBridge`를 보조 기술로 로드해야 한다. JVM 옵션, 사용자의 `.accessibility.properties`, `jabswitch -enable` 중 하나로 켠다. Agent는 켜 주지 않는다. |
+| Agent 쪽 DLL | Agent 프로세스와 같은 비트수의 `WindowsAccessBridge-64.dll` 또는 `-32.dll`. 대상 JVM과 같은 버전일 필요는 없었다(JDK 17의 DLL로 Java 23 JVM에 접근). |
+| 같은 세션 | Agent와 대상 JVM이 같은 사용자의 같은 대화형 데스크톱에 있어야 한다. 브리지는 창 메시지와 공유 메모리로 통신한다. |
+| 검증된 조합 | Windows 11 x64, Agent x64(Java 17 JNA, C++), 대상 JVM Oracle JDK 17.0.10 x64와 Eclipse Adoptium 23.0.2 x64 |
+| 미검증 조합 | 대상 JVM Java 6·7·8·11·21, 32비트 JVM, 32비트 Agent와 `WindowsAccessBridge-32.dll`, 구형 `WindowsAccessBridge.dll` ABI, Windows 7/XP. 이 PC에 해당 런타임이 없어 실행하지 못했다. |
+
+Java SE 7 Update 6 이전의 JRE는 브리지(Java Access Bridge 2.0.x)를 따로 설치해야 했고, 그 이후에는 JRE에 들어 있다. 구형 설비에서는 설치된 JRE의 `bin`에 `JavaAccessBridge*.dll`과 `WindowsAccessBridge*.dll`이 있는지, 비트수가 무엇인지부터 확인한다. 32비트 JVM만 있는 설비에서 64비트 Agent가 접근할 수 있는지는 실제 조합으로 확인해야 한다. [Java Access Bridge Adapter의 검증 범위와 조건](JAVA-ACCESS-BRIDGE.md) · [Oracle Java Access Bridge 안내](https://docs.oracle.com/en/java/javase/17/access/java-access-bridge-overview.html)
+
 ## 검증 기록 방법
 
 Windows 장비에서 OS 에디션·빌드, CPU, Java 배포판·버전, PowerShell 버전, 대상 앱 버전과 로그인 세션을 기록한다. 일반 권한 앱에서 창을 나열하고 한 창의 스냅샷을 얻은 뒤, 트리에 표시된 패턴으로 동작을 실행하고 새 스냅샷에서 변화를 확인한다. 이름이 같은 창, 닫힌 창, 새 스냅샷 뒤의 오래된 참조, 읽기 전용 필드는 별도로 기록한다. 장기 실행 검증에는 반복 횟수, 시작·종료 시 메모리와 핸들 수, 헬퍼 종료 후 복구 결과를 남긴다. Windows UI에 연결하지 않은 Linux 빌드나 테스트 더블의 통과로 위 항목을 대체할 수 없다.

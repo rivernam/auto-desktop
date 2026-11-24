@@ -1,0 +1,890 @@
+{
+ "schema": 1,
+ "startedUtc": "2026-11-24T04:33:17.8872851Z",
+ "invocation": "    & .\\tools\\Test-JabStability.ps1 -Backend $case[0] -Framework $case[1] -DurationSeconds $case[2] -OutputPath \"target\\jab-stability-$($case[3]).json\" 2>&1 | Select-Object -Last 3\n",
+ "options": {
+  "backend": "CppJab",
+  "framework": "Awt",
+  "durationSeconds": 300,
+  "sampleSeconds": 15,
+  "agentRestarts": 10,
+  "fixtureRestarts": 3
+ },
+ "environment": {
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "is64BitOS": true,
+  "interactive": true,
+  "powerShell": "5.1.26100.7705",
+  "processorCount": 12,
+  "cpu": "12th Gen Intel(R) Core(TM) i7-1255U",
+  "cpuNominalMhz": 2611,
+  "git": {
+   "commit": "c8cc1912435d9723f1f7673d983d9a12c26f3e5c",
+   "dirty": false
+  },
+  "windows": {
+   "edition": "Professional",
+   "build": "26200.7840",
+   "version": "25H2"
+  },
+  "agent": {
+   "sha256": "AAA10DA66706BFF1B9BA352C52A49B3798894CCA018E7EBBAB68813F5FCF5D9D",
+   "architecture": "x64 PE",
+   "kind": "C++"
+  },
+  "bridge": {
+   "fixtureProperty": "javax.accessibility.assistive_technologies=com.sun.java.accessibility.AccessBridge",
+   "registryOrUserSettingsChanged": false,
+   "windowsSideLibraries": {
+    "javaAgentRuntime": {
+     "path": "C:\\Program Files\\Java\\jdk-17\\bin\\WindowsAccessBridge-64.dll",
+     "fileVersion": "17.0.10.0",
+     "architecture": "x64 PE",
+     "sha256": "911611B06EBD4E4574B5317BC29DAE78814141B1E3512722DF03C4C5312FB940"
+    },
+    "systemDirectory": {
+     "path": "C:\\WINDOWS\\system32\\WindowsAccessBridge-64.dll",
+     "fileVersion": "17.0.10.0",
+     "architecture": "x64 PE",
+     "sha256": "911611B06EBD4E4574B5317BC29DAE78814141B1E3512722DF03C4C5312FB940"
+    }
+   },
+   "selection": {
+    "CppJab": "systemDirectory, then the Java installation registered under HKLM",
+    "Jab": "javaAgentRuntime, then systemDirectory"
+   },
+   "fixtureJvm": {
+    "launcher": "C:\\Program Files\\Java\\jdk-17\\bin\\java.exe",
+    "launcherArchitecture": "x64 PE",
+    "version": "java version \"17.0.10\" 2024-01-16 LTS\r\nJava(TM) SE Runtime Environment (build 17.0.10+11-LTS-240)\r\nJava HotSpot(TM) 64-Bit Server VM (build 17.0.10+11-LTS-240, mixed mode, sharing)",
+    "javaSideLibrary": {
+     "path": "C:\\Program Files\\Java\\jdk-17\\bin\\javaaccessbridge.dll",
+     "fileVersion": "17.0.10.0",
+     "architecture": "x64 PE"
+    }
+   }
+  }
+ },
+ "status": "PASS",
+ "fixtureRuntime": "AWT / Oracle Corporation Java 17.0.10+11-LTS-240",
+ "firstUse": {
+  "processStartMs": 20.0547,
+  "capabilitiesSinceStartMs": 301.5142,
+  "capabilitiesMs": 279.2703,
+  "listWindowsMs": 11.431000000000001,
+  "snapshotMs": 27.4354,
+  "snapshotSinceStartMs": 344.4966,
+  "elements": 22
+ },
+ "steady": {
+  "iterations": 4481,
+  "failures": [],
+  "samples": [
+   {
+    "utc": "2026-11-24T04:33:18.5461827Z",
+    "iterations": 0,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 46.875,
+     "privateBytes": 3162112,
+     "workingSetBytes": 13385728,
+     "handles": 186,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 359.375,
+     "privateBytes": 653750272,
+     "workingSetBytes": 69464064,
+     "handles": 462,
+     "threads": 30
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:33:33.5577326Z",
+    "iterations": 269,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 937.5,
+     "privateBytes": 3317760,
+     "workingSetBytes": 13549568,
+     "handles": 186,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 6312.5,
+     "privateBytes": 136802304,
+     "workingSetBytes": 85336064,
+     "handles": 492,
+     "threads": 39
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:33:48.5651068Z",
+    "iterations": 523,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 1906.25,
+     "privateBytes": 3436544,
+     "workingSetBytes": 13647872,
+     "handles": 187,
+     "threads": 4
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 12046.875,
+     "privateBytes": 129822720,
+     "workingSetBytes": 78983168,
+     "handles": 493,
+     "threads": 39
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:34:03.6062117Z",
+    "iterations": 722,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 2484.375,
+     "privateBytes": 3428352,
+     "workingSetBytes": 13647872,
+     "handles": 187,
+     "threads": 4
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 19015.625,
+     "privateBytes": 125693952,
+     "workingSetBytes": 76918784,
+     "handles": 493,
+     "threads": 39
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:34:18.6055004Z",
+    "iterations": 946,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 3250,
+     "privateBytes": 3522560,
+     "workingSetBytes": 13737984,
+     "handles": 187,
+     "threads": 4
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 25437.5,
+     "privateBytes": 124100608,
+     "workingSetBytes": 78848000,
+     "handles": 492,
+     "threads": 39
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:34:33.5821337Z",
+    "iterations": 1183,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 3906.25,
+     "privateBytes": 3555328,
+     "workingSetBytes": 13774848,
+     "handles": 187,
+     "threads": 4
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 31765.625,
+     "privateBytes": 121765888,
+     "workingSetBytes": 77373440,
+     "handles": 492,
+     "threads": 39
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:34:48.5588200Z",
+    "iterations": 1393,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 4890.625,
+     "privateBytes": 3608576,
+     "workingSetBytes": 13819904,
+     "handles": 187,
+     "threads": 4
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 38015.625,
+     "privateBytes": 129032192,
+     "workingSetBytes": 79962112,
+     "handles": 492,
+     "threads": 39
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:35:03.5752340Z",
+    "iterations": 1594,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 5625,
+     "privateBytes": 3608576,
+     "workingSetBytes": 13807616,
+     "handles": 187,
+     "threads": 4
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 44890.625,
+     "privateBytes": 121679872,
+     "workingSetBytes": 77287424,
+     "handles": 492,
+     "threads": 39
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:35:18.5565495Z",
+    "iterations": 1790,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 6250,
+     "privateBytes": 3661824,
+     "workingSetBytes": 13852672,
+     "handles": 187,
+     "threads": 4
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 51734.375,
+     "privateBytes": 127827968,
+     "workingSetBytes": 79069184,
+     "handles": 492,
+     "threads": 39
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:35:33.6039538Z",
+    "iterations": 1999,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 7140.625,
+     "privateBytes": 3600384,
+     "workingSetBytes": 13840384,
+     "handles": 185,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 58515.625,
+     "privateBytes": 122474496,
+     "workingSetBytes": 77725696,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:35:48.5792888Z",
+    "iterations": 2203,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 8000,
+     "privateBytes": 4325376,
+     "workingSetBytes": 14376960,
+     "handles": 185,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 64921.875,
+     "privateBytes": 124817408,
+     "workingSetBytes": 79753216,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:36:03.5827063Z",
+    "iterations": 2408,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 8859.375,
+     "privateBytes": 4329472,
+     "workingSetBytes": 14434304,
+     "handles": 185,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 71546.875,
+     "privateBytes": 123154432,
+     "workingSetBytes": 78737408,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:36:18.5673223Z",
+    "iterations": 2609,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 9593.75,
+     "privateBytes": 4329472,
+     "workingSetBytes": 14409728,
+     "handles": 185,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 78343.75,
+     "privateBytes": 125964288,
+     "workingSetBytes": 81231872,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:36:33.5854395Z",
+    "iterations": 2832,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 10046.875,
+     "privateBytes": 4399104,
+     "workingSetBytes": 14495744,
+     "handles": 185,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 84437.5,
+     "privateBytes": 122224640,
+     "workingSetBytes": 77922304,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:36:48.5794362Z",
+    "iterations": 3080,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 10671.875,
+     "privateBytes": 4325376,
+     "workingSetBytes": 14499840,
+     "handles": 185,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 90531.25,
+     "privateBytes": 124637184,
+     "workingSetBytes": 79708160,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:37:03.5585544Z",
+    "iterations": 3316,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 11156.25,
+     "privateBytes": 4399104,
+     "workingSetBytes": 14524416,
+     "handles": 185,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 97406.25,
+     "privateBytes": 125059072,
+     "workingSetBytes": 80437248,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:37:18.5958006Z",
+    "iterations": 3547,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 11906.25,
+     "privateBytes": 4370432,
+     "workingSetBytes": 14544896,
+     "handles": 185,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 103421.875,
+     "privateBytes": 126324736,
+     "workingSetBytes": 81338368,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:37:33.5543199Z",
+    "iterations": 3782,
+    "agent": {
+     "available": true,
+     "pid": 25040,
+     "startUtc": "2026-11-24T04:33:18.2078113Z",
+     "cpuMs": 12515.625,
+     "privateBytes": 4440064,
+     "workingSetBytes": 14606336,
+     "handles": 185,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 110171.875,
+     "privateBytes": 124596224,
+     "workingSetBytes": 79990784,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:37:48.6297321Z",
+    "iterations": 4013,
+    "agent": {
+     "available": true,
+     "pid": 23544,
+     "startUtc": "2026-11-24T04:37:47.6031959Z",
+     "cpuMs": 78.125,
+     "privateBytes": 3227648,
+     "workingSetBytes": 13414400,
+     "handles": 186,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 116156.25,
+     "privateBytes": 125403136,
+     "workingSetBytes": 79601664,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:38:03.5658774Z",
+    "iterations": 4241,
+    "agent": {
+     "available": true,
+     "pid": 23544,
+     "startUtc": "2026-11-24T04:37:47.6031959Z",
+     "cpuMs": 703.125,
+     "privateBytes": 3301376,
+     "workingSetBytes": 13533184,
+     "handles": 186,
+     "threads": 2
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 122718.75,
+     "privateBytes": 126799872,
+     "workingSetBytes": 81436672,
+     "handles": 484,
+     "threads": 36
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   },
+   {
+    "utc": "2026-11-24T04:38:18.5604864Z",
+    "iterations": 4481,
+    "agent": {
+     "available": true,
+     "pid": 23544,
+     "startUtc": "2026-11-24T04:37:47.6031959Z",
+     "cpuMs": 1578.125,
+     "privateBytes": 3448832,
+     "workingSetBytes": 13656064,
+     "handles": 187,
+     "threads": 4
+    },
+    "fixture": {
+     "available": true,
+     "pid": 24984,
+     "startUtc": "2026-11-24T04:33:17.8971468Z",
+     "cpuMs": 128953.125,
+     "privateBytes": 123850752,
+     "workingSetBytes": 78528512,
+     "handles": 484,
+     "threads": 38
+    },
+    "jvm": {
+     "perRequestAccessibles": 2,
+     "bridgeReferenceObjects": 1,
+     "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+    }
+   }
+  ],
+  "sessions": 2,
+  "elapsedSeconds": 300.2288578,
+  "latencyMs": {
+   "snapshot": {
+    "count": 4481,
+    "mean": 27.639615353715605,
+    "max": 87.79270000000001,
+    "p50": 26.306700000000003,
+    "p95": 44.5972,
+    "p99": 54.566900000000004
+   },
+   "findElement": {
+    "count": 4481,
+    "mean": 0.275606114706538,
+    "max": 6.9190000000000005,
+    "p50": 0.267,
+    "p95": 0.4435,
+    "p99": 0.5700000000000001
+   },
+   "getElementInfo": {
+    "count": 4481,
+    "mean": 2.0622021423789323,
+    "max": 37.1556,
+    "p50": 1.9408,
+    "p95": 3.5856000000000003,
+    "p99": 4.7522
+   },
+   "invoke": {
+    "count": 4481,
+    "mean": 2.4410887525105998,
+    "max": 18.2012,
+    "p50": 2.2931,
+    "p95": 4.415900000000001,
+    "p99": 5.4941
+   }
+  },
+  "requestCodes": {
+   "OK": 17928
+  },
+  "requests": 17928,
+  "growth": {
+   "agentPrivateBytes": {
+    "first": 3162112,
+    "settledFirst": 3608576,
+    "last": 3448832,
+    "settledMin": 3227648,
+    "settledMax": 4440064
+   },
+   "agentWorkingSetBytes": {
+    "first": 13385728,
+    "settledFirst": 13819904,
+    "last": 13656064,
+    "settledMin": 13414400,
+    "settledMax": 14606336
+   },
+   "agentHandles": {
+    "first": 186,
+    "settledFirst": 187,
+    "last": 187,
+    "settledMin": 185,
+    "settledMax": 187
+   },
+   "agentThreads": {
+    "first": 2,
+    "settledFirst": 4,
+    "last": 4,
+    "settledMin": 2,
+    "settledMax": 4
+   },
+   "fixturePrivateBytes": {
+    "first": 653750272,
+    "settledFirst": 129032192,
+    "last": 123850752,
+    "settledMin": 121679872,
+    "settledMax": 129032192
+   },
+   "fixtureHandles": {
+    "first": 462,
+    "settledFirst": 492,
+    "last": 484,
+    "settledMin": 484,
+    "settledMax": 492
+   },
+   "fixtureThreads": {
+    "first": 30,
+    "settledFirst": 39,
+    "last": 38,
+    "settledMin": 36,
+    "settledMax": 39
+   },
+   "jvmPerRequestAccessibles": {
+    "first": 2,
+    "settledFirst": 2,
+    "last": 2,
+    "settledMin": 2,
+    "settledMax": 2
+   }
+  }
+ },
+ "checkpointUtc": "2026-11-24T04:38:03.7920193Z",
+ "referencesInJvm": {
+  "whileSessionHeldACapture": {
+   "perRequestAccessibles": 2,
+   "bridgeReferenceObjects": 1,
+   "java.awt.List$AccessibleAWTList$AccessibleAWTListChild": 2
+  },
+  "afterSessionClosed": {
+   "perRequestAccessibles": 0,
+   "bridgeReferenceObjects": 1
+  }
+ },
+ "agentRestarts": {
+  "count": 10,
+  "fixtureBefore": {
+   "available": true,
+   "pid": 24984,
+   "startUtc": "2026-11-24T04:33:17.8971468Z",
+   "cpuMs": 129015.625,
+   "privateBytes": 124751872,
+   "workingSetBytes": 79245312,
+   "handles": 483,
+   "threads": 38
+  },
+  "jvmBefore": {
+   "perRequestAccessibles": 0,
+   "bridgeReferenceObjects": 1
+  },
+  "ms": {
+   "startToFirstSnapshot": {
+    "count": 10,
+    "mean": 299.40394,
+    "max": 331.4689,
+    "p50": 293.37780000000004,
+    "p95": 331.4689,
+    "p99": 331.4689
+   },
+   "exit": {
+    "count": 10,
+    "mean": 8.03087,
+    "max": 11.8328,
+    "p50": 7.9074,
+    "p95": 11.8328,
+    "p99": 11.8328
+   }
+  },
+  "fixtureAfter": {
+   "available": true,
+   "pid": 24984,
+   "startUtc": "2026-11-24T04:33:17.8971468Z",
+   "cpuMs": 129359.375,
+   "privateBytes": 123588608,
+   "workingSetBytes": 79175680,
+   "handles": 483,
+   "threads": 38
+  },
+  "jvmAfter": {
+   "perRequestAccessibles": 0,
+   "bridgeReferenceObjects": 1
+  }
+ },
+ "fixtureRestarts": {
+  "count": 3,
+  "discoveryMs": [
+   9.987300000000001,
+   10.3398,
+   8.8408
+  ],
+  "agentBefore": {
+   "available": true,
+   "pid": 25344,
+   "startUtc": "2026-11-24T04:38:24.0659798Z",
+   "cpuMs": 31.25,
+   "privateBytes": 3170304,
+   "workingSetBytes": 13410304,
+   "handles": 186,
+   "threads": 2
+  },
+  "agentAfter": {
+   "available": true,
+   "pid": 25344,
+   "startUtc": "2026-11-24T04:38:24.0659798Z",
+   "cpuMs": 46.875,
+   "privateBytes": 3211264,
+   "workingSetBytes": 13430784,
+   "handles": 186,
+   "threads": 2
+  }
+ },
+ "verdict": {
+  "steadyFailures": 0,
+  "unexpectedRequestCodes": [],
+  "agentHandlesStable": true,
+  "agentThreadsStable": true,
+  "jvmReferencesBounded": true,
+  "jvmReferencesReleasedAtClose": true
+ },
+ "finishedUtc": "2026-11-24T04:38:33.5896617Z"
+}

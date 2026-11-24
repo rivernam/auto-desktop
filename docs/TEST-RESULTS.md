@@ -1,5 +1,25 @@
 # 빌드 및 시험 기록
 
+## 2026-11-24 Java Access Bridge Adapter
+
+Windows 11 Pro 25H2(빌드 26200), Agent x64, 대상 JVM Oracle JDK 17.0.10과 Eclipse Adoptium 23.0.2(둘 다 x64). 원인, 표와 재현 명령은 [Java Access Bridge Adapter](JAVA-ACCESS-BRIDGE.md)에 있다.
+
+| 시험 | 결과 | 원본 |
+|---|---|---|
+| Java 단위 테스트 (`mvn -o package`) | 83개 중 79개 실행, 실패 0. 4개는 GUI 통합 테스트 | 빌드 로그 |
+| C++ 코어 테스트 (CTest) | x64 1/1, x86 1/1 | 빌드 로그 |
+| Java GUI 통합 (`WindowsGuiTest`) | 4개 중 2개 통과, 2개는 C# 워커가 없어 건너뜀 | 빌드 로그 |
+| JAB 기능, 대상 Java 17 | Swing 34/35, AWT 28/31. 두 Agent 동일, 트리 일치 | [JSON](test-results/2026-11-24-jab-functional-java17.json) |
+| JAB 기능, 대상 Java 23 | Swing 33/34, AWT 27/30. 두 Agent 동일, 트리 일치 | [JSON](test-results/2026-11-24-jab-functional-java23.json) |
+| JAB 성능, Swing 95개 요소 | 스냅샷 p50 38~42 ms(Java/JNA), 34~37 ms(C++) | [JSON](test-results/2026-11-24-jab-performance.json) |
+| JAB 반복 안정성, Swing 10분 | Java/JNA 2,209회, C++ 2,954회, 실패 0, 핸들·스레드·JVM 참조 일정 | [Java](test-results/2026-11-24-jab-stability-java-swing.json) · [C++](test-results/2026-11-24-jab-stability-cpp-swing.json) |
+| JAB 반복 안정성, AWT 5분 | Java/JNA 4,042회, C++ 4,481회, 실패 0 | [Java](test-results/2026-11-24-jab-stability-java-awt.json) · [C++](test-results/2026-11-24-jab-stability-cpp-awt.json) |
+| UIA 회귀, 여섯 프레임워크 | 256개 중 PASS 214, 이전 결과와 검사 단위까지 같음 | [JSON](test-results/2026-11-24-jab-uia-regression.json) |
+| UIA, Win32 x86 픽스처와 x86 C++ Agent | 22/22 | [x86 픽스처](test-results/2026-11-24-jab-uia-win32-x86.json) · [x86 Agent](test-results/2026-11-24-jab-uia-cpp-x86.json) |
+| 원인 실험, 환경 조사, MSAA 프로브 | 기록 | [JSON](test-results/2026-11-24-jab-investigation.json) |
+
+통과하지 못한 JAB 검사는 Swing의 모달을 여는 버튼과 AWT의 텍스트 입력이며 둘 다 Java 쪽 구현의 제약이다. 미실행: Java 6·7·8·11·21과 32비트 JVM, 32비트 브리지, MFC, Delphi VCL, 1시간 이상 연속 시험. 최종 실행 중 Java 17 Swing 실행 한 번이 픽스처의 명령 파일 경합으로 실패했다. 픽스처를 고친 뒤 다시 실행한 결과를 저장했다.
+
 ## JNA 장시간 측정 및 분석 도구
 
 `tools/Test-JnaSoak.ps1`은 `-IntervalSeconds`(기본 60초) 구간마다 요청 완료·실패 수, 연산별(Snapshot, FindElement, GetElementInfo, SetValue, Invoke) 호출 수와 평균·p50·p95·p99·최대 지연, 처리량, 오류 코드별 횟수를 집계한다. 구간이 끝날 때 Heap used/committed, NMT reserved/committed, Private bytes, Working set, CPU 시간, 핸들, 스레드, JVM PID·시작 시각, HotSpot GC 횟수·시간(`jcmd PerfCounter.print`)을 함께 기록한다. 실패·Timeout은 시각·구간·세션과 함께 `failures`에, 세션 재시작과 비정상 JVM 종료는 `sessionRestarts`, `unexpectedJvmExits`와 세션별 `endReason`에 남는다.
