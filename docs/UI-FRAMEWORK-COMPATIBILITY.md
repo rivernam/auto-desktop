@@ -1,5 +1,7 @@
 # 설비 UI 프레임워크 호환성
 
+2026-11-24에 소유 모달, 부분 스냅샷, AWT Invoke를 고치고 다시 검증했다. 프레임워크별 결과 표와 접근성 기술 절은 그 결과를 반영한다. 성능 수치, 실행 환경과 체크 개수는 2026-11-23 실행의 기록이다. [원인, 조치와 남은 제약](UIA-AGENT-DEFECTS.md)
+
 ## 검증 방법
 
 Windows에서 프레임워크별 전용 픽스처를 띄워 Java/JNA와 C++의 일곱 NDJSON 명령을 실행했다. 준비 파일의 PID와 고유한 창 제목을 대조했다. 변경 전 같은 창에서 캡처한 요소를 정규화된 부모 경로, 역할·이름·AutomationId·클래스, 좌표, 활성·표시 상태, 액션과 프로세스 소속으로 비교했다. 제목 표시줄 차이는 콘텐츠 차이와 별도로 기록했다.
@@ -12,14 +14,14 @@ Invoke와 SetValue의 응답을 실제 GUI의 카운터와 입력값에 대조�
 
 | UI 프레임워크 | JNA 탐색 | C++ 탐색 | JNA 조작 | C++ 조작 | 접근성 기술과 제약 |
 |---|---|---|---|---|---|
-| Win32 Native x64 | PARTIAL | PARTIAL | PASS | PASS | 기본 트리 76개와 목록 하위 범위, 일반·owner-drawn 버튼, 편집, 교체 검증. 모달은 실제로 열리고 닫혔으나 창 목록에서 찾지 못했다. |
+| Win32 Native x64 | PASS | PASS | PASS | PASS | 기본 트리 76개와 목록 하위 범위, 일반·owner-drawn 버튼, 편집, 교체 검증. 소유 대화상자를 창 목록에서 찾아 자체 스냅샷으로 닫았다. |
 | MFC | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | 실제 MFC Dialog, SDI, MDI, Property Sheet 소스 준비. 설치된 VS의 ATL 경로에 MFC 헤더와 라이브러리가 없다. |
 | Delphi VCL | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | 실제 TStringGrid/TDBGrid/TTreeView/TListView, owner-drawn 및 TCustomControl 소스 준비. Delphi 컴파일러 부재. |
 | Swing | PARTIAL | PARTIAL | NOT_RUN | NOT_RUN | UIA에는 창과 내부 프레임만 보였다. 컨트롤은 Java Access Bridge에서 관찰됐다. |
-| AWT | PARTIAL | PARTIAL | PARTIAL | PARTIAL | UIA에서 HWND 기반 버튼·Edit·List를 읽고 두 Agent에서 편집 필드 변경을 확인했다. 버튼은 Invoke가 반환되어도 카운터가 증가하지 않았다. |
-| WPF Extended | PARTIAL | PARTIAL | PASS | PASS | UIA DataGrid, 템플릿, 가상화, TreeView, 호스트 및 Custom AutomationPeer. 소유 모달은 실제로 열렸으나 창 목록의 직계 트리에 없었다. |
-| WinForms .NET Framework | PARTIAL | PARTIAL | PARTIAL | PARTIAL | DataGridView는 Table, TreeView와 owner-drawn 목록은 탐색 가능. 그리드 범위에서 행을 얻지 못했다. 기본 버튼·Edit 조작은 완전한 개별 범위에서 확인했다. |
-| WinForms .NET 9 | PARTIAL | PARTIAL | PASS | PASS | DataGridView와 TreeView 탐색 및 70개 범위에서 DataItem 32개 관찰. 실제로 열린 소유 모달은 창 목록에 없었다. |
+| AWT | PARTIAL | PARTIAL | PARTIAL | PARTIAL | UIA에서 HWND 기반 버튼·Edit·List를 읽고 두 Agent에서 편집 필드 변경을 확인했다. 버튼은 Invoke가 반환되어도 카운터가 증가하지 않았다. 직접 보낸 `BM_CLICK`과 MSAA 기본 동작도 같아 Provider 제약으로 분류했다. |
+| WPF Extended | PASS | PASS | PASS | PASS | UIA DataGrid, 템플릿, 가상화, TreeView, 호스트 및 Custom AutomationPeer. 소유 모달과 팝업을 창 목록에서 찾아 자체 스냅샷으로 조작했다. |
+| WinForms .NET Framework | PARTIAL | PARTIAL | PARTIAL | PARTIAL | DataGridView는 Table, TreeView와 owner-drawn 목록은 탐색 가능. 공급자가 탭·목록 항목·그리드 행과 셀의 Runtime ID를 주지 않아 해당 요소는 `partial`로 표시되고 참조가 없다. 버튼·Edit·모달은 온전한 범위에서 조작했다. |
+| WinForms .NET 9 | PASS | PASS | PASS | PASS | DataGridView와 TreeView 탐색 및 70개 범위에서 DataItem 32개 관찰. 소유 모달을 창 목록에서 찾아 자체 스냅샷으로 닫았다. |
 | Qt Widgets | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | P1. 로컬 Qt 도구와 픽스처가 없다. |
 | Chromium/Electron | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | P2. 전용 픽스처 미구성. |
 | DirectX/OpenGL/Canvas | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | P2. 시각 경로 미구성. |
@@ -35,14 +37,14 @@ Win32와 확장 WPF는 네이티브로 최소화한 상태에서도 같은 창�
 - **`JAB_ONLY` · Swing.** Temurin 21 x64의 기본 실행에서 두 Agent의 UIA 트리는 2개 요소, 직접 MSAA는 1개 요소였다. 해당 JVM 프로세스에서 JAB를 켜자 JAB가 78개 요소를 반환했다. 카운터 버튼, JTable, JTree, 탭, 비밀번호 역할 및 `AccessibleAction`을 제공하는 커스텀 스와치를 확인했다. 별도 시험 프로세스에서 JAB가 광고한 버튼 액션을 한 번 보냈고 실제 카운터가 0에서 1로 바뀌었다. AWT는 JAB에서 22개 요소를 반환했다. 이전 JVM·x86 브리지 및 다른 JAB 액션은 미실행이다. [JAB 활성화 원본](test-results/2026-11-23-uia-jab-enabled.json) · [Swing 실제 변경 증거](test-results/2026-11-23-uia-jab-action.json)
 - **`UIA_PROVIDER_LIMITATION` · AWT 및 WinForms.** AWT Edit의 숫자 AutomationId와 RichEdit20W 클래스를 함께 사용해 입력을 확인했다. 동일 프록시의 Invoke 응답과 실제 카운터 사이에는 차이가 있었다. AWT 목록은 하위 요소의 이름을 채우지 않았다. .NET Framework WinForms의 탭 이름은 MSAA에서도 보였다. UIA의 저수준 호출에서는 이름을 읽을 수 있었고 빈 Runtime ID로 인해 Agent 참조 발급이 불가능했다. 직접 MSAA는 이 사례의 보조 조회 경로이며 안정적인 식별 및 조작은 미실행이다. [UIA의 표준 컨트롤 프록시](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-clientsideprovider) · [WinForms 접근성 버전 차이](https://learn.microsoft.com/en-us/dotnet/framework/whats-new/whats-new-in-accessibility)
 - **`CUSTOM_CONTROL_LIMITATION` · 커스텀 표면.** WPF AutomationPeer를 구현한 표면은 Invoke 후 픽스처에서 활성화 신호를 받았다. AutomationPeer 없는 WPF 표면과 Java Accessible 미구현 스와치는 접근성 메타데이터에서 식별되지 않았다. WindowsFormsHost의 WinForms Edit와 HwndHost의 네이티브 EDIT는 WPF와 같은 스냅샷에서 별도 컨트롤로 관찰했다.
-- **`UNDETERMINED` · 소유 모달.** Win32, WPF와 현대 WinForms에서 창을 열고 닫은 상태는 검증했지만 두 Agent의 `listWindows`가 모달 제목·PID를 가진 행을 반환하지 않았다. 이 API는 UIA Control View의 데스크톱 직계 자식을 대상으로 한다. 별도 열거 모델과 모달 내부 버튼의 조작은 `NOT_RUN`이다.
+- **해결 · 소유 모달과 팝업.** UI Automation은 소유 창을 Raw View에서도 소유자 창의 자식으로 둔다. 데스크톱 직계 자식만 보던 `listWindows`에는 나타날 수 없었다. 두 Agent는 이제 Win32 소유 관계로 찾은 창을 `ownerWindowId`와 함께 덧붙이고 스냅샷 대상으로 받는다. Win32, WPF, WinForms .NET Framework·.NET 9에서 모달 내부 버튼까지 조작했다. 메뉴, 콤보 드롭다운과 중첩 모달은 `NOT_RUN`이다.
 - **`UIA_PROVIDER_LIMITATION` · 동기 모달 콜백.** 초기 WinForms .NET 9 픽스처의 Invoke는 `ShowDialog`가 호출 안에서 열린 상태로 대기해 두 Agent에서 `ACTION_OUTCOME_UNKNOWN`이 발생했다. 픽스처 콜백이 UI 메시지 큐에 대화상자 열기를 게시하도록 한 뒤에는 반환과 실제 열림을 각각 확인할 수 있었다. 해당 요청의 자동 재전송은 없었다. [Microsoft Invoke 공급자 계약](https://learn.microsoft.com/en-us/windows/win32/api/uiautomationcore/nf-uiautomationcore-iinvokeprovider-invoke)
 
 ## 확인된 Agent 결함
 
 **`AGENT_BUG`와 `UIA_PROVIDER_LIMITATION` · .NET Framework WinForms Runtime ID.** ListBox 항목 3개와 TabItem 3개에서 네이티브 `GetRuntimeId`는 `S_OK`와 1차원 `VT_I4` SAFEARRAY를 반환했다. 하한 0, 상한 -1의 빈 배열이었다. 기존 두 백엔드는 이를 스냅샷 전체의 `STALE_REFERENCE`로 처리했다. 수정 후 두 백엔드는 식별할 수 없는 하위 가지를 생략하고 `truncated=true`를 반환한다. 방문 한도에는 생략한 요소도 포함한다. 실제 COM 실패와 식별할 수 없는 루트는 계속 거부한다. [독립 COM 진단](test-results/2026-11-23-winforms-runtime-ids.txt)
 
-부분 스냅샷의 전체 창 검색은 `INCOMPLETE_SNAPSHOT`으로 차단된다. 이 픽스처에 유일하게 선언된 버튼과 입력 필드는 각각 완전한 범위를 다시 캡처한 뒤 조작했다. Java/JNA와 C++에서 실제 카운터 증가와 변경된 텍스트를 확인했다. [API 계약](API.md)
+부분 스냅샷의 전체 창 검색은 `INCOMPLETE_SNAPSHOT`으로 차단된다. 이 픽스처에 유일하게 선언된 버튼과 입력 필드는 각각 완전한 범위를 다시 캡처한 뒤 조작했다. Java/JNA와 C++에서 실제 카운터 증가와 변경된 텍스트를 확인했다. 2026-11-24부터 잘린 요소에는 `partial`이 표시되고, `partial` 요소가 없는 범위는 다시 캡처하지 않아도 `scopeRef`로 검색할 수 있다. [API 계약](API.md)
 
 ## 기능을 통과한 시나리오의 성능
 

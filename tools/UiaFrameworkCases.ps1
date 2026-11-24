@@ -8,11 +8,185 @@ function Get-FrameworkSpec($name) {
         # Measured control IDs of the lightweight fixture's heavyweight peer children.
         $spec = @{ edit = '1'; readOnly = '2'; password = '3'; editClass = 'RichEdit20W'; listClass = 'ListBox' }
     }
+    $spec.modalClose = if ($name -in 'Win32', 'Mfc') { 'Cancel modal' } else { 'Close fixture modal' }
     return $spec
 }
 
 function Require-Framework($condition, [string]$message) {
     if (!$condition) { throw $message }
+}
+
+# Ends a case with a cause that the case itself established, and the evidence for it.
+function Stop-FrameworkCase([string]$classification, [string]$message, $evidence) {
+    $failure = New-Object InvalidOperationException($message)
+    $failure.Data['classification'] = $classification
+    if ($null -ne $evidence) { $failure.Data['evidence'] = $evidence }
+    throw $failure
+}
+
+# Win32 and MSAA access to the fixture that uses neither UI Automation nor an Agent.
+function Initialize-FrameworkNative {
+    if ('FrameworkNative' -as [type]) { return }
+    Add-Type -ReferencedAssemblies Accessibility -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class FrameworkNative {
+    private delegate bool EnumProc(IntPtr window, IntPtr state);
+    [DllImport("user32.dll")] private static extern bool EnumWindows(EnumProc callback, IntPtr state);
+    [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr parent, EnumProc callback, IntPtr state);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint owner);
+    [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr window, uint command);
+    [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowTextW(IntPtr window, StringBuilder text, int count);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassNameW(IntPtr window, StringBuilder text, int count);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SendMessageTimeoutW(IntPtr window, uint message, IntPtr w, IntPtr l, uint flags, uint ms, out IntPtr result);
+    [DllImport("oleacc.dll")]
+    private static extern int AccessibleObjectFromWindow(IntPtr window, uint id, ref Guid iid, [MarshalAs(UnmanagedType.Interface)] out object result);
+
+    public sealed class TopLevel { public long Handle, Owner; public string Title, ClassName; }
+
+    private static string Text(IntPtr window) { var text = new StringBuilder(512); GetWindowTextW(window, text, text.Capacity); return text.ToString(); }
+    public static string ClassName(long window) { var text = new StringBuilder(256); GetClassNameW(new IntPtr(window), text, text.Capacity); return text.ToString(); }
+    private static bool Owns(IntPtr window, uint pid) { uint owner; return GetWindowThreadProcessId(window, out owner) != 0 && owner == pid; }
+
+    // Visible top-level windows of the process, including owned ones.
+    public static List<TopLevel> Windows(uint pid) {
+        var rows = new List<TopLevel>();
+        EnumWindows(delegate(IntPtr window, IntPtr state) {
+            if (Owns(window, pid) && IsWindowVisible(window)) {
+                rows.Add(new TopLevel { Handle = window.ToInt64(), Owner = GetWindow(window, 4).ToInt64(),
+                    Title = Text(window), ClassName = ClassName(window.ToInt64()) });
+            }
+            return true;
+        }, IntPtr.Zero);
+        return rows;
+    }
+
+    // The only child HWND of the process with this window text, or 0.
+    public static long FindChild(uint pid, string text) {
+        var found = new List<long>();
+        foreach (var top in Windows(pid)) {
+            EnumChildWindows(new IntPtr(top.Handle), delegate(IntPtr child, IntPtr state) {
+                if (Text(child) == text) found.Add(child.ToInt64());
+                return true;
+            }, IntPtr.Zero);
+        }
+        return found.Count == 1 ? found[0] : 0;
+    }
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")] private static extern IntPtr GetLong(IntPtr window, int index);
+
+    // Window styles of the process's child HWNDs of one class.
+    public static List<long> ChildStyles(uint pid, string className) {
+        var styles = new List<long>();
+        foreach (var top in Windows(pid)) {
+            EnumChildWindows(new IntPtr(top.Handle), delegate(IntPtr child, IntPtr state) {
+                if (ClassName(child.ToInt64()) == className) styles.Add(GetLong(child, -16).ToInt64() & 0xffffffffL);
+                return true;
+            }, IntPtr.Zero);
+        }
+        return styles;
+    }
+
+    private static IntPtr Owned(long window, uint pid) {
+        var handle = new IntPtr(window);
+        if (pid == 0 || !Owns(handle, pid)) throw new InvalidOperationException("The HWND does not belong to the fixture.");
+        return handle;
+    }
+
+    public static string Click(long window, uint pid) {
+        IntPtr result;
+        return SendMessageTimeoutW(Owned(window, pid), 0x00F5, IntPtr.Zero, IntPtr.Zero, 2, 3000, out result) == IntPtr.Zero
+            ? "not delivered (" + Marshal.GetLastWin32Error() + ")" : "delivered";
+    }
+
+    public static string DefaultAction(long window, uint pid) {
+        Guid iid = new Guid("618736E0-3C3D-11CF-810C-00AA00389B71");
+        object value;
+        int status = AccessibleObjectFromWindow(Owned(window, pid), 0xFFFFFFFC, ref iid, out value);
+        if (status != 0) return "AccessibleObjectFromWindow 0x" + status.ToString("X8");
+        try {
+            var accessible = (Accessibility.IAccessible)value;
+            string action = accessible.get_accDefaultAction(0);
+            accessible.accDoDefaultAction(0);
+            return "returned (default action: " + action + ")";
+        } catch (Exception failure) { return failure.GetType().Name; }
+    }
+}
+'@
+}
+
+function Get-FixtureTopLevel([scriptblock]$filter, [int]$timeoutMs = 3000) {
+    Initialize-FrameworkNative
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    do {
+        $matches = @([FrameworkNative]::Windows([uint32]$fixture.Id) | Where-Object $filter)
+        if ($matches.Count -eq 1) { return $matches[0] }
+        Start-Sleep -Milliseconds 25
+    } while ($clock.ElapsedMilliseconds -lt $timeoutMs)
+    throw "Win32 reported $($matches.Count) matching visible top-level windows for the fixture."
+}
+
+# Runs a read-only probe in a process of its own. The managed UI Automation library registers a
+# process-wide proxy callback that changes what a COM client in the same process is served.
+function Invoke-FrameworkProbe([string]$script, [string]$arguments) {
+    $shell = Join-Path $env:SystemRoot 'System32/WindowsPowerShell/v1.0/powershell.exe'
+    $path = Join-Path $PSScriptRoot $script
+    $probe = Read-Diagnostic $shell "-NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File ""$path"" $arguments" 60000 -Utf8
+    if ($probe.exitCode -ne 0) { throw "$script failed: $($probe.stderr)" }
+    return ConvertFrom-Json -InputObject $probe.stdout
+}
+
+# Where a third client, the managed UI Automation library, places one top-level HWND of the fixture.
+function Get-OwnedWindowEvidence($native) {
+    $probe = Invoke-FrameworkProbe 'Probe-UiaWindows.ps1' "-ProcessId $($fixture.Id)"
+    $seen = @($probe.topLevelWindows | Where-Object { $_.hwnd -eq $native.Handle })
+    if ($seen.Count -ne 1) { return @{ status = 'not observed' } }
+    return [ordered]@{ client = 'System.Windows.Automation (managed)'; win32Owner = $seen[0].owner
+        desktopChildInControlView = $seen[0].desktopChildControlView; desktopChildInRawView = $seen[0].desktopChildRawView
+        controlViewParentChain = @($seen[0].uia.controlParentChain); rawViewParentChain = @($seen[0].uia.rawParentChain) }
+}
+
+function Read-FixtureState([string]$file) {
+    try { return Read-State $file } catch [IO.IOException] { return $null }
+}
+
+# Dispatches Invoke and judges the outcome by fixture state alone. When the provider accepted the call
+# and the application did not react, the same HWND is activated through Win32 and MSAA. If those do
+# nothing either, no accessibility client could have succeeded and the cause lies in the provider.
+function Invoke-FixtureButton($run, $element, [string]$file, [string]$expected, [string]$id = ([guid]::NewGuid().ToString())) {
+    $reply = (Invoke-FrameworkRequest $run @{ op = 'invoke'; ref = $element.ref } 'OK' $id).reply.result
+    Require-Framework ($reply.performed -eq $true) 'Invoke did not report dispatch.'
+    Require-Framework ($reply.effectVerified -eq $false) 'An Invoke reply must state that the Agent did not verify the effect.'
+    try { Wait-State $file $expected 6000; return }
+    catch { if ($_.Exception.Message -notmatch '^Fixture did not report') { throw } }
+    Initialize-FrameworkNative
+    $evidence = [ordered]@{ agentReply = @{ performed = $reply.performed; effectVerified = $reply.effectVerified }
+        expectedState = "$file=$expected"; observedState = Read-FixtureState $file }
+    $hwnd = [FrameworkNative]::FindChild([uint32]$fixture.Id, $element.name)
+    if (!$hwnd) {
+        $run.uncertainAction = $true
+        Stop-FrameworkCase 'UNCLASSIFIED' "Invoke returned but the fixture did not report $file." $evidence
+    }
+    $evidence.nativeClass = [FrameworkNative]::ClassName($hwnd)
+    $controls = [ordered]@{}
+    foreach ($control in 'BM_CLICK', 'accDoDefaultAction') {
+        $call = if ($control -eq 'BM_CLICK') { [FrameworkNative]::Click($hwnd, [uint32]$fixture.Id) }
+            else { [FrameworkNative]::DefaultAction($hwnd, [uint32]$fixture.Id) }
+        $effect = $true
+        try { Wait-State $file $expected 2500 } catch { $effect = $false }
+        $controls[$control] = @{ call = $call; effect = $effect }
+        if ($effect) { break }
+    }
+    $evidence.independentControls = $controls
+    $evidence.stateAfterControls = Read-FixtureState $file
+    if (@($controls.Values | Where-Object { $_.effect }).Count) {
+        Stop-FrameworkCase 'AGENT_BUG' "Invoke returned without effect, yet an independent activation of the same HWND changed $file." $evidence
+    }
+    Stop-FrameworkCase 'UIA_PROVIDER_LIMITATION' "Invoke returned but the fixture did not report $file. A direct BM_CLICK and the MSAA default action on the same HWND had no effect either." $evidence
 }
 
 function Start-FrameworkAgent($implementation, [switch]$WithoutPid) {
@@ -106,13 +280,57 @@ function Get-FrameworkTree($snapshot) {
         $paths.Add($node.ref, @{ path = $path; chrome = $isChrome })
         $bounds = if ($node.bounds) { @($node.bounds.x, $node.bounds.y, $node.bounds.width, $node.bounds.height) }
         $entry = ConvertTo-Json -Depth 20 -Compress -InputObject @($path, @($bounds), $node.enabled, $node.offscreen,
-            @($node.actions | Sort-Object), $node.backend, $owned)
+            @($node.actions | Sort-Object), $node.backend, $owned, [bool]$node.partial)
         if ($isChrome) { $chrome.Add($entry) } else { $content.Add($entry) }
     }
     $content.Sort([StringComparer]::Ordinal)
     $chrome.Sort([StringComparer]::Ordinal)
     return @{ content = $content.ToArray(); chrome = $chrome.ToArray(); foreign = $foreign; truncated = $snapshot.truncated;
-        elements = $snapshot.elements.Count }
+        elements = $snapshot.elements.Count; partialElements = @($snapshot.elements | Where-Object partial).Count }
+}
+
+# Looks one fixture control up through the Agent. In a partial snapshot the search is confined to the
+# parent of the single captured candidate, where the Agent has to prove that the branch is whole.
+function Find-FixtureControl($run, $snapshot, $locator) {
+    if (!$snapshot.truncated) { return Find-FrameworkElement $run $snapshot $locator }
+    $candidates = @(foreach ($node in $snapshot.elements) {
+        if ($node.processId -eq $fixture.Id -and !@($locator.Keys | Where-Object { $node.$_ -cne $locator[$_] }).Count) { $node }
+    })
+    Require-Framework ($candidates.Count -eq 1) 'The incomplete snapshot did not capture exactly one candidate.'
+    # Widen the scope to the highest ancestor that holds no partial element.
+    $byRef = @{}
+    foreach ($node in $snapshot.elements) { $byRef[$node.ref] = $node }
+    $cut = @{}
+    foreach ($node in $snapshot.elements | Where-Object partial) {
+        for ($cursor = $node; $cursor; $cursor = $(if ($cursor.parentRef) { $byRef[$cursor.parentRef] })) { $cut[$cursor.ref] = $true }
+    }
+    $scope = $candidates[0]
+    Require-Framework (!$cut[$scope.ref]) 'The captured candidate has an incomplete subtree.'
+    while ($scope.parentRef -and !$cut[$scope.parentRef]) { $scope = $byRef[$scope.parentRef] }
+    return Find-FrameworkElement $run $snapshot $locator $scope.ref
+}
+
+# Independent evidence for a partial tree: the COM client's own view of each element's runtime ID.
+function Get-RuntimeIdEvidence($window) {
+    $probe = Invoke-FrameworkProbe 'Probe-UiaRuntimeIds.ps1' "-WindowHandle $window -ProcessId $($fixture.Id) -MaxDepth 32 -MaxElements 2000"
+    return [ordered]@{ client = $probe.client; elements = $probe.elements; elementLimitReached = $probe.elementLimitReached
+        unusableRuntimeIds = $probe.unusableRuntimeIds; duplicateRuntimeIds = $probe.duplicateRuntimeIds
+        unusableRuntimeIdGroups = @($probe.unusableRuntimeIdGroups | Where-Object { $_ }) }
+}
+
+function Get-FrameworkClassification($row, $check) {
+    # One read that ran into the 10 s request limit cannot tell a slow host from a slow Agent. A C++
+    # session is retired by a timeout, so its later requests fail as a consequence.
+    if ($check.reason -match 'received TIMEOUT') { return 'REQUEST_TIMEOUT' }
+    if ($check.reason -match 'received BACKEND_UNAVAILABLE' -and @($row.requests | Where-Object { $_.code -ceq 'TIMEOUT' }).Count) {
+        return 'AFTER_REQUEST_TIMEOUT'
+    }
+    if ($check.status -eq 'INCONCLUSIVE') { return 'INCONCLUSIVE' }
+    # A lookup that the Agent refuses on a tree which an independent client also cannot identify.
+    if ($row.providerOmissions -gt 0 -and $check.reason -match 'INCOMPLETE_SNAPSHOT|incomplete') { return 'UIA_PROVIDER_LIMITATION' }
+    # Swing draws lightweight components. UI Automation sees the frame and nothing inside it.
+    if ($row.framework -eq 'Swing' -and $check.reason -match 'ELEMENT_NOT_FOUND|candidate') { return 'JAB_ONLY' }
+    return 'UNCLASSIFIED'
 }
 
 function Find-FrameworkElement($run, $snapshot, $locator, [string]$scope, [string]$expected = 'OK') {
@@ -147,6 +365,12 @@ function Invoke-FrameworkCase($row, [string]$name, [bool]$ready, [scriptblock]$b
     } catch {
         $check.reason = $_.Exception.Message
         $check.status = if ($check.reason -match 'ACTION_OUTCOME_UNKNOWN|Timed out waiting') { 'INCONCLUSIVE' } else { 'FAIL' }
+        $data = $_.Exception.Data
+        if ($data -and $data.Contains('evidence')) { $check.evidence = $data['evidence'] }
+        $check.classification = if ($data -and $data.Contains('classification')) { $data['classification'] }
+            else { Get-FrameworkClassification $row $check }
+        if ($check.classification -ceq 'NOT_APPLICABLE') { $check.status = 'NOT_RUN' }
+        if ($check.classification -in 'REQUEST_TIMEOUT', 'AFTER_REQUEST_TIMEOUT') { $check.status = 'INCONCLUSIVE' }
     }
 }
 
@@ -169,21 +393,35 @@ function Invoke-FrameworkFunction($row, $spec) {
         Invoke-FrameworkCase $row 'tree' ([bool]$state.window) {
             $state.snapshot = (Get-FrameworkSnapshot $run $state.window).data
             $row.tree = Get-FrameworkTree $state.snapshot
+            if ($row.tree.truncated) {
+                Require-Framework ($row.tree.partialElements -gt 0) 'An incomplete snapshot did not name any partial element.'
+                $row.runtimeIdProbe = Get-RuntimeIdEvidence $state.window
+                $row.providerOmissions = $row.runtimeIdProbe.unusableRuntimeIds
+                if ($row.providerOmissions -gt 0) {
+                    Stop-FrameworkCase 'UIA_PROVIDER_LIMITATION' 'Whole-window snapshot is incomplete at maximum limits. The provider returns empty runtime IDs.' ([ordered]@{
+                        agentElements = $row.tree.elements; agentPartialElements = $row.tree.partialElements
+                        independentClient = $row.runtimeIdProbe })
+                }
+            } else {
+                Require-Framework ($row.tree.partialElements -eq 0) 'A complete snapshot named a partial element.'
+            }
             Require-Framework (!$row.tree.truncated) 'Whole-window snapshot is incomplete at maximum limits.'
         }
         Invoke-FrameworkCase $row 'buttonLocatorAndLiveMetadata' ([bool]$state.snapshot -and !$run.closedProtocol) {
             $locator = @{ role = 'Button'; name = 'Increment fixture counter' }
-            $button = Find-FrameworkElement $run $state.snapshot $locator
+            $button = Find-FixtureControl $run $state.snapshot $locator
             $info = Framework-Result $run @{ op = 'getElementInfo'; ref = $button.ref }
             Require-Framework ($info.ref -ceq $button.ref -and $info.processId -eq $fixture.Id -and $info.parentRef -ceq $button.parentRef -and
                 $info.name -ceq $locator.name -and $info.role -ceq $locator.role -and $info.enabled -and !$info.offscreen -and
                 $info.bounds.width -gt 0 -and $info.bounds.height -gt 0 -and $null -eq $info.PSObject.Properties['value']) 'Unexpected live button metadata.'
-            [void](Find-FrameworkElement $run $state.snapshot @{ name = $locator.name; role = 'button' } '' 'ELEMENT_NOT_FOUND')
+            # A miss is conclusive only in a complete tree. A partial one must refuse to answer.
+            $miss = if ($state.snapshot.truncated) { 'INCOMPLETE_SNAPSHOT' } else { 'ELEMENT_NOT_FOUND' }
+            [void](Find-FrameworkElement $run $state.snapshot @{ name = $locator.name; role = 'button' } '' $miss)
             $state.button = $button
-            @{ role = $info.role; name = $info.name; automationId = $info.automationId; actions = $info.actions }
+            @{ role = $info.role; name = $info.name; automationId = $info.automationId; actions = $info.actions; unscopedMiss = $miss }
         }
         Invoke-FrameworkCase $row 'editLocatorAndLiveMetadata' ([bool]$state.snapshot -and !$run.closedProtocol) {
-            $edit = Find-FrameworkElement $run $state.snapshot (Get-FixtureLocator $spec 'edit' 'Edit')
+            $edit = Find-FixtureControl $run $state.snapshot (Get-FixtureLocator $spec 'edit' 'Edit')
             $info = Framework-Result $run @{ op = 'getElementInfo'; ref = $edit.ref }
             Require-Framework ($info.ref -ceq $edit.ref -and $info.role -ceq 'Edit' -and $info.processId -eq $fixture.Id -and
                 $info.name -ceq '' -and $null -eq $info.PSObject.Properties['value']) 'Edit live metadata was invalid or unredacted.'
@@ -195,9 +433,13 @@ function Invoke-FrameworkFunction($row, $spec) {
         }
         Invoke-FrameworkCase $row 'locatorWithoutAutomationId' ([bool]$state.snapshot -and !$run.closedProtocol) {
             $candidate = @($state.snapshot.elements | Where-Object {
-                $_.processId -eq $fixture.Id -and $_.parentRef -and $_.name -and !$_.automationId -and
+                $_.processId -eq $fixture.Id -and $_.parentRef -and $_.name -and !$_.automationId -and !$_.partial -and
                 $_.role -notin 'TitleBar', 'Edit', 'Window' -and $_.name -cne 'Duplicate label'
             } | Select-Object -First 1)
+            if (!$candidate.Count -and @($state.snapshot.elements | Where-Object {
+                    $_.processId -eq $fixture.Id -and $_.role -ceq 'Button' -and $_.automationId }).Count) {
+                Stop-FrameworkCase 'NOT_APPLICABLE' 'Every named element of this fixture carries an AutomationId.'
+            }
             Require-Framework ($candidate.Count -eq 1) 'No scoped named candidate without AutomationId was captured.'
             $node = $candidate[0]
             $found = Find-FrameworkElement $run $state.snapshot @{ role = $node.role; name = $node.name; className = $node.className } $node.ref
@@ -205,7 +447,7 @@ function Invoke-FrameworkFunction($row, $spec) {
             @{ role = $node.role; name = $node.name }
         }
         Invoke-FrameworkCase $row 'passwordMetadata' ([bool]$state.snapshot -and !$run.closedProtocol) {
-            $password = Find-FrameworkElement $run $state.snapshot (Get-FixtureLocator $spec 'password' 'Edit')
+            $password = Find-FixtureControl $run $state.snapshot (Get-FixtureLocator $spec 'password' 'Edit')
             $info = Framework-Result $run @{ op = 'getElementInfo'; ref = $password.ref }
             Require-Framework ($info.name -ceq '' -and $null -eq $info.PSObject.Properties['value'] -and
                 @($state.snapshot.elements | Where-Object parentRef -CEQ $password.ref).Count -eq 0) 'Password metadata was not redacted.'
@@ -266,6 +508,52 @@ function Get-ScopedFixtureControl($run, $window, $locator) {
 function Test-FrameworkScopedActions($row, $spec, $run, $window) {
     # The Framework fixture has a known stable ID for each of these HWND-backed controls.
     if ($row.framework -ne 'WinFormsFramework') { return }
+    Invoke-FrameworkCase $row 'partialSnapshotScopes' (!$run.closedProtocol) {
+        $buttonLocator = @{ role = 'Button'; automationId = 'fixtureIncrement' }
+        $listLocator = @{ role = 'List'; automationId = 'fixtureList' }
+        $itemLocator = @{ role = 'ListItem'; name = 'Item one' }
+        $pick = {
+            param($snapshot, $locator)
+            $rows = @($snapshot.elements | Where-Object { $_.processId -eq $fixture.Id -and $_.role -ceq $locator.role -and $_.automationId -ceq $locator.automationId })
+            Require-Framework ($rows.Count -eq 1) "Expected one captured $($locator.automationId)."
+            $rows[0]
+        }
+        $whole = (Get-FrameworkSnapshot $run $window).data
+        $probe = Get-RuntimeIdEvidence $window
+        Require-Framework ($whole.truncated -and $probe.unusableRuntimeIds -gt 0) 'Expected a provider that withholds runtime IDs and a snapshot that says so.'
+        # The list's items have no runtime ID. The list is named partial and no item gets a reference.
+        $list = & $pick $whole $listLocator
+        Require-Framework ($list.partial -and !@($whole.elements | Where-Object parentRef -CEQ $list.ref).Count -and
+            !@($whole.elements | Where-Object { $_.role -ceq 'ListItem' }).Count) 'An unidentifiable list item received a reference, or its list was not marked partial.'
+        # The whole window cannot answer, for a hit or for a miss.
+        [void](Find-FrameworkElement $run $whole $buttonLocator '' 'INCOMPLETE_SNAPSHOT')
+        [void](Find-FrameworkElement $run $whole @{ automationId = 'fixtureAbsent' } '' 'INCOMPLETE_SNAPSHOT')
+        # A branch that was captured whole answers conclusively without a new capture.
+        $button = & $pick $whole $buttonLocator
+        $found = Find-FrameworkElement $run $whole $buttonLocator $button.parentRef
+        Require-Framework ($found.ref -ceq $button.ref -and !$found.partial) 'The whole branch returned a different element.'
+        [void](Find-FrameworkElement $run $whole @{ automationId = 'fixtureAbsent' } $button.parentRef 'ELEMENT_NOT_FOUND')
+        # A partial branch refuses both.
+        [void](Find-FrameworkElement $run $whole $listLocator $list.ref 'INCOMPLETE_SNAPSHOT')
+        [void](Find-FrameworkElement $run $whole $itemLocator $list.ref 'INCOMPLETE_SNAPSHOT')
+        # Capturing the partial branch again does not turn it into a complete tree.
+        $listScope = (Get-FrameworkSnapshot $run $window $list.ref).data
+        Require-Framework ($listScope.truncated -and $listScope.elements[0].partial -and
+            !@($listScope.elements | Where-Object { $_.role -ceq 'ListItem' }).Count) 'A fresh capture disguised the partial list as complete.'
+        [void](Find-FrameworkElement $run $listScope $itemLocator '' 'INCOMPLETE_SNAPSHOT')
+        [void](Framework-Result $run @{ op = 'getElementInfo'; ref = $button.ref } 'STALE_REFERENCE')
+        # Capturing the whole branch again gives a complete tree in which plain lookup works.
+        $again = (Get-FrameworkSnapshot $run $window).data
+        $scope = (Get-FrameworkSnapshot $run $window (& $pick $again $buttonLocator).parentRef).data
+        Require-Framework (!$scope.truncated -and !@($scope.elements | Where-Object partial).Count) 'The fresh branch capture was incomplete.'
+        $fresh = Find-FrameworkElement $run $scope $buttonLocator
+        Require-Framework ($fresh.actions -ccontains 'invoke') 'The freshly captured button lost its action.'
+        [ordered]@{ independentClient = $probe; windowElements = $whole.elements.Count
+            partialRoles = @($whole.elements | Where-Object partial | ForEach-Object role | Sort-Object -Unique)
+            wholeWindowLookup = 'INCOMPLETE_SNAPSHOT'; wholeBranchLookup = 'OK'; wholeBranchMiss = 'ELEMENT_NOT_FOUND'
+            partialBranchLookup = 'INCOMPLETE_SNAPSHOT'; partialBranchRecaptureTruncated = $true
+            wholeBranchRecapture = @{ elements = $scope.elements.Count; truncated = $false } }
+    }
     Invoke-FrameworkCase $row 'basicActionsInCompleteScopes' (!$run.closedProtocol -and !$run.uncertainAction) {
         $buttonLocator = @{ role = 'Button'; automationId = 'fixtureIncrement' }
         $full = (Get-FrameworkSnapshot $run $window).data
@@ -295,13 +583,13 @@ function Test-FrameworkActions($row, $spec, $run, $state) {
         @{ emptyObserved = $true; unicodeObserved = $true }
     }
     Invoke-FrameworkCase $row 'disabledAction' ([bool]$state.snapshot -and !$run.closedProtocol -and !$run.uncertainAction) {
-        $disabled = Find-FrameworkElement $run $state.snapshot @{ role = 'Button'; name = 'Disabled action' }
+        $disabled = Find-FixtureControl $run $state.snapshot @{ role = 'Button'; name = 'Disabled action' }
         Require-Framework (!$disabled.enabled) 'Disabled button appeared enabled.'
         [void](Framework-Result $run @{ op = 'invoke'; ref = $disabled.ref } 'PRECONDITION_FAILED')
         Require-Framework ((Read-State 'disabled-click.txt') -ceq '0') 'Disabled button was invoked.'
     }
     Invoke-FrameworkCase $row 'readOnlyAction' ([bool]$state.snapshot -and !$run.closedProtocol -and !$run.uncertainAction) {
-        $edit = Find-FrameworkElement $run $state.snapshot (Get-FixtureLocator $spec 'readOnly' 'Edit')
+        $edit = Find-FixtureControl $run $state.snapshot (Get-FixtureLocator $spec 'readOnly' 'Edit')
         Require-Framework ($edit.actions -cnotcontains 'setValue') 'Read-only edit advertised setValue.'
         [void](Framework-Result $run @{ op = 'setValue'; ref = $edit.ref; value = 'unexpected' } 'PATTERN_UNSUPPORTED')
         Require-Framework ((Read-State 'read-only.txt') -ceq 'fixed fixture value') 'The read-only edit changed.'
@@ -311,7 +599,7 @@ function Test-FrameworkActions($row, $spec, $run, $state) {
         try {
             $before = Read-State 'count.txt'
             $snapshot = (Get-FrameworkSnapshot $denied $state.window).data
-            $button = Find-FrameworkElement $denied $snapshot @{ role = 'Button'; name = 'Increment fixture counter' }
+            $button = Find-FixtureControl $denied $snapshot @{ role = 'Button'; name = 'Increment fixture counter' }
             [void](Framework-Result $denied @{ op = 'invoke'; ref = $button.ref } 'PERMISSION_DENIED')
             Require-Framework ((Read-State 'count.txt') -ceq $before) 'Denied action changed the fixture count.'
         } finally {
@@ -322,28 +610,63 @@ function Test-FrameworkActions($row, $spec, $run, $state) {
     Invoke-FrameworkCase $row 'invokeAndDuplicateRequest' ([bool]$state.button -and !$run.closedProtocol -and !$run.uncertainAction) {
         $before = [int](Read-State 'count.txt')
         $id = [guid]::NewGuid().ToString()
-        $command = @{ op = 'invoke'; ref = $state.button.ref }
-        $reply = Invoke-FrameworkRequest $run $command 'OK' $id
-        Require-Framework $reply.reply.result.performed 'Invoke did not report dispatch.'
-        Wait-FrameworkEffect $run 'count.txt' ([string]($before + 1))
-        [void](Invoke-FrameworkRequest $run $command 'DUPLICATE_COMMAND' $id)
-        Require-Framework ((Read-State 'count.txt') -ceq [string]($before + 1)) 'Duplicate request changed the fixture count.'
-        @{ before = $before; after = $before + 1; duplicateCode = 'DUPLICATE_COMMAND' }
+        $limitation = $null
+        try { Invoke-FixtureButton $run $state.button 'count.txt' ([string]($before + 1)) $id }
+        catch {
+            if ($_.Exception.Data['classification'] -cne 'UIA_PROVIDER_LIMITATION') { throw }
+            $limitation = $_.Exception
+        }
+        # The command ID was recorded at dispatch, whether or not the application reacted.
+        $settled = Read-State 'count.txt'
+        [void](Invoke-FrameworkRequest $run @{ op = 'invoke'; ref = $state.button.ref } 'DUPLICATE_COMMAND' $id)
+        Start-Sleep -Milliseconds 300
+        Require-Framework ((Read-State 'count.txt') -ceq $settled) 'Duplicate request changed the fixture count.'
+        if ($limitation) {
+            $limitation.Data['evidence'].duplicateCode = 'DUPLICATE_COMMAND'
+            throw $limitation
+        }
+        @{ before = $before; after = $before + 1; duplicateCode = 'DUPLICATE_COMMAND'; effectVerifiedByAgent = $false }
     }
     Invoke-FrameworkCase $row 'modal' ([bool]$state.snapshot -and !$run.closedProtocol -and !$run.uncertainAction) {
-        $modal = Find-FrameworkElement $run $state.snapshot @{ role = 'Button'; name = 'Open fixture modal' }
+        $open = Find-FixtureControl $run $state.snapshot @{ role = 'Button'; name = 'Open fixture modal' }
+        $before = @(Framework-Result $run @{ op = 'listWindows' } | Where-Object { $_.processId -eq $fixture.Id })
+        Require-Framework ($before.Count -eq 1 -and $before[0].windowId -ceq $state.window -and
+            $null -eq $before[0].PSObject.Properties['ownerWindowId']) 'Expected only the unowned fixture window before the modal opens.'
         try {
-            Require-Framework ((Framework-Result $run @{ op = 'invoke'; ref = $modal.ref }).performed) 'Modal Invoke did not report dispatch.'
-            Wait-FrameworkEffect $run 'modal.txt' 'open'
+            Invoke-FixtureButton $run $open 'modal.txt' 'open'
             $row.modalOpened = $true
-            $modalWindow = Get-FrameworkWindow $run "$title modal"
-            Require-Framework ($modalWindow -cne $state.window) 'Modal has the same window ID as the parent.'
-            @{ distinctOwnedWindow = $true }
+            # Win32 names the modal: the visible top-level window of the fixture that the main window owns.
+            $native = Get-FixtureTopLevel { [string]$_.Owner -ceq $state.window -and $_.Title -ceq "$title modal" }
+            $placement = Get-OwnedWindowEvidence $native
+            $listed = @(Framework-Result $run @{ op = 'listWindows' } | Where-Object { $_.processId -eq $fixture.Id })
+            $entry = @($listed | Where-Object { $_.windowId -ceq [string]$native.Handle })
+            Require-Framework ($entry.Count -eq 1 -and $entry[0].ownerWindowId -ceq $state.window) 'listWindows did not report the owned modal with its owner.'
+            $main = @($listed | Where-Object { $_.windowId -ceq $state.window })
+            Require-Framework ($listed.Count -eq 2 -and $main.Count -eq 1 -and $main[0].name -ceq $before[0].name -and
+                $null -eq $main[0].PSObject.Properties['ownerWindowId']) 'The owner row changed while its modal was open.'
+            # The modal is a snapshot root of its own, and its content is reachable by the same rules.
+            $shot = (Get-FrameworkSnapshot $run $entry[0].windowId).data
+            Require-Framework (!$shot.truncated -and $shot.elements[0].role -ceq 'Window') 'The modal snapshot was incomplete or not rooted at a window.'
+            $close = Find-FrameworkElement $run $shot @{ role = 'Button'; name = $spec.modalClose }
+            Invoke-FixtureButton $run $close 'modal.txt' 'closed'
+            $row.modalClosed = $true
+            [void](Framework-Result $run @{ op = 'getElementInfo'; ref = $close.ref } 'STALE_REFERENCE')
+            [void](Framework-Result $run @{ op = 'snapshot'; windowId = $entry[0].windowId } 'WINDOW_NOT_FOUND')
+            $after = @(Framework-Result $run @{ op = 'listWindows' } | Where-Object { $_.processId -eq $fixture.Id })
+            Require-Framework ($after.Count -eq 1 -and $after[0].windowId -ceq $state.window) 'The closed modal was still listed.'
+            [ordered]@{ win32Owner = $native.Owner; win32Class = $native.ClassName; independentUia = $placement
+                listedWithOwner = $true; uiaNameMatchesTitle = $entry[0].name -ceq $native.Title
+                modalElements = $shot.elements.Count; closedThroughOwnSnapshot = $true; staleAfterClose = $true }
         } finally {
-            if ([IO.File]::Exists((Join-Path $stateDir 'modal.txt')) -and (Read-State 'modal.txt') -ceq 'open') {
+            if ((Read-FixtureState 'modal.txt') -ceq 'open') {
                 [IO.File]::WriteAllText((Join-Path $stateDir 'close-modal'), '')
                 Wait-State 'modal.txt' 'closed'
                 $row.modalClosed = $true
+            }
+            # The modal snapshot replaced the main one. Later cases need current references again.
+            if ($state.button -and !$run.closedProtocol) {
+                $state.snapshot = (Get-FrameworkSnapshot $run $state.window).data
+                $state.button = Find-FixtureControl $run $state.snapshot @{ role = 'Button'; name = 'Increment fixture counter' }
             }
         }
     }
@@ -356,21 +679,31 @@ function Test-FrameworkActions($row, $spec, $run, $state) {
         Require-Framework ((Read-State 'count.txt') -ceq [string]$before) 'An old reference invoked the replacement.'
         $snapshot = (Get-FrameworkSnapshot $run $state.window).data
         $state.snapshot = $snapshot
-        $button = Find-FrameworkElement $run $snapshot @{ role = 'Button'; name = 'Increment fixture counter' }
-        Require-Framework ($button.ref -cne $state.button.ref -and
-            (Framework-Result $run @{ op = 'invoke'; ref = $button.ref }).performed) 'Fresh replacement target did not invoke.'
-        Wait-FrameworkEffect $run 'count.txt' ([string]($before + 1))
+        $button = Find-FixtureControl $run $snapshot @{ role = 'Button'; name = 'Increment fixture counter' }
+        Require-Framework ($button.ref -cne $state.button.ref) 'The replacement kept the retired reference.'
+        Invoke-FixtureButton $run $button 'count.txt' ([string]($before + 1))
     }
 }
 
 function Test-FrameworkScoping($row, $spec, $run, $state) {
     Invoke-FrameworkCase $row 'liveSubtree' ([bool]$state.snapshot -and !$run.closedProtocol) {
-        $list = Find-FrameworkElement $run $state.snapshot (Get-FixtureLocator $spec 'list' 'List')
+        $list = Find-FixtureControl $run $state.snapshot (Get-FixtureLocator $spec 'list' 'List')
         $scope = (Get-FrameworkSnapshot $run $state.window $list.ref).data
         Require-Framework (!$scope.truncated -and $scope.elements.Count -gt 1 -and
             $scope.elements[0].role -ceq $list.role -and $scope.elements[0].automationId -ceq $list.automationId) 'List subtree missing or incomplete.'
         $state.snapshot = $scope
         $row.listSubtree = @{ elements = $scope.elements.Count; namedListItems = @($scope.elements | Where-Object { $_.role -eq 'ListItem' -and $_.name }).Count }
+        $items = @($scope.elements | Where-Object { $_.role -ceq 'ListItem' })
+        if ($items.Count -and !$row.listSubtree.namedListItems -and $list.className) {
+            # An owner-drawn list box without LBS_HASSTRINGS keeps its item text out of reach of every client.
+            Initialize-FrameworkNative
+            $styles = @([FrameworkNative]::ChildStyles([uint32]$fixture.Id, $list.className))
+            if ($styles.Count -eq 1 -and ($styles[0] -band 0x30) -and !($styles[0] -band 0x40)) {
+                Stop-FrameworkCase 'UIA_PROVIDER_LIMITATION' 'The list items carry no name. The native list box is owner-drawn without LBS_HASSTRINGS.' ([ordered]@{
+                    listItems = $items.Count; namedListItems = 0; nativeClass = $list.className
+                    nativeStyle = '0x{0:X8}' -f $styles[0]; ownerDrawn = $true; hasStrings = $false })
+            }
+        }
         $item = Find-FrameworkElement $run $scope @{ role = 'ListItem'; name = 'Item one' } $scope.elements[0].ref
         Require-Framework ($item.parentRef -ceq $scope.elements[0].ref) 'Scoped item is not a child of the scoped root.'
         @{ elements = $scope.elements.Count }
@@ -435,9 +768,18 @@ function Test-FrameworkPages($row, $run, $window) {
             Require-Framework ($matches.Count -eq 1) 'Grid scope could not be identified.'
             $scope = (Get-FrameworkSnapshot $run $window $matches[0].ref 3 70).data
             $row.pages.grid.scope = @{ elements = $scope.elements.Count; truncated = $scope.truncated;
+                rootPartial = [bool]$scope.elements[0].partial
                 roles = @($scope.elements | Group-Object role | ForEach-Object { @{ role = $_.Name; count = $_.Count } }) }
-            Require-Framework ($scope.elements[0].automationId -ceq 'fixtureDataGrid' -and
-                @($scope.elements | Where-Object { $_.role -in 'DataItem', 'ListItem' }).Count -gt 0) 'No rows were observed inside the grid.'
+            Require-Framework ($scope.elements[0].automationId -ceq 'fixtureDataGrid') 'The grid scope has a different root.'
+            if (!@($scope.elements | Where-Object { $_.role -in 'DataItem', 'ListItem' }).Count) {
+                # Rows that the Agent leaves out must be ones no client could identify, and the grid must say so.
+                $probe = Get-RuntimeIdEvidence $window
+                if ($scope.truncated -and $scope.elements[0].partial -and $probe.unusableRuntimeIds -gt 0) {
+                    Stop-FrameworkCase 'UIA_PROVIDER_LIMITATION' 'No rows were observed inside the grid. The provider returns empty runtime IDs for its rows and cells, and the grid is marked partial.' ([ordered]@{
+                        gridScope = $row.pages.grid.scope; independentClient = $probe })
+                }
+                throw 'No rows were observed inside the grid.'
+            }
             Require-Framework ($row.pages.grid.controls.fixtureTree.status -eq 'PASS') 'TreeView was not identified in the bounded snapshot.'
         }
         Invoke-FrameworkCase $row 'templatedAndVirtualLists' (!$run.closedProtocol) {
@@ -465,9 +807,22 @@ function Test-FrameworkPages($row, $run, $window) {
             $snapshot = (Get-FrameworkSnapshot $run $window).data
             $button = Find-FrameworkElement $run $snapshot @{ role = 'Button'; name = 'Open fixture popup' }
             try {
-                Require-Framework ((Framework-Result $run @{ op = 'invoke'; ref = $button.ref }).performed) 'Popup did not report dispatch.'
-                Wait-FrameworkEffect $run 'popup.txt' 'open'
+                Invoke-FixtureButton $run $button 'popup.txt' 'open'
                 $row.popupOpened = $true
+                # The popup is a separate top-level HWND that the fixture window owns.
+                $native = Get-FixtureTopLevel { [string]$_.Owner -ceq $window }
+                $placement = Get-OwnedWindowEvidence $native
+                $entry = @(Framework-Result $run @{ op = 'listWindows' } | Where-Object {
+                    $_.processId -eq $fixture.Id -and $_.windowId -ceq [string]$native.Handle })
+                Require-Framework ($entry.Count -eq 1 -and $entry[0].ownerWindowId -ceq $window) 'listWindows did not report the owned popup with its owner.'
+                $shot = (Get-FrameworkSnapshot $run $entry[0].windowId).data
+                $action = Find-FrameworkElement $run $shot @{ role = 'Button'; automationId = 'fixturePopupAction' }
+                [IO.File]::Delete((Join-Path $stateDir 'popup-click.txt'))
+                Invoke-FixtureButton $run $action 'popup-click.txt' 'clicked'
+                Wait-State 'popup.txt' 'closed' 6000
+                [void](Framework-Result $run @{ op = 'getElementInfo'; ref = $action.ref } 'STALE_REFERENCE')
+                [ordered]@{ win32Owner = $native.Owner; win32Class = $native.ClassName; independentUia = $placement
+                    listedWithOwner = $true; popupElements = $shot.elements.Count; actionObserved = $true }
             } finally {
                 if ((Read-State 'popup.txt') -ceq 'open') {
                     [IO.File]::WriteAllText((Join-Path $stateDir 'close-popup'), '')
@@ -521,10 +876,14 @@ function Read-FrameworkBaseline($row) {
 function Compare-FrameworkTrees($name, $rows) {
     $a, $b = $rows
     $comparison = [ordered]@{ framework = $name; order = @($a.backend, $b.backend); status = 'INCONCLUSIVE' }
-    if (!$a.baselineTree -or !$b.baselineTree -or $a.baselineTree.truncated -or $b.baselineTree.truncated) {
-        $comparison.reason = 'Two complete baseline trees are required.'
+    if (!$a.baselineTree -or !$b.baselineTree) {
+        $comparison.reason = 'Two baseline trees are required.'
         return $comparison
     }
+    # Partial trees are still compared. Each entry carries its partial mark, so both Agents must
+    # have left out the same branches. Equality says nothing about what the provider withheld.
+    $comparison.completeTrees = !($a.baselineTree.truncated -or $b.baselineTree.truncated)
+    $comparison.partialElements = @($a.baselineTree.partialElements, $b.baselineTree.partialElements)
     $separator = [Environment]::NewLine
     $comparison.chromeMatches = ($a.baselineTree.chrome -join $separator) -ceq ($b.baselineTree.chrome -join $separator)
     $comparison.contentMatches = ($a.baselineTree.content -join $separator) -ceq ($b.baselineTree.content -join $separator)

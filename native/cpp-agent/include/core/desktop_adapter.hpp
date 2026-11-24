@@ -41,12 +41,16 @@ struct Element {
     bool offscreen = false;
     bool invoke = false;
     bool writable = false;
+    // The capture omitted or cut short part of this element's own subtree.
+    bool partial = false;
 };
 
 struct Window {
     std::string id;
     int pid;
     std::string name;
+    // Set for an owned top-level window such as a modal dialog or popup.
+    std::string owner;
 };
 
 struct Capture {

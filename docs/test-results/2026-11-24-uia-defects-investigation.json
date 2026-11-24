@@ -1,0 +1,243 @@
+{
+ "schema": 1,
+ "date": "2026-11-24",
+ "purpose": "Root-cause experiments that preceded the Agent changes. Each was run by hand on the same Windows 11 host as the functional report. The regression runner repeats the ones marked repeatedByRunner.",
+ "host": {
+  "windows": "Windows 11 Pro 25H2 build 26200.7840",
+  "cpu": "12th Gen Intel Core i7-1255U, 12 logical processors",
+  "displayScale": "125 % (effective DPI 120), one monitor",
+  "agentJava": "Oracle JDK 17.0.10+11 x64"
+ },
+ "ownedWindows": {
+  "tool": "tools/Probe-UiaWindows.ps1 (Win32 EnumWindows and GetWindow, managed UI Automation client)",
+  "observations": [
+   {
+    "fixture": "WPF modal (Window.Owner, ShowDialog)",
+    "win32Owner": "main window",
+    "desktopChildInControlView": false,
+    "desktopChildInRawView": false,
+    "controlViewParentChain": [
+     "owner",
+     "desktop"
+    ],
+    "rawViewParentChain": [
+     "owner",
+     "desktop"
+    ],
+    "uiaName": "content text, not the window title"
+   },
+   {
+    "fixture": "WPF Popup (StaysOpen=False)",
+    "win32Owner": "main window",
+    "desktopChildInControlView": false,
+    "desktopChildInRawView": false,
+    "controlViewParentChain": [
+     "owner",
+     "desktop"
+    ],
+    "rawViewParentChain": [
+     "owner",
+     "desktop"
+    ],
+    "uiaName": "empty"
+   },
+   {
+    "fixture": ".NET Framework 4.8 WinForms ShowDialog(owner)",
+    "win32Owner": "main window",
+    "desktopChildInControlView": false,
+    "desktopChildInRawView": false,
+    "controlViewParentChain": [
+     "owner",
+     "desktop"
+    ],
+    "rawViewParentChain": [
+     "owner",
+     "desktop"
+    ],
+    "uiaName": "window title"
+   }
+  ],
+  "hiddenOwnedWindows": "Invisible owned windows whose owner is also invisible (IME and text-service windows) reported the desktop as their parent. They are not listed before or after the change.",
+  "ownerSnapshotBeforeFix": "A snapshot of the owner already contained the modal as a child Window with its button. Only listWindows and a snapshot rooted at the modal HWND were unavailable.",
+  "repeatedByRunner": "The modal and popup checks record the same placement for Win32 (#32770 dialog), WPF, WinForms .NET Framework and WinForms .NET 9 in 2026-11-24-uia-defects-functional.json."
+ },
+ "awtInvoke": {
+  "fixture": "tests/fixtures/swing-awt/FrameworkFixture.java, mode awt, java.awt.Button \"Increment fixture counter\" (native class Button)",
+  "method": "A new fixture process for every trial. The effect is the count.txt of the fixture changing from 0 to 1 within 2.5 s. Each activation was tried once with the fixture window as launched and once after SetForegroundWindow. The window was the foreground window in all ten trials.",
+  "trials": [
+   {
+    "activation": "Agent (Java/JNA) UIA InvokePattern.Invoke",
+    "call": "S_OK, reply performed=true",
+    "effect": false,
+    "note": "keyboard focus moved to the button"
+   },
+   {
+    "activation": "PostMessage(BM_CLICK)",
+    "call": "posted",
+    "effect": false
+   },
+   {
+    "activation": "SendMessageTimeout(BM_CLICK)",
+    "call": "returned",
+    "effect": false
+   },
+   {
+    "activation": "MSAA IAccessible.accDoDefaultAction (role push button, default action Press)",
+    "call": "returned",
+    "effect": false
+   },
+   {
+    "activation": "managed System.Windows.Automation InvokePattern",
+    "call": "pattern not offered, element served as a Pane",
+    "effect": null
+   }
+  ],
+  "source": "OpenJDK jdk17u src/java.desktop/windows/native/libawt/windows/awt_Button.cpp: handleAction is called only from AwtButton::WmMouseUp, after AwtButton::WmMouseDown set leftButtonDown and when the release point is inside the client rectangle. The file has no BN_CLICKED, BM_CLICK or WM_COMMAND handling.",
+  "conclusion": "UIA_PROVIDER_LIMITATION. The AWT peer ignores every accessibility activation of the HWND, with or without an Agent.",
+  "repeatedByRunner": "The invokeAndDuplicateRequest, modal and replacement checks of the Awt rows repeat BM_CLICK and accDoDefaultAction as controls on every run."
+ },
+ "winFormsRuntimeIds": {
+  "tool": "tools/Probe-UiaRuntimeIds.ps1 (IUIAutomation COM client declared in C#, independent of both Agents)",
+  "dotNetFramework48": [
+   {
+    "page": "Common controls",
+    "elements": 59,
+    "unusableRuntimeIds": 13,
+    "duplicateRuntimeIds": 0,
+    "result": "S_OK, VT_I4 SAFEARRAY with bounds [0..-1]",
+    "where": {
+     "Tab/TabItem": 3,
+     "List/ListItem": 3,
+     "ComboBox parts": 4,
+     "Slider parts": 3
+    }
+   },
+   {
+    "page": "Grid and tree (2,000 virtual rows)",
+    "elementsWalked": 2000,
+    "elementLimitReached": true,
+    "unusableRuntimeIds": 1985,
+    "where": {
+     "Table/Custom (rows)": 496,
+     "Table/Custom/DataItem (cells)": 988,
+     "Table/Custom/Header": 497,
+     "Table/ScrollBar parts": 4
+    }
+   },
+   {
+    "page": "Virtual lists",
+    "elementsWalked": 600,
+    "unusableRuntimeIds": 0
+   }
+  ],
+  "sameResultWithoutAppConfig": true,
+  "managedClientInterference": {
+   "comClientAlone": {
+    "elements": 59,
+    "unusableRuntimeIds": 13
+   },
+   "comClientAfterManagedUiaLoadedInSameProcess": {
+    "elements": 40,
+    "unusableRuntimeIds": 0
+   },
+   "consequence": "The managed client registers a process-wide proxy callback. The runner starts each probe in a process of its own, and Probe-UiaRuntimeIds.ps1 refuses to run in a process that loaded the managed client."
+  }
+ },
+ "cppAgentDpi": {
+  "symptom": "With the C++ Agent of main, every bounds value was the Java/JNA value divided by 1.25 while paths, roles, names, states and actions were equal. All six framework tree comparisons failed for that reason alone.",
+  "examples": [
+   {
+    "element": "Win32 Button \"Disabled action\"",
+    "jna": [
+     325,
+     91,
+     175,
+     35
+    ],
+    "cpp": [
+     260,
+     73,
+     140,
+     28
+    ]
+   },
+   {
+    "element": "Win32 Button \"Open fixture modal\"",
+    "jna": [
+     313,
+     389,
+     231,
+     35
+    ],
+    "cpp": [
+     250,
+     311,
+     185,
+     28
+    ]
+   }
+  ],
+  "cause": "cpp-agent.exe declared no DPI awareness. UI Automation returns rectangles in the DPI context of the caller.",
+  "change": "native/cpp-agent/src/windows/cpp-agent.manifest declares PerMonitorV2.",
+  "after": "All six tree comparisons pass, bounds included."
+ },
+ "largeListTiming": {
+  "what": "Snapshot of the Win32 fixture with 10,000 virtual rows, maxElements 2000, request limit 10 s. cppMain is the unmodified C++ Agent of commit 8823168 built on this host.",
+  "x86Fixture": [
+   {
+    "run": "first x86 reports",
+    "jnaMs": 6035,
+    "cppMs": "over 10000 (TIMEOUT), x64 and x86 Agent"
+   },
+   {
+    "run": "direct timing, 5 rounds",
+    "cppMainMs": "over 10000 in 5 of 5",
+    "cppMs": "over 10000 in 5 of 5",
+    "jnaMs": "over 10000 in 5 of 5"
+   },
+   {
+    "run": "second x86 reports (stored)",
+    "result": "all 66 checks passed"
+   }
+  ],
+  "x64Fixture": [
+   {
+    "round": 1,
+    "jnaMs": 3592,
+    "cppMainMs": 3373,
+    "cppMs": 7174
+   },
+   {
+    "round": 2,
+    "jnaMs": 7701,
+    "cppMainMs": 7634,
+    "cppMs": 6742
+   }
+  ],
+  "conclusion": "The capture time of this fixture varies by a factor of two on this laptop for all three Agents, the unmodified one included. The change did not cause the timeouts."
+ },
+ "unitTests": {
+  "javaMaven": {
+   "command": "mvn -o package",
+   "tests": 59,
+   "run": 55,
+   "skipped": 4,
+   "failures": 0,
+   "errors": 0,
+   "note": "The 4 skipped tests are the GUI integration tests below."
+  },
+  "javaGui": {
+   "command": "mvn -o -Ddesktop.windowsIT=true -Ddesktop.jnaIT=true -Dtest=WindowsGuiTest test",
+   "tests": 4,
+   "passed": 2,
+   "skipped": 2,
+   "note": "The PowerShell and JNA backends passed. The C# worker test and the three-backend tree comparison need workers/csharp/bin/Release/UiaWorker.exe, which is not built on this host. A first attempt failed both cursor assertions while the mouse of the host was in use, and the repeat passed."
+  },
+  "cppCtest": {
+   "x64": "1 of 1 passed",
+   "x86": "1 of 1 passed",
+   "compiler": "MSVC 19.44.35230, Windows SDK 10.0.26100.0, Release"
+  },
+  "runnerSelfTest": "tools/tests/Test-UiaFrameworkRunner.ps1 passed"
+ }
+}

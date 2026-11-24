@@ -19,6 +19,8 @@ final class DesktopSnapshot {
     private final String windowId;
     private final long capturedAt;
     private final boolean truncated;
+    // True when the adapter names the elements whose own subtree was cut short.
+    private final boolean partialMarked;
     private final Map<String, Element> byRef = new LinkedHashMap<>();
     private final Map<String, String> refByKey = new HashMap<>();
     private final Map<String, List<Element>> childrenByKey = new HashMap<>();
@@ -42,6 +44,10 @@ final class DesktopSnapshot {
                 properties.set("offscreen", row.get("offscreen"));
             }
             if (row.has("bounds")) properties.set("bounds", bounds(row.get("bounds")));
+            if (row.has("partial")) {
+                if (!row.get("partial").isBoolean()) throw malformed();
+                if (row.get("partial").booleanValue()) properties.put("partial", true);
+            }
             properties.set("processId", row.get("processId"));
             properties.set("enabled", row.get("enabled"));
             var actions = properties.putArray("actions");
@@ -71,6 +77,8 @@ final class DesktopSnapshot {
             return result;
         }
 
+        boolean partial() { return properties.path("partial").asBoolean(); }
+
         boolean offers(DesktopAction action) {
             for (JsonNode label : properties.get("actions")) {
                 if (action.wireName().equals(label.textValue())) return true;
@@ -94,6 +102,8 @@ final class DesktopSnapshot {
             else childrenByKey.computeIfAbsent(element.parentKey(), unused -> new ArrayList<>()).add(element);
         }
         if (roots != 1) throw malformed();
+        partialMarked = byRef.values().stream().anyMatch(Element::partial);
+        if (partialMarked && !truncated) throw malformed();
         // Providers may return children before parents. Validate each path after indexing the full tree.
         for (Element element : byRef.values()) {
             int depth = 0;
@@ -123,7 +133,10 @@ final class DesktopSnapshot {
         Stream<Element> candidates = scopeRef == null ? byRef.values().stream() : subtree(resolve(scopeRef));
         List<Element> matches = candidates.filter(element -> locator.matches(element.properties())).limit(2).toList();
         if (matches.size() == 2) throw new AgentException("AMBIGUOUS_ELEMENT", "More than one element matches.");
-        if (truncated) throw new AgentException("INCOMPLETE_SNAPSHOT", "A complete snapshot is required for lookup.");
+        // A cut elsewhere in the tree hides no match inside a scope whose every row is whole.
+        boolean complete = !truncated || (scopeRef != null && partialMarked
+                && subtree(resolve(scopeRef)).noneMatch(Element::partial));
+        if (!complete) throw new AgentException("INCOMPLETE_SNAPSHOT", "A complete snapshot is required for lookup.");
         if (matches.isEmpty()) throw new AgentException("ELEMENT_NOT_FOUND", "No element matches the locator.");
         return publicElement(matches.get(0));
     }
@@ -137,6 +150,9 @@ final class DesktopSnapshot {
         Element live = Element.read(captured.ref(), row);
         if (!captured.key().equals(live.key()) || captured.processId() != live.processId()
                 || (live.parentKey() != null && !refByKey.containsKey(live.parentKey()))) throw malformed();
+        // Completeness describes the capture. A live property read cannot change it.
+        if (captured.partial()) live.properties().put("partial", true);
+        else live.properties().remove("partial");
         return publicElement(live);
     }
 

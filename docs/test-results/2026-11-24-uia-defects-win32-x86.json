@@ -1,0 +1,1427 @@
+{
+ "schema": 2,
+ "mode": "Functional",
+ "startedUtc": "2026-11-24T01:49:51.6078741Z",
+ "options": {
+  "fixtureRoot": "C:\\Users\\User\\knh-workspace\\target\\framework-fixtures\\x86",
+  "iterations": 8,
+  "order": [
+   "JNA",
+   "Cpp"
+  ],
+  "enableJab": false,
+  "frameworks": [
+   "Win32"
+  ],
+  "pairs": 2,
+  "accessibilityDiagnostics": false,
+  "fixtureJava": "java.exe",
+  "warmup": 2
+ },
+ "invocation": "& .\\tools\\Test-UiaFrameworks.ps1 -Framework Win32 -FixtureRoot target/framework-fixtures/x86 -OutputPath target/uia-defects-win32-x86.json | Select-Object -Last 3\n",
+ "environment": {
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "is64BitOS": true,
+  "interactive": true,
+  "powerShell": "5.1.26100.7705",
+  "processorCount": 12,
+  "cpu": "12th Gen Intel(R) Core(TM) i7-1255U",
+  "cpuNominalMhz": 2611,
+  "sessionId": 1,
+  "remoteSession": false,
+  "driverBitness": 64,
+  "git": {
+   "commit": "8823168a2eeab8a556dca68e6a6193cddf1587bb",
+   "dirty": true
+  },
+  "javaAgentOptions": [
+   "-XX:+UseSerialGC",
+   "-Xms16m"
+  ],
+  "jab": {
+   "fixtureProcessOverride": false,
+   "registryOrUserSettingsChanged": false
+  },
+  "windows": {
+   "edition": "Professional",
+   "build": "26200.7840",
+   "version": "25H2"
+  },
+  "netFramework": {
+   "version": "4.8.09221",
+   "release": 533509
+  },
+  "uiaDllVersion": "7.2.26100.1 (WinBuild.160101.0800)",
+  "interactiveDesktop": true,
+  "monitorCount": 1,
+  "memoryBytes": 34046586880,
+  "power": {
+   "scheme": "381b4222-f694-41f0-9685-ff5bb260df2e",
+   "schemeName": "Balanced",
+   "overlay": "00000000-0000-0000-0000-000000000000"
+  },
+  "java": "java version \"17.0.10\" 2024-01-16 LTS\r\nJava(TM) SE Runtime Environment (build 17.0.10+11-LTS-240)\r\nJava HotSpot(TM) 64-Bit Server VM (build 17.0.10+11-LTS-240, mixed mode, sharing)",
+  "javaLauncher": "x64 PE",
+  "cppAgent": {
+   "sha256": "79731CA6014929638B782E8CB1473C751DF05660AB4A13DF87872F6550A9257B",
+   "build": [
+    "CMAKE_CXX_FLAGS_RELEASE:STRING=/O2 /Ob2 /DNDEBUG",
+    "CMAKE_GENERATOR:INTERNAL=Visual Studio 17 2022",
+    "CMAKE_GENERATOR_PLATFORM:INTERNAL=x64",
+    "CMAKE_GENERATOR_TOOLSET:INTERNAL="
+   ],
+   "architecture": "x64 PE",
+   "compiler": [
+    "set(CMAKE_CXX_COMPILER_ID \"MSVC\")",
+    "set(CMAKE_CXX_COMPILER_VERSION \"19.44.35230.0\")"
+   ]
+  },
+  "jarSha256": "17D15D8D622CDC1C75056802ACB07B8D94E6AE0787294EAA037F140DD4F91362"
+ },
+ "results": [
+  {
+   "framework": "Win32",
+   "backend": "JNA",
+   "status": "PASS",
+   "fixture": {
+    "framework": "Win32",
+    "source": "C:\\Users\\User\\knh-workspace\\target\\framework-fixtures\\x86\\win32.exe",
+    "pid": 26440,
+    "title": "UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5",
+    "launcherArchitecture": "x86 PE",
+    "runtime": "Win32 x86",
+    "sha256": "AA807E8E890469EF074FD7659793015BCEC63E6D8D26BEFB77A43EF9E2C3E32C",
+    "effectiveDpi": 96,
+    "exitCode": 0
+   },
+   "baselineWindowId": "12715682",
+   "baselineTree": {
+    "content": [
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Disabled action\",\"1004\",\"Button\"]],[520,286,175,35],false,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Duplicate label\",\"\",\"Button\"]],[895,286,175,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Duplicate label\",\"1005\",\"Button\"]],[708,286,175,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Increment fixture counter\",\"1001\",\"Button\"]],[258,286,250,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Open fixture modal\",\"1016\",\"Button\"]],[508,584,231,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Owner-drawn action\",\"1015\",\"Button\"]],[258,584,238,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Replace fixture counter\",\"1018\",\"Button\"]],[751,584,251,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"CheckBox\",\"Fixture check box\",\"1010\",\"Button\"]],[258,404,225,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"ComboBox\",\"\",\"1011\",\"ComboBox\"]],[258,471,205,25],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1002\",\"Edit\"]],[258,359,263,30],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1003\",\"Edit\"]],[533,359,263,30],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1006\",\"Edit\"]],[808,359,263,30],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"],[\"ListItem\",\"Item one\",\"\",\"\"]],[476,473,175,15],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"],[\"ListItem\",\"Item two\",\"\",\"\"]],[476,488,175,15],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"]],[475,471,178,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"],[\"HeaderItem\",\"Record\",\"HeaderItem 0\",\"\"]],[259,658,325,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"],[\"HeaderItem\",\"Status\",\"HeaderItem 1\",\"\"]],[584,658,250,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"]],[259,658,791,30],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,688,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"],[\"Text\",\"Row 1\",\"\",\"\"]],[259,688,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"]],[259,688,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"],[\"Text\",\"Row 10\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"],[\"Text\",\"Row 11\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"],[\"Text\",\"Row 12\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,708,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"],[\"Text\",\"Row 2\",\"\",\"\"]],[259,708,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"]],[259,708,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,728,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"],[\"Text\",\"Row 3\",\"\",\"\"]],[259,728,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"]],[259,728,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,748,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"],[\"Text\",\"Row 4\",\"\",\"\"]],[259,748,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"]],[259,748,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,768,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"],[\"Text\",\"Row 5\",\"\",\"\"]],[259,768,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"]],[259,768,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,788,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"],[\"Text\",\"Row 6\",\"\",\"\"]],[259,788,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"]],[259,788,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,808,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"],[\"Text\",\"Row 7\",\"\",\"\"]],[259,808,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"]],[259,808,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,828,250,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"],[\"Text\",\"Row 8\",\"\",\"\"]],[259,828,575,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"]],[259,828,575,18],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"],[\"Text\",\"Row 9\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"아래쪽 스크롤 화살표\",\"DownButton\",\"\"]],[1048,825,26,21],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"위쪽 스크롤 화살표\",\"UpButton\",\"\"]],[1048,658,26,21],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"페이지 아래로\",\"DownPageButton\",\"\"]],[1048,751,26,74],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Thumb\",\"위치\",\"ScrollbarThumb\",\"\"]],[1048,679,26,72],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"]],[1048,658,26,188],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"]],[258,656,813,190],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"],[\"TabItem\",\"Tab one\",\"\",\"\"]],[885,474,74,23],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"],[\"TabItem\",\"Tab two\",\"\",\"\"]],[959,474,73,23],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"]],[883,471,188,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Editable value\",\"\",\"Static\"]],[258,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture choices\",\"\",\"Static\"]],[258,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture items\",\"\",\"Static\"]],[475,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture tabs\",\"\",\"Static\"]],[883,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture tree\",\"\",\"Static\"]],[665,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Password\",\"\",\"Static\"]],[808,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Read-only value\",\"\",\"Static\"]],[533,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Virtual report (10000 rows)\",\"\",\"Static\"]],[258,630,313,25],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"],[\"TreeItem\",\"Fixture root\",\"\",\"\"],[\"TreeItem\",\"Fixture child\",\"\",\"\"]],[718,490,91,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"],[\"TreeItem\",\"Fixture root\",\"\",\"\"]],[694,473,84,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"]],[665,471,205,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"]],[228,228,895,686],true,false,[],\"UIA\",true,false]"
+    ],
+    "partialElements": 0,
+    "truncated": false,
+    "elements": 76,
+    "chrome": [
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"TitleBar\",\"\",\"\",\"\"]],[258,233,855,35],true,false,[\"setValue\"],\"UIA\",true,false]"
+    ],
+    "foreign": 0
+   },
+   "checks": [
+    {
+     "name": "capabilities",
+     "status": "PASS"
+    },
+    {
+     "name": "window",
+     "status": "PASS"
+    },
+    {
+     "name": "tree",
+     "status": "PASS"
+    },
+    {
+     "name": "buttonLocatorAndLiveMetadata",
+     "status": "PASS",
+     "evidence": {
+      "actions": [
+       "invoke"
+      ],
+      "automationId": "1001",
+      "name": "Increment fixture counter",
+      "unscopedMiss": "ELEMENT_NOT_FOUND",
+      "role": "Button"
+     }
+    },
+    {
+     "name": "editLocatorAndLiveMetadata",
+     "status": "PASS",
+     "evidence": {
+      "automationId": "1002",
+      "actions": [
+       "setValue"
+      ]
+     }
+    },
+    {
+     "name": "ambiguousDuplicate",
+     "status": "PASS"
+    },
+    {
+     "name": "locatorWithoutAutomationId",
+     "status": "PASS",
+     "evidence": {
+      "name": "Editable value",
+      "role": "Text"
+     }
+    },
+    {
+     "name": "passwordMetadata",
+     "status": "PASS"
+    },
+    {
+     "name": "setValueAndEmpty",
+     "status": "PASS",
+     "evidence": {
+      "unicodeObserved": true,
+      "emptyObserved": true
+     }
+    },
+    {
+     "name": "disabledAction",
+     "status": "PASS"
+    },
+    {
+     "name": "readOnlyAction",
+     "status": "PASS"
+    },
+    {
+     "name": "foreignPidDenied",
+     "status": "PASS"
+    },
+    {
+     "name": "invokeAndDuplicateRequest",
+     "status": "PASS",
+     "evidence": {
+      "before": 0,
+      "effectVerifiedByAgent": false,
+      "duplicateCode": "DUPLICATE_COMMAND",
+      "after": 1
+     }
+    },
+    {
+     "name": "modal",
+     "status": "PASS",
+     "evidence": {
+      "win32Owner": 12715682,
+      "win32Class": "#32770",
+      "independentUia": {
+       "client": "System.Windows.Automation (managed)",
+       "win32Owner": 12715682,
+       "desktopChildInControlView": false,
+       "desktopChildInRawView": false,
+       "controlViewParentChain": [
+        12715682,
+        "desktop"
+       ],
+       "rawViewParentChain": [
+        12715682,
+        "desktop"
+       ]
+      },
+      "listedWithOwner": true,
+      "uiaNameMatchesTitle": true,
+      "modalElements": 5,
+      "closedThroughOwnSnapshot": true,
+      "staleAfterClose": true
+     }
+    },
+    {
+     "name": "replacement",
+     "status": "PASS"
+    },
+    {
+     "name": "liveSubtree",
+     "status": "PASS",
+     "evidence": {
+      "elements": 3
+     }
+    },
+    {
+     "name": "snapshotLimitsAndExpiry",
+     "status": "PASS"
+    },
+    {
+     "name": "ownerDrawnButton",
+     "status": "PASS"
+    },
+    {
+     "name": "largeVirtualReport",
+     "status": "PASS",
+     "evidence": {
+      "scopeCapture": 60,
+      "offscreenScopeElements": 27,
+      "applicationRows": 10000,
+      "windowCapture": 2000
+     }
+    },
+    {
+     "name": "minimizedWindowDiscovery",
+     "status": "PASS",
+     "evidence": {
+      "uiaRootOffscreen": true,
+      "nativeMinimized": true,
+      "processOwned": true
+     }
+    },
+    {
+     "name": "captureBeforeExit",
+     "status": "PASS"
+    },
+    {
+     "name": "processExitInvalidatesReference",
+     "status": "PASS"
+    }
+   ],
+   "requests": [
+    {
+     "op": "getCapabilities",
+     "code": "OK",
+     "ms": 383.5898
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 61.9926
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 286.81350000000003
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 4.9557
+    },
+    {
+     "op": "getElementInfo",
+     "code": "OK",
+     "ms": 11.4001
+    },
+    {
+     "op": "findElement",
+     "code": "ELEMENT_NOT_FOUND",
+     "ms": 1.2705
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.8432000000000001
+    },
+    {
+     "op": "getElementInfo",
+     "code": "OK",
+     "ms": 8.7024
+    },
+    {
+     "op": "findElement",
+     "code": "AMBIGUOUS_ELEMENT",
+     "ms": 1.0293
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 2.8600000000000003
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 1.1689
+    },
+    {
+     "op": "getElementInfo",
+     "code": "OK",
+     "ms": 9.5212
+    },
+    {
+     "op": "setValue",
+     "code": "OK",
+     "ms": 49.871
+    },
+    {
+     "op": "setValue",
+     "code": "OK",
+     "ms": 10.0968
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.7236
+    },
+    {
+     "op": "invoke",
+     "code": "PRECONDITION_FAILED",
+     "ms": 0.7913
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.7427
+    },
+    {
+     "op": "setValue",
+     "code": "PATTERN_UNSUPPORTED",
+     "ms": 0.9608000000000001
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 19.2273
+    },
+    {
+     "op": "invoke",
+     "code": "DUPLICATE_COMMAND",
+     "ms": 0.7604000000000001
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 1.3668
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 63.407000000000004
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 13.7368
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 63.7021
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 47.067
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 1.0131000000000001
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 18.3416
+    },
+    {
+     "op": "getElementInfo",
+     "code": "STALE_REFERENCE",
+     "ms": 13.523100000000001
+    },
+    {
+     "op": "snapshot",
+     "code": "WINDOW_NOT_FOUND",
+     "ms": 3.0298000000000003
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 96.8514
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 349.7284
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 1.9245
+    },
+    {
+     "op": "invoke",
+     "code": "STALE_REFERENCE",
+     "ms": 6.0997
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 316.7686
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 1.0726
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 18.1585
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 1.1429
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 32.3673
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 1.3201
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 14.2881
+    },
+    {
+     "op": "findElement",
+     "code": "INCOMPLETE_SNAPSHOT",
+     "ms": 1.5151000000000001
+    },
+    {
+     "op": "getElementInfo",
+     "code": "STALE_REFERENCE",
+     "ms": 0.9275
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 11.417300000000001
+    },
+    {
+     "op": "findElement",
+     "code": "INCOMPLETE_SNAPSHOT",
+     "ms": 1.673
+    },
+    {
+     "op": "getElementInfo",
+     "code": "STALE_REFERENCE",
+     "ms": 1.5278
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 379.42470000000003
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 1.56
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 26.847800000000003
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 4863.478300000001
+    },
+    {
+     "op": "findElement",
+     "code": "INCOMPLETE_SNAPSHOT",
+     "ms": 2.5010000000000003
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 230.46280000000002
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 65.02250000000001
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 12.2074
+    }
+   ],
+   "windowId": "12715682",
+   "tree": {
+    "content": [
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Disabled action\",\"1004\",\"Button\"]],[520,286,175,35],false,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Duplicate label\",\"\",\"Button\"]],[895,286,175,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Duplicate label\",\"1005\",\"Button\"]],[708,286,175,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Increment fixture counter\",\"1001\",\"Button\"]],[258,286,250,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Open fixture modal\",\"1016\",\"Button\"]],[508,584,231,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Owner-drawn action\",\"1015\",\"Button\"]],[258,584,238,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Replace fixture counter\",\"1018\",\"Button\"]],[751,584,251,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"CheckBox\",\"Fixture check box\",\"1010\",\"Button\"]],[258,404,225,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"ComboBox\",\"\",\"1011\",\"ComboBox\"]],[258,471,205,25],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1002\",\"Edit\"]],[258,359,263,30],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1003\",\"Edit\"]],[533,359,263,30],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1006\",\"Edit\"]],[808,359,263,30],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"],[\"ListItem\",\"Item one\",\"\",\"\"]],[476,473,175,15],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"],[\"ListItem\",\"Item two\",\"\",\"\"]],[476,488,175,15],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"]],[475,471,178,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"],[\"HeaderItem\",\"Record\",\"HeaderItem 0\",\"\"]],[259,658,325,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"],[\"HeaderItem\",\"Status\",\"HeaderItem 1\",\"\"]],[584,658,250,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"]],[259,658,791,30],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,688,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"],[\"Text\",\"Row 1\",\"\",\"\"]],[259,688,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"]],[259,688,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"],[\"Text\",\"Row 10\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"],[\"Text\",\"Row 11\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"],[\"Text\",\"Row 12\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,708,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"],[\"Text\",\"Row 2\",\"\",\"\"]],[259,708,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"]],[259,708,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,728,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"],[\"Text\",\"Row 3\",\"\",\"\"]],[259,728,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"]],[259,728,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,748,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"],[\"Text\",\"Row 4\",\"\",\"\"]],[259,748,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"]],[259,748,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,768,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"],[\"Text\",\"Row 5\",\"\",\"\"]],[259,768,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"]],[259,768,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,788,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"],[\"Text\",\"Row 6\",\"\",\"\"]],[259,788,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"]],[259,788,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,808,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"],[\"Text\",\"Row 7\",\"\",\"\"]],[259,808,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"]],[259,808,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,828,250,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"],[\"Text\",\"Row 8\",\"\",\"\"]],[259,828,575,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"]],[259,828,575,18],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"],[\"Text\",\"Row 9\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"아래쪽 스크롤 화살표\",\"DownButton\",\"\"]],[1048,825,26,21],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"위쪽 스크롤 화살표\",\"UpButton\",\"\"]],[1048,658,26,21],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"페이지 아래로\",\"DownPageButton\",\"\"]],[1048,751,26,74],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Thumb\",\"위치\",\"ScrollbarThumb\",\"\"]],[1048,679,26,72],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"]],[1048,658,26,188],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"]],[258,656,813,190],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"],[\"TabItem\",\"Tab one\",\"\",\"\"]],[885,474,74,23],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"],[\"TabItem\",\"Tab two\",\"\",\"\"]],[959,474,73,23],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"]],[883,471,188,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Editable value\",\"\",\"Static\"]],[258,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture choices\",\"\",\"Static\"]],[258,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture items\",\"\",\"Static\"]],[475,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture tabs\",\"\",\"Static\"]],[883,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture tree\",\"\",\"Static\"]],[665,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Password\",\"\",\"Static\"]],[808,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Read-only value\",\"\",\"Static\"]],[533,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Virtual report (10000 rows)\",\"\",\"Static\"]],[258,630,313,25],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"],[\"TreeItem\",\"Fixture root\",\"\",\"\"],[\"TreeItem\",\"Fixture child\",\"\",\"\"]],[718,490,91,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"],[\"TreeItem\",\"Fixture root\",\"\",\"\"]],[694,473,84,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"]],[665,471,205,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"]],[228,228,895,686],true,false,[],\"UIA\",true,false]"
+    ],
+    "partialElements": 0,
+    "truncated": false,
+    "elements": 76,
+    "chrome": [
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"TitleBar\",\"\",\"\",\"\"]],[258,233,855,35],true,false,[\"setValue\"],\"UIA\",true,false]"
+    ],
+    "foreign": 0
+   },
+   "deniedRequests": [
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 687.9831
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 3.5642
+    },
+    {
+     "op": "invoke",
+     "code": "PERMISSION_DENIED",
+     "ms": 1.5957000000000001
+    }
+   ],
+   "modalOpened": true,
+   "modalClosed": true,
+   "listSubtree": {
+    "elements": 3,
+    "namedListItems": 2
+   },
+   "lifetimeRequests": [
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 524.1849
+    },
+    {
+     "op": "getElementInfo",
+     "code": "STALE_REFERENCE",
+     "ms": 13.053600000000001
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 77.85810000000001
+    }
+   ]
+  },
+  {
+   "framework": "Win32",
+   "backend": "Cpp",
+   "status": "PASS",
+   "fixture": {
+    "framework": "Win32",
+    "source": "C:\\Users\\User\\knh-workspace\\target\\framework-fixtures\\x86\\win32.exe",
+    "pid": 26440,
+    "title": "UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5",
+    "launcherArchitecture": "x86 PE",
+    "runtime": "Win32 x86",
+    "sha256": "AA807E8E890469EF074FD7659793015BCEC63E6D8D26BEFB77A43EF9E2C3E32C",
+    "effectiveDpi": 96,
+    "exitCode": 0
+   },
+   "baselineWindowId": "12715682",
+   "baselineTree": {
+    "content": [
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Disabled action\",\"1004\",\"Button\"]],[520,286,175,35],false,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Duplicate label\",\"\",\"Button\"]],[895,286,175,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Duplicate label\",\"1005\",\"Button\"]],[708,286,175,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Increment fixture counter\",\"1001\",\"Button\"]],[258,286,250,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Open fixture modal\",\"1016\",\"Button\"]],[508,584,231,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Owner-drawn action\",\"1015\",\"Button\"]],[258,584,238,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Replace fixture counter\",\"1018\",\"Button\"]],[751,584,251,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"CheckBox\",\"Fixture check box\",\"1010\",\"Button\"]],[258,404,225,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"ComboBox\",\"\",\"1011\",\"ComboBox\"]],[258,471,205,25],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1002\",\"Edit\"]],[258,359,263,30],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1003\",\"Edit\"]],[533,359,263,30],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1006\",\"Edit\"]],[808,359,263,30],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"],[\"ListItem\",\"Item one\",\"\",\"\"]],[476,473,175,15],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"],[\"ListItem\",\"Item two\",\"\",\"\"]],[476,488,175,15],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"]],[475,471,178,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"],[\"HeaderItem\",\"Record\",\"HeaderItem 0\",\"\"]],[259,658,325,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"],[\"HeaderItem\",\"Status\",\"HeaderItem 1\",\"\"]],[584,658,250,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"]],[259,658,791,30],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,688,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"],[\"Text\",\"Row 1\",\"\",\"\"]],[259,688,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"]],[259,688,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"],[\"Text\",\"Row 10\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"],[\"Text\",\"Row 11\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"],[\"Text\",\"Row 12\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,708,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"],[\"Text\",\"Row 2\",\"\",\"\"]],[259,708,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"]],[259,708,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,728,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"],[\"Text\",\"Row 3\",\"\",\"\"]],[259,728,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"]],[259,728,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,748,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"],[\"Text\",\"Row 4\",\"\",\"\"]],[259,748,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"]],[259,748,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,768,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"],[\"Text\",\"Row 5\",\"\",\"\"]],[259,768,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"]],[259,768,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,788,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"],[\"Text\",\"Row 6\",\"\",\"\"]],[259,788,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"]],[259,788,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,808,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"],[\"Text\",\"Row 7\",\"\",\"\"]],[259,808,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"]],[259,808,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,828,250,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"],[\"Text\",\"Row 8\",\"\",\"\"]],[259,828,575,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"]],[259,828,575,18],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"],[\"Text\",\"Row 9\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"아래쪽 스크롤 화살표\",\"DownButton\",\"\"]],[1048,825,26,21],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"위쪽 스크롤 화살표\",\"UpButton\",\"\"]],[1048,658,26,21],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"페이지 아래로\",\"DownPageButton\",\"\"]],[1048,751,26,74],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Thumb\",\"위치\",\"ScrollbarThumb\",\"\"]],[1048,679,26,72],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"]],[1048,658,26,188],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"]],[258,656,813,190],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"],[\"TabItem\",\"Tab one\",\"\",\"\"]],[885,474,74,23],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"],[\"TabItem\",\"Tab two\",\"\",\"\"]],[959,474,73,23],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"]],[883,471,188,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Editable value\",\"\",\"Static\"]],[258,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture choices\",\"\",\"Static\"]],[258,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture items\",\"\",\"Static\"]],[475,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture tabs\",\"\",\"Static\"]],[883,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture tree\",\"\",\"Static\"]],[665,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Password\",\"\",\"Static\"]],[808,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Read-only value\",\"\",\"Static\"]],[533,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Virtual report (10000 rows)\",\"\",\"Static\"]],[258,630,313,25],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"],[\"TreeItem\",\"Fixture root\",\"\",\"\"],[\"TreeItem\",\"Fixture child\",\"\",\"\"]],[718,490,91,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"],[\"TreeItem\",\"Fixture root\",\"\",\"\"]],[694,473,84,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"]],[665,471,205,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"]],[228,228,895,686],true,false,[],\"UIA\",true,false]"
+    ],
+    "partialElements": 0,
+    "truncated": false,
+    "elements": 76,
+    "chrome": [
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"TitleBar\",\"\",\"\",\"\"]],[258,233,855,35],true,false,[\"setValue\"],\"UIA\",true,false]"
+    ],
+    "foreign": 0
+   },
+   "checks": [
+    {
+     "name": "capabilities",
+     "status": "PASS"
+    },
+    {
+     "name": "window",
+     "status": "PASS"
+    },
+    {
+     "name": "tree",
+     "status": "PASS"
+    },
+    {
+     "name": "buttonLocatorAndLiveMetadata",
+     "status": "PASS",
+     "evidence": {
+      "actions": [
+       "invoke"
+      ],
+      "automationId": "1001",
+      "name": "Increment fixture counter",
+      "unscopedMiss": "ELEMENT_NOT_FOUND",
+      "role": "Button"
+     }
+    },
+    {
+     "name": "editLocatorAndLiveMetadata",
+     "status": "PASS",
+     "evidence": {
+      "automationId": "1002",
+      "actions": [
+       "setValue"
+      ]
+     }
+    },
+    {
+     "name": "ambiguousDuplicate",
+     "status": "PASS"
+    },
+    {
+     "name": "locatorWithoutAutomationId",
+     "status": "PASS",
+     "evidence": {
+      "name": "Editable value",
+      "role": "Text"
+     }
+    },
+    {
+     "name": "passwordMetadata",
+     "status": "PASS"
+    },
+    {
+     "name": "setValueAndEmpty",
+     "status": "PASS",
+     "evidence": {
+      "unicodeObserved": true,
+      "emptyObserved": true
+     }
+    },
+    {
+     "name": "disabledAction",
+     "status": "PASS"
+    },
+    {
+     "name": "readOnlyAction",
+     "status": "PASS"
+    },
+    {
+     "name": "foreignPidDenied",
+     "status": "PASS"
+    },
+    {
+     "name": "invokeAndDuplicateRequest",
+     "status": "PASS",
+     "evidence": {
+      "before": 2,
+      "effectVerifiedByAgent": false,
+      "duplicateCode": "DUPLICATE_COMMAND",
+      "after": 3
+     }
+    },
+    {
+     "name": "modal",
+     "status": "PASS",
+     "evidence": {
+      "win32Owner": 12715682,
+      "win32Class": "#32770",
+      "independentUia": {
+       "client": "System.Windows.Automation (managed)",
+       "win32Owner": 12715682,
+       "desktopChildInControlView": false,
+       "desktopChildInRawView": false,
+       "controlViewParentChain": [
+        12715682,
+        "desktop"
+       ],
+       "rawViewParentChain": [
+        12715682,
+        "desktop"
+       ]
+      },
+      "listedWithOwner": true,
+      "uiaNameMatchesTitle": true,
+      "modalElements": 5,
+      "closedThroughOwnSnapshot": true,
+      "staleAfterClose": true
+     }
+    },
+    {
+     "name": "replacement",
+     "status": "PASS"
+    },
+    {
+     "name": "liveSubtree",
+     "status": "PASS",
+     "evidence": {
+      "elements": 3
+     }
+    },
+    {
+     "name": "snapshotLimitsAndExpiry",
+     "status": "PASS"
+    },
+    {
+     "name": "ownerDrawnButton",
+     "status": "PASS"
+    },
+    {
+     "name": "largeVirtualReport",
+     "status": "PASS",
+     "evidence": {
+      "scopeCapture": 60,
+      "offscreenScopeElements": 27,
+      "applicationRows": 10000,
+      "windowCapture": 2000
+     }
+    },
+    {
+     "name": "minimizedWindowDiscovery",
+     "status": "PASS",
+     "evidence": {
+      "uiaRootOffscreen": true,
+      "nativeMinimized": true,
+      "processOwned": true
+     }
+    },
+    {
+     "name": "captureBeforeExit",
+     "status": "PASS"
+    },
+    {
+     "name": "processExitInvalidatesReference",
+     "status": "PASS"
+    }
+   ],
+   "requests": [
+    {
+     "op": "getCapabilities",
+     "code": "OK",
+     "ms": 66.9809
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 95.6519
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 217.64610000000002
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.5112
+    },
+    {
+     "op": "getElementInfo",
+     "code": "OK",
+     "ms": 13.3609
+    },
+    {
+     "op": "findElement",
+     "code": "ELEMENT_NOT_FOUND",
+     "ms": 0.2782
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.7253000000000001
+    },
+    {
+     "op": "getElementInfo",
+     "code": "OK",
+     "ms": 10.057
+    },
+    {
+     "op": "findElement",
+     "code": "AMBIGUOUS_ELEMENT",
+     "ms": 0.2948
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.2783
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.2637
+    },
+    {
+     "op": "getElementInfo",
+     "code": "OK",
+     "ms": 5.6912
+    },
+    {
+     "op": "setValue",
+     "code": "OK",
+     "ms": 13.1021
+    },
+    {
+     "op": "setValue",
+     "code": "OK",
+     "ms": 8.3012
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.2916
+    },
+    {
+     "op": "invoke",
+     "code": "PRECONDITION_FAILED",
+     "ms": 0.2664
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.2393
+    },
+    {
+     "op": "setValue",
+     "code": "PATTERN_UNSUPPORTED",
+     "ms": 0.2341
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 12.3045
+    },
+    {
+     "op": "invoke",
+     "code": "DUPLICATE_COMMAND",
+     "ms": 0.1635
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.774
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 45.624500000000005
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 12.9905
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 42.6799
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 34.2357
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.19310000000000002
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 8.1953
+    },
+    {
+     "op": "getElementInfo",
+     "code": "STALE_REFERENCE",
+     "ms": 0.5236000000000001
+    },
+    {
+     "op": "snapshot",
+     "code": "WINDOW_NOT_FOUND",
+     "ms": 0.5292
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 42.028
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 212.9624
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.3315
+    },
+    {
+     "op": "invoke",
+     "code": "STALE_REFERENCE",
+     "ms": 4.3428
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 236.58200000000002
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.3496
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 13.8773
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.25420000000000004
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 16.868000000000002
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.2665
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 5.3314
+    },
+    {
+     "op": "findElement",
+     "code": "INCOMPLETE_SNAPSHOT",
+     "ms": 0.2595
+    },
+    {
+     "op": "getElementInfo",
+     "code": "STALE_REFERENCE",
+     "ms": 0.2457
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 4.0786
+    },
+    {
+     "op": "findElement",
+     "code": "INCOMPLETE_SNAPSHOT",
+     "ms": 0.1792
+    },
+    {
+     "op": "getElementInfo",
+     "code": "STALE_REFERENCE",
+     "ms": 0.2363
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 208.60340000000002
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.3561
+    },
+    {
+     "op": "invoke",
+     "code": "OK",
+     "ms": 12.279
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 4518.7532
+    },
+    {
+     "op": "findElement",
+     "code": "INCOMPLETE_SNAPSHOT",
+     "ms": 0.7033
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 145.3081
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 37.676500000000004
+    },
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 4.6435
+    }
+   ],
+   "windowId": "12715682",
+   "tree": {
+    "content": [
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Disabled action\",\"1004\",\"Button\"]],[520,286,175,35],false,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Duplicate label\",\"\",\"Button\"]],[895,286,175,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Duplicate label\",\"1005\",\"Button\"]],[708,286,175,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Increment fixture counter\",\"1001\",\"Button\"]],[258,286,250,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Open fixture modal\",\"1016\",\"Button\"]],[508,584,231,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Owner-drawn action\",\"1015\",\"Button\"]],[258,584,238,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Button\",\"Replace fixture counter\",\"1018\",\"Button\"]],[751,584,251,35],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"CheckBox\",\"Fixture check box\",\"1010\",\"Button\"]],[258,404,225,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"ComboBox\",\"\",\"1011\",\"ComboBox\"]],[258,471,205,25],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1002\",\"Edit\"]],[258,359,263,30],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1003\",\"Edit\"]],[533,359,263,30],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Edit\",\"\",\"1006\",\"Edit\"]],[808,359,263,30],true,false,[\"setValue\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"],[\"ListItem\",\"Item one\",\"\",\"\"]],[476,473,175,15],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"],[\"ListItem\",\"Item two\",\"\",\"\"]],[476,488,175,15],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Fixture items\",\"1012\",\"ListBox\"]],[475,471,178,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"],[\"HeaderItem\",\"Record\",\"HeaderItem 0\",\"\"]],[259,658,325,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"],[\"HeaderItem\",\"Status\",\"HeaderItem 1\",\"\"]],[584,658,250,30],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"Header\",\"헤더 컨트롤\",\"Header\",\"SysHeader32\"]],[259,658,791,30],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,688,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"],[\"Text\",\"Row 1\",\"\",\"\"]],[259,688,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 1\",\"\",\"\"]],[259,688,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"],[\"Text\",\"Row 10\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 10\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"],[\"Text\",\"Row 11\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 11\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"],[\"Text\",\"Row 12\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 12\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,708,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"],[\"Text\",\"Row 2\",\"\",\"\"]],[259,708,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 2\",\"\",\"\"]],[259,708,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,728,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"],[\"Text\",\"Row 3\",\"\",\"\"]],[259,728,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 3\",\"\",\"\"]],[259,728,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,748,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"],[\"Text\",\"Row 4\",\"\",\"\"]],[259,748,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 4\",\"\",\"\"]],[259,748,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,768,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"],[\"Text\",\"Row 5\",\"\",\"\"]],[259,768,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 5\",\"\",\"\"]],[259,768,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,788,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"],[\"Text\",\"Row 6\",\"\",\"\"]],[259,788,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 6\",\"\",\"\"]],[259,788,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,808,250,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"],[\"Text\",\"Row 7\",\"\",\"\"]],[259,808,575,20],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 7\",\"\",\"\"]],[259,808,575,20],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[584,828,250,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"],[\"Text\",\"Row 8\",\"\",\"\"]],[259,828,575,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 8\",\"\",\"\"]],[259,828,575,18],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"],[\"Text\",\"Available\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"],[\"Text\",\"Row 9\",\"\",\"\"]],[],true,true,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ListItem\",\"Row 9\",\"\",\"\"]],[],true,true,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"아래쪽 스크롤 화살표\",\"DownButton\",\"\"]],[1048,825,26,21],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"위쪽 스크롤 화살표\",\"UpButton\",\"\"]],[1048,658,26,21],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Button\",\"페이지 아래로\",\"DownPageButton\",\"\"]],[1048,751,26,74],true,false,[\"invoke\"],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"],[\"Thumb\",\"위치\",\"ScrollbarThumb\",\"\"]],[1048,679,26,72],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"],[\"ScrollBar\",\"세로\",\"NonClientVerticalScrollBar\",\"\"]],[1048,658,26,188],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"List\",\"Virtual report (10000 rows)\",\"1017\",\"SysListView32\"]],[258,656,813,190],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"],[\"TabItem\",\"Tab one\",\"\",\"\"]],[885,474,74,23],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"],[\"TabItem\",\"Tab two\",\"\",\"\"]],[959,474,73,23],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tab\",\"\",\"1014\",\"SysTabControl32\"]],[883,471,188,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Editable value\",\"\",\"Static\"]],[258,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture choices\",\"\",\"Static\"]],[258,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture items\",\"\",\"Static\"]],[475,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture tabs\",\"\",\"Static\"]],[883,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Fixture tree\",\"\",\"Static\"]],[665,446,188,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Password\",\"\",\"Static\"]],[808,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Read-only value\",\"\",\"Static\"]],[533,334,225,24],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Text\",\"Virtual report (10000 rows)\",\"\",\"Static\"]],[258,630,313,25],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"],[\"TreeItem\",\"Fixture root\",\"\",\"\"],[\"TreeItem\",\"Fixture child\",\"\",\"\"]],[718,490,91,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"],[\"TreeItem\",\"Fixture root\",\"\",\"\"]],[694,473,84,18],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"Tree\",\"Fixture tree\",\"1013\",\"SysTreeView32\"]],[665,471,205,98],true,false,[],\"UIA\",true,false]",
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"]],[228,228,895,686],true,false,[],\"UIA\",true,false]"
+    ],
+    "partialElements": 0,
+    "truncated": false,
+    "elements": 76,
+    "chrome": [
+     "[[[\"Window\",\"UIA Win32 fixture 26d573fd-8a00-42bd-ae25-197041b51be5\",\"\",\"AutoDesktopWin32Fixture\"],[\"TitleBar\",\"\",\"\",\"\"]],[258,233,855,35],true,false,[\"setValue\"],\"UIA\",true,false]"
+    ],
+    "foreign": 0
+   },
+   "deniedRequests": [
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 295.1917
+    },
+    {
+     "op": "findElement",
+     "code": "OK",
+     "ms": 0.25420000000000004
+    },
+    {
+     "op": "invoke",
+     "code": "PERMISSION_DENIED",
+     "ms": 0.2788
+    }
+   ],
+   "modalOpened": true,
+   "modalClosed": true,
+   "listSubtree": {
+    "elements": 3,
+    "namedListItems": 2
+   },
+   "lifetimeRequests": [
+    {
+     "op": "snapshot",
+     "code": "OK",
+     "ms": 77.8014
+    },
+    {
+     "op": "getElementInfo",
+     "code": "STALE_REFERENCE",
+     "ms": 1.1575
+    },
+    {
+     "op": "listWindows",
+     "code": "OK",
+     "ms": 51.464400000000005
+    }
+   ]
+  }
+ ],
+ "comparisons": [
+  {
+   "framework": "Win32",
+   "order": [
+    "JNA",
+    "Cpp"
+   ],
+   "status": "PASS",
+   "completeTrees": true,
+   "partialElements": [
+    0,
+    0
+   ],
+   "chromeMatches": true,
+   "contentMatches": true,
+   "windowIdMatches": true
+  }
+ ],
+ "checkpointUtc": "2026-11-24T01:50:15.3665962Z",
+ "functionalStatus": "PASS",
+ "parityStatus": "PASS",
+ "status": "PASS",
+ "counts": {
+  "PASS": 2,
+  "PARTIAL": 0,
+  "FAIL": 0,
+  "NOT_RUN": 0,
+  "INCONCLUSIVE": 0
+ },
+ "checkCounts": {
+  "PASS": 44,
+  "PARTIAL": 0,
+  "FAIL": 0,
+  "NOT_RUN": 0,
+  "INCONCLUSIVE": 0
+ },
+ "classificationCounts": {},
+ "finishedUtc": "2026-11-24T01:50:15.4801552Z"
+}

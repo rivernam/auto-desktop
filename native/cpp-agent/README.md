@@ -33,7 +33,7 @@ ctest --test-dir target/cpp-agent -C Release --output-on-failure
 
 - `src/protocol`은 UTF-8 NDJSON 프레임을 읽고 중복 키와 연결된 JSON 객체를 거부한다. 입력 줄 한도는 65,536바이트이며 초과한 프레임은 줄 끝까지 소모한다. 문자열 한도는 Java와 같은 UTF-16 코드 단위로 센다. JSON 중첩은 128단계로 제한하며 짝이 없는 Unicode surrogate escape는 거부한다.
 - `src/core`는 Locator, 최신 스냅샷의 참조와 120초 만료, 액션 허용 정책, 4,096개의 명령 ID 기록, 요청 기한을 관리한다. 참조는 세션별 GUID에서 파생된 불투명 문자열이다. 새 조회가 Adapter에 전달되면 기존 참조를 폐기한다. 유휴 중 TTL이 만료되면 소유 스레드에서 네이티브 캐시도 해제한다.
-- `src/windows`는 Control View, HWND와 프로세스 시작 시각, Runtime ID, 조상 경로를 검증하는 Adapter다. 창의 시작 시각을 읽을 권한이 없으면 해당 창의 스냅샷이나 참조 재검증을 거부할 수 있다. 편집·비밀번호·ValuePattern 요소의 이름을 가리고 하위 트리를 건너뛴다. Value 속성을 읽지 않는다.
+- `src/windows`는 Control View, HWND와 프로세스 시작 시각, Runtime ID, 조상 경로를 검증하는 Adapter다. 창 목록은 데스크톱 직계 창 뒤에 소유 창(모달, 팝업)을 `ownerWindowId`와 함께 덧붙이고, 하위 트리가 잘린 요소에는 `partial`을 표시한다. 원인과 검증은 [UIA Agent 결함 분석](../../docs/UIA-AGENT-DEFECTS.md)에 있다. 창의 시작 시각을 읽을 권한이 없으면 해당 창의 스냅샷이나 참조 재검증을 거부할 수 있다. 편집·비밀번호·ValuePattern 요소의 이름을 가리고 하위 트리를 건너뛴다. Value 속성을 읽지 않는다.
 - UIA 호출과 COM 자원 해제는 같은 전용 MTA 스레드에서 수행한다. 요청 기한은 10초다. 변경 호출에 진입하기 전에 기한이 지나면 `TIMEOUT`, 진입한 호출의 결과를 확인할 수 없으면 `ACTION_OUTCOME_UNKNOWN`을 반환한다. Java/JNA는 일부 변경 사전 검사의 타임아웃도 결과 미상으로 처리한다. 타임아웃 뒤 C++ 세션은 폐기되며, 호출이 반환되는 시점에 소유 스레드가 참조를 해제한다. EOF 후 정리가 10초 내 끝나지 않으면 종료 코드 1로 프로세스 종료를 시도한다. 외부 호출자는 응답이 끊긴 변경을 재전송하기 전에 대상 상태를 확인해야 한다.
 
 ## Java/JNA와 비교

@@ -1,0 +1,76 @@
+{
+ "schema": 1,
+ "status": "passed",
+ "startedUtc": "2026-11-24T01:39:56.9893657Z",
+ "environment": {
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "is64BitOS": true,
+  "interactive": true,
+  "powerShell": "5.1.26100.7705",
+  "processorCount": 12,
+  "cpu": "12th Gen Intel(R) Core(TM) i7-1255U",
+  "cpuNominalMhz": 2611,
+  "java": "java version \"17.0.10\" 2024-01-16 LTS\r\nJava(TM) SE Runtime Environment (build 17.0.10+11-LTS-240)\r\nJava HotSpot(TM) 64-Bit Server VM (build 17.0.10+11-LTS-240, mixed mode, sharing)",
+  "jarSha256": "17D15D8D622CDC1C75056802ACB07B8D94E6AE0787294EAA037F140DD4F91362",
+  "fixtureSha256": "6547E1E7F35C2AFCAD87FFB4BE016DA11ED57483CDC4CB5E5DA77EBF2242204C",
+  "gitCommit": "8823168a2eeab8a556dca68e6a6193cddf1587bb",
+  "gitDirty": true,
+  "memoryBytes": 34046586880,
+  "power": {
+   "scheme": "381b4222-f694-41f0-9685-ff5bb260df2e",
+   "schemeName": "Balanced",
+   "overlay": "00000000-0000-0000-0000-000000000000"
+  },
+  "cppSha256": "79731CA6014929638B782E8CB1473C751DF05660AB4A13DF87872F6550A9257B",
+  "cppBytes": 514048,
+  "jarBytes": 5816793,
+  "javaLauncherBytes": 54384,
+  "uiaDllVersion": "7.2.26100.1 (WinBuild.160101.0800)"
+ },
+ "jvmOptions": [
+  "-XX:+UseSerialGC",
+  "-Xms16m"
+ ],
+ "options": {
+  "pairs": 6,
+  "iterations": 20,
+  "warmup": 5,
+  "soakSeconds": 300,
+  "soakPeriodMs": 500,
+  "actionIntervalMs": 50,
+  "initialOrder": [
+   "JNA",
+   "Cpp"
+  ]
+ },
+ "sampleOrder": [
+  "snapshot",
+  "findEdit",
+  "findButton",
+  "getElementInfo",
+  "setValue",
+  "invoke"
+ ],
+ "percentile": "nearest rank, ceil(p*N), 1-based",
+ "short": [],
+ "soak": [],
+ "parity": {
+  "passed": true,
+  "jnaElements": 20,
+  "cppElements": 20,
+  "contentElements": 19,
+  "jnaChromeElements": 1,
+  "cppChromeElements": 1,
+  "chromeMatches": true,
+  "replacedControl": "passed",
+  "processExit": "passed"
+ },
+ "fixture": {
+  "exitCode": 0,
+  "stderr": "",
+  "stdout": ""
+ },
+ "finishedUtc": "2026-11-24T01:40:01.9920174Z",
+ "shortSummary": {},
+ "soakSummary": {}
+}

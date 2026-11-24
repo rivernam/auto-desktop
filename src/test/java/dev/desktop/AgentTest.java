@@ -207,6 +207,9 @@ class AgentTest {
         desktop.canInvoke = true;
         var result = buttons.handle(request("invoke").put("ref", ref(snapshot(buttons))));
         assertTrue(result.at("/result/performed").asBoolean());
+        // A provider's return shows dispatch only. The reply must never claim an observed effect.
+        assertTrue(result.at("/result/effectVerified").isBoolean());
+        assertFalse(result.at("/result/effectVerified").asBoolean());
         assertEquals(1, desktop.invokes);
     }
 

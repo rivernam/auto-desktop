@@ -1,10 +1,12 @@
 package dev.desktop;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -109,22 +111,15 @@ final class JnaUiaSession implements TypedDesktopAdapter {
     }
 
     private JsonNode windows(UiaCom.Ref desktop) {
-        var result = JsonNodeFactory.instance.arrayNode();
+        ArrayNode result = JsonNodeFactory.instance.arrayNode();
+        var listed = new HashSet<Long>();
         UiaCom.Ref node = com.firstChild(desktop);
         int visited = 0;
         try {
             while (node != null) {
                 if (++visited > 4096) throw precondition();
                 long handle = com.hwnd(node);
-                int pid = com.pid(node);
-                if (handle != 0 && pid > 0) {
-                    boolean masked = com.password(node) || com.controlType(node) == 50004;
-                    if (!masked) {
-                        try (UiaCom.Ref pattern = com.valuePattern(node)) { masked = pattern != null; }
-                    }
-                    result.addObject().put("windowId", Long.toString(handle)).put("processId", pid)
-                            .put("name", masked ? "" : clip(com.name(node)));
-                }
+                if (handle != 0 && describeWindow(result, node, handle, 0)) listed.add(handle);
                 UiaCom.Ref next = com.nextSibling(node);
                 node.close();
                 node = next;
@@ -132,7 +127,43 @@ final class JnaUiaSession implements TypedDesktopAdapter {
         } finally {
             if (node != null) node.close();
         }
+        // An owned modal or popup hangs below its owner in every UIA view, so the walk above never reaches it.
+        for (long[] owned : com.ownedWindows(4096)) {
+            if (listed.contains(owned[0])) continue;
+            if (++visited > 4096) throw precondition();
+            try (UiaCom.Ref window = ownedWindow(owned[0], owned[1])) {
+                if (window != null && describeWindow(result, window, owned[0], owned[1])) listed.add(owned[0]);
+            } catch (UiaCom.ComFailure closing) {
+                propagateTimeout(closing); // Otherwise the window closed during enumeration.
+            }
+        }
         return result;
+    }
+
+    private boolean describeWindow(ArrayNode result, UiaCom.Ref node, long handle, long owner) {
+        int pid = com.pid(node);
+        if (pid <= 0) return false;
+        boolean masked = protectsChildren(node);
+        ObjectNode row = result.addObject().put("windowId", Long.toString(handle)).put("processId", pid)
+                .put("name", masked ? "" : clip(com.name(node)));
+        if (owner != 0) row.put("ownerWindowId", Long.toString(owner));
+        return true;
+    }
+
+    /** The element of a visible owned top-level window whose UIA parent is its Win32 owner, or null. */
+    private UiaCom.Ref ownedWindow(long handle, long owner) {
+        UiaCom.Ref node = com.fromHandle(handle);
+        boolean retained = false;
+        try {
+            if (com.hwnd(node) != handle) return null;
+            try (UiaCom.Ref parent = com.parent(node)) {
+                if (parent == null || com.hwnd(parent) != owner) return null;
+            }
+            retained = true;
+            return node;
+        } finally {
+            if (!retained) node.close();
+        }
     }
 
     static String role(int typeId) {
@@ -165,7 +196,12 @@ final class JnaUiaSession implements TypedDesktopAdapter {
             node = com.fromHandle(handle);
             if (node == null || com.hwnd(node) != handle) throw missing();
             try (UiaCom.Ref parent = com.parent(node)) {
-                if (parent == null || !com.same(parent, desktop)) throw missing();
+                if (parent == null) throw missing();
+                if (!com.same(parent, desktop)) {
+                    // Accept exactly the owned windows that listWindows reports.
+                    long owner = com.owner(handle);
+                    if (owner == 0 || com.hwnd(parent) != owner) throw missing();
+                }
             }
             retained = true;
             return node;
@@ -256,9 +292,12 @@ final class JnaUiaSession implements TypedDesktopAdapter {
         }
     }
 
-    /** Takes ownership of node on entry, including when a provider call fails. */
-    private void visit(Capture capture, UiaCom.Ref node, Entry parent, int depth, int maxDepth, int maxElements,
-                       ObjectNode result) {
+    /**
+     * Takes ownership of node on entry, including when a provider call fails. Returns false when the
+     * node was omitted. Every cause of truncation marks the row whose own subtree is incomplete.
+     */
+    private boolean visit(Capture capture, UiaCom.Ref node, Entry parent, int depth, int maxDepth, int maxElements,
+                          ObjectNode result) {
         capture.owned.add(node);
         capture.visited++;
         Info info = inspect(node);
@@ -269,23 +308,30 @@ final class JnaUiaSession implements TypedDesktopAdapter {
         if (runtime.length == 0) {
             if (depth == 0) throw stale();
             result.put("truncated", true);
-            return;
+            return false;
         }
         Entry entry = new Entry(node, UUID.randomUUID().toString(), parent, info.pid(), runtime, info.identity());
         capture.entries.put(entry.key(), entry);
         if (depth == 0) capture.root = entry;
         if (parent == null) capture.window = entry;
-        result.withArray("elements").add(describe(capture, entry, info));
-        if (info.identity().clipped()) result.put("truncated", true);
-        if (info.protect()) return;
+        ObjectNode row = describe(capture, entry, info);
+        result.withArray("elements").add(row);
+        if (info.identity().clipped()) partial(result, row);
+        if (info.protect()) return true;
         for (UiaCom.Ref child = com.firstChild(node); child != null; child = com.nextSibling(child)) {
             if (depth >= maxDepth || capture.visited >= maxElements) {
                 child.close();
-                result.put("truncated", true);
-                return;
+                partial(result, row);
+                return true;
             }
-            visit(capture, child, entry, depth + 1, maxDepth, maxElements, result);
+            if (!visit(capture, child, entry, depth + 1, maxDepth, maxElements, result)) partial(result, row);
         }
+        return true;
+    }
+
+    private static void partial(ObjectNode result, ObjectNode row) {
+        result.put("truncated", true);
+        row.put("partial", true);
     }
 
     private Entry resolve(Capture capture, String key, int pid, UiaCom.Ref desktop, boolean checkingScope) {

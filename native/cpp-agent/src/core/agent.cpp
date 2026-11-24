@@ -113,8 +113,11 @@ Json Agent::handle(const Json& request, RequestDeadline& deadline) {
             result = capabilities(adapter_.backend(), adapter_.available());
         } else if (op == "listWindows") {
             result = Json::array();
-            for (const auto& window : adapter_.windows())
-                result.push_back({{"windowId", window.id}, {"processId", window.pid}, {"name", window.name}});
+            for (const auto& window : adapter_.windows()) {
+                Json row{{"windowId", window.id}, {"processId", window.pid}, {"name", window.name}};
+                if (!window.owner.empty()) row["ownerWindowId"] = window.owner;
+                result.push_back(std::move(row));
+            }
         } else if (op == "snapshot") {
             result = capture(request);
         } else if (op == "findElement") {
@@ -185,7 +188,8 @@ Json Agent::capture(const Json& request) {
         std::vector<int> depths(count);
         for (std::size_t i = 0; i < count; ++i) {
             const auto& row = next.capture.elements[i];
-            if ((i == 0 && row.parent) || (i != 0 && (!row.parent || *row.parent >= i)) || row.pid <= 0)
+            if ((i == 0 && row.parent) || (i != 0 && (!row.parent || *row.parent >= i)) || row.pid <= 0
+                || (row.partial && !next.capture.truncated))
                 throw Error("WORKER_PROTOCOL", "Invalid snapshot tree.");
             depths[i] = row.parent ? depths[*row.parent] + 1 : 0;
             if (depths[i] > depth) throw Error("WORKER_PROTOCOL", "Invalid snapshot depth.");
@@ -219,12 +223,17 @@ Json Agent::find(const Json& request) const {
     std::optional<std::size_t> match;
     const auto& rows = snapshot.capture.elements;
     const auto start = scope ? resolve(*scope) : 0;
+    // A cut elsewhere in the tree hides no match inside a scope whose every row is whole. That needs
+    // an adapter that names the cut rows.
+    bool complete = !snapshot.capture.truncated
+        || (scope && std::any_of(rows.begin(), rows.end(), [](const Element& row) { return row.partial; }));
     for (std::size_t i = start; i < rows.size(); ++i) {
         if (scope && i != start) {
             auto parent = rows[i].parent;
             while (parent && *parent > start) parent = rows[*parent].parent;
             if (parent != start) continue;
         }
+        if (rows[i].partial) complete = false;
         bool matches = true;
         for (const auto& entry : locator->items()) {
             if (entry.value() != property(rows[i].identity, entry.key())) {
@@ -236,8 +245,7 @@ Json Agent::find(const Json& request) const {
         if (match) throw Error("AMBIGUOUS_ELEMENT", "More than one element matches.");
         match = i;
     }
-    if (snapshot.capture.truncated)
-        throw Error("INCOMPLETE_SNAPSHOT", "A complete snapshot is required for lookup.");
+    if (!complete) throw Error("INCOMPLETE_SNAPSHOT", "A complete snapshot is required for lookup.");
     if (!match) throw Error("ELEMENT_NOT_FOUND", "No element matches the locator.");
     return publicElement(*match, rows[*match]);
 }
@@ -248,6 +256,8 @@ Json Agent::info(const Json& request) {
     auto live = adapter_.info(index);
     if (live.pid != captured.pid) throw stale();
     live.parent = captured.parent;
+    // Completeness describes the capture. A live property read cannot change it.
+    live.partial = captured.partial;
     return publicElement(index, live);
 }
 
@@ -273,7 +283,8 @@ Json Agent::perform(const Json& request, const std::string& id, Action action, R
         if (!allowedProcess_(target.pid)) throw denied();
         deadline.beginMutation();
     });
-    return {{"performed", true}};
+    // The provider accepted the call. Only the application can show that it had an effect.
+    return {{"performed", true}, {"effectVerified", false}};
 }
 
 Json Agent::publicElement(std::size_t index, const Element& row) const {
@@ -287,10 +298,12 @@ Json Agent::publicElement(std::size_t index, const Element& row) const {
     }
     const auto& refs = current().refs;
     const auto& identity = row.identity;
-    return {{"ref", refs[index]}, {"parentRef", row.parent ? Json(refs[*row.parent]) : Json(nullptr)},
-            {"name", identity.name}, {"role", identity.role}, {"automationId", identity.automationId},
-            {"className", identity.className}, {"processId", row.pid}, {"bounds", std::move(bounds)},
-            {"enabled", row.enabled}, {"offscreen", row.offscreen}, {"actions", std::move(actions)},
-            {"backend", adapter_.backend()}};
+    Json result{{"ref", refs[index]}, {"parentRef", row.parent ? Json(refs[*row.parent]) : Json(nullptr)},
+                {"name", identity.name}, {"role", identity.role}, {"automationId", identity.automationId},
+                {"className", identity.className}, {"processId", row.pid}, {"bounds", std::move(bounds)},
+                {"enabled", row.enabled}, {"offscreen", row.offscreen}, {"actions", std::move(actions)},
+                {"backend", adapter_.backend()}};
+    if (row.partial) result["partial"] = true;
+    return result;
 }
 } // namespace desktop
