@@ -1,5 +1,9 @@
 # 빌드 및 시험 기록
 
+## 2026-11-24 Multi-Backend 안정화
+
+Java와 C++의 공유 조회 기한, UIA 재생성, JAB 응답 판정, 명령 ID 메모리와 JVM별 프로세스 실험을 다시 검증했다. 시작 실패와 도구 오류가 있던 실행도 남겼다. 각 바이너리의 해시, 실행 시간, 미실행 항목은 후속 보고서와 원본에 있다. [Multi-Backend 안정화](MULTI-BACKEND-STABILIZATION.md)
+
 ## 2026-11-24 Multi-Backend Agent
 
 Windows 11 Pro 25H2(빌드 26200.7840), Agent x64, 대상은 Java 17.0.10의 AWT·Swing, Temurin 23.0.2의 AWT, WPF 픽스처. 구조, 표, 판단과 재현 명령은 [Multi-Backend Agent](MULTI-BACKEND.md)에 있다.

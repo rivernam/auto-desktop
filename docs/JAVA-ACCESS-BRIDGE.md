@@ -182,7 +182,7 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend jab --allo
 
 ## 응답하지 않는 JVM
 
-브리지 DLL은 JVM의 응답을 기다리다 시간이 지나면 자기 버퍼에 있던 값을 그대로 돌려준다. 초기화되지 않은 값이라 TRUE로 읽힐 수 있다. 첫 구현에서 모달을 여는 클릭이 8초 뒤 `performed=true`로 보고된 원인이 이것이었다. 그래서 두 Agent는 브리지 호출 하나가 3.5초 이상 걸리면 결과를 버린다. DLL 자체의 대기 시간이 4초 이상이므로 그보다 빨리 온 응답만 신뢰한다.
+OpenJDK에서 Windows DLL은 공유 메모리의 완료 표지를 검사하지만 표지는 공개 API에 노출되지 않는다. 설치 DLL을 사용한 Swing 모달 실측에서는 약 8초 뒤 정수 1 이외의 값이 돌아왔고 실패 인덱스가 -1이었다. 두 Agent는 `invoke`에 정수 1과 성공 인덱스 -1이 모두 필요하다고 판단하며, `setValue`에도 정수 1을 요구한다. 3.5초 보수적 시간 제한은 유지한다. 결과와 무관하게 앱의 실제 효과는 별도 관측이 필요하다. [공식 소스와 실측](MULTI-BACKEND-STABILIZATION.md#b-jab-응답-신뢰성)
 
 | 시점 | 응답 |
 |---|---|
@@ -205,7 +205,7 @@ Swing 버튼의 접근성 액션은 `AbstractButton.doClick()`이고, 이 메서
 
 ### AWT 텍스트 입력
 
-브리지의 `setTextContents`는 컨텍스트가 `AccessibleEditableText`를 구현할 때만 동작한다(JDK 17 `AccessBridge.setTextContents`). `java.awt.TextField`와 `TextArea`의 컨텍스트는 `AccessibleText`만 구현한다. 브리지는 FALSE를 돌려주고 Agent는 `ACTION_OUTCOME_UNKNOWN`을 보고한다. 픽스처의 텍스트는 바뀌지 않았다. 스냅샷만으로는 이 차이를 알 수 없어 `actions`에는 `setValue`가 나온다. AWT 텍스트 필드는 UIA 백엔드에서 입력할 수 있다(UIA가 네이티브 Edit 컨트롤을 본다).
+브리지의 `setTextContents`는 컨텍스트가 `AccessibleEditableText`를 구현할 때만 동작한다. 표준 AWT `TextField` 및 `TextArea`의 컨텍스트는 `AccessibleText`를 제공한다. 두 Agent에서 편집 가능 상태인 JAB 행의 `setValueSupport`는 `unverified`이며, 편집 불가 행은 `unsupported`다. 기존 `actions`의 후보를 읽는 클라이언트도 계속 동작한다. AWT에서 네이티브 텍스트 필드를 쓸 때는 UIA의 새 스냅샷과 참조로 요청한다. [공통 API](API.md)
 
 ## 오류 코드
 

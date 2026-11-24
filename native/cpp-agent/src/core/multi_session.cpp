@@ -29,11 +29,8 @@ MultiSession::MultiSession(std::vector<Backend> backends, std::string session, A
 }
 
 MultiSession::~MultiSession() {
-    // A healthy backend releases its native references first. One that waits on a provider call
-    // may end the process when its turn comes.
-    for (auto& slot : slots_) {
-        if (!slot.worker->stopped()) slot.worker.reset();
-    }
+    const auto deadline = Clock::now() + requestBudget;
+    for (auto& slot : slots_) slot.worker->requestStop(deadline);
     slots_.clear();
 }
 
@@ -104,6 +101,7 @@ MultiSession::Slot* MultiSession::route(const Json& request, std::string_view op
 }
 
 Json MultiSession::handle(Json request) {
+    const std::lock_guard<std::mutex> serial(serial_);
     auto id = requestId(request);
     const std::string_view op = operation(request);
     // The worker answers a malformed frame before it touches its provider.
@@ -121,25 +119,39 @@ Json MultiSession::handle(Json request) {
     return reply;
 }
 
+std::vector<Json> MultiSession::queries(const Json& id, const char* op) {
+    const auto deadline = Clock::now() + budget_;
+    std::vector<std::function<Json()>> pending;
+    std::vector<Json> replies;
+    pending.reserve(slots_.size());
+    replies.reserve(slots_.size());
+    for (auto& slot : slots_) pending.push_back(live(slot).startQuery({{"id", id}, {"op", op}}, deadline));
+    // After its own query returns, a backend with a message window serves it while peers finish.
+    for (auto& slot : slots_) slot.worker->attend(true);
+    try {
+        for (const auto& await : pending) replies.push_back(await());
+    } catch (...) {
+        for (auto& slot : slots_) slot.worker->attend(false);
+        throw;
+    }
+    for (auto& slot : slots_) slot.worker->attend(false);
+    return replies;
+}
+
 Json MultiSession::capabilities(const Json& id) {
     auto rows = Json::array();
     bool available = false;
-    for (auto& slot : slots_) {
-        auto& worker = live(slot);
-        Availability failed;
-        failed.available = false;
+    const auto replies = queries(id, "getCapabilities");
+    for (std::size_t i = 0; i < slots_.size(); ++i) {
+        const auto& reply = replies[i];
         Json row;
-        if (worker.stopped()) {
-            failed.reason = "The backend session was retired after a fault.";
-            row = desktop::capabilities(slot.config.name.c_str(), failed);
+        if (reply.at("ok") == true) {
+            row = reply.at("result");
         } else {
-            const auto reply = call(slot, {{"id", id}, {"op", "getCapabilities"}});
-            if (reply.at("ok") == true) {
-                row = reply.at("result");
-            } else {
-                failed.reason = reply.at("error").at("message").get<std::string>();
-                row = desktop::capabilities(slot.config.name.c_str(), failed);
-            }
+            Availability failed;
+            failed.available = false;
+            failed.reason = reply.at("error").at("message").get<std::string>();
+            row = desktop::capabilities(slots_[i].config.name.c_str(), failed);
         }
         available = available || row.at("available") == true;
         rows.push_back(std::move(row));
@@ -160,8 +172,10 @@ Json MultiSession::windows(const Json& id) {
     std::string firstCode, firstMessage;
     bool sameCode = true;
     std::size_t failures = 0;
-    for (auto& slot : slots_) {
-        const auto reply = call(slot, {{"id", id}, {"op", "listWindows"}});
+    const auto replies = queries(id, "listWindows");
+    for (std::size_t i = 0; i < slots_.size(); ++i) {
+        const auto& slot = slots_[i];
+        const auto& reply = replies[i];
         if (reply.at("ok") == true) {
             for (const auto& window : reply.at("result")) {
                 // The same handle with another owner process is another window. Keep both rows.

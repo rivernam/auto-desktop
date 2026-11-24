@@ -201,6 +201,31 @@ void history() {
     check(fixture.mutations == 4096, "bounded mutations");
 }
 
+// Short, provider-free process for tools/Measure-CommandHistory.ps1.
+void measureHistory(std::size_t length, bool retain) {
+    CommandHistory history;
+    std::size_t count = 0;
+    for (const std::size_t stop : {0, 512, 1024, 2048, 4096}) {
+        for (; count < stop; ++count) {
+            auto id = std::to_string(count);
+            id.resize(length, 'x');
+            if (retain) history.remember(id);
+            check(history.contains(id) == retain, "history probe retention");
+        }
+        std::cout << Json{{"generated", count}, {"stored", retain ? count : 0}, {"idLength", length}}.dump() << std::endl;
+        std::string advance;
+        check(static_cast<bool>(std::getline(std::cin, advance)), "history probe driver disconnected");
+    }
+    if (retain) {
+        try {
+            history.remember("overflow");
+            throw std::runtime_error("history probe exceeded the storage limit");
+        } catch (const Error& ex) {
+            check(std::string_view(ex.code) == "SESSION_LIMIT", "history probe limit");
+        }
+    }
+}
+
 void framing() {
     std::istringstream input(std::string(frameLimit + 1, 'x')
         + "\n{\"a\":{\"b\":1,\"b\":2}}\n{\"a\":1} {\"b\":2}\n{\"a\":\"\xFF\"}\n"
@@ -231,6 +256,8 @@ void deadline() {
     RequestDeadline dispatched(Clock::now() + 1s);
     dispatched.beginMutation();
     check(dispatched.cancel(), "already dispatched, outcome unknown");
+    check(dispatched.cancel(), "a late worker and the protocol waiter must both see that dispatch happened");
+    check(!cancelled.cancel(), "repeated cancellation before dispatch stays undispatched");
 }
 
 void workerTimeout(bool afterDispatch) {
@@ -369,6 +396,7 @@ struct Script {
     std::atomic<bool> silent{false};
     std::atomic<bool> blocked{false};
     std::shared_future<void> release;
+    std::function<void()> query;
     // Set for a provider that owns windows: it serves their messages while its peer runs a request.
     std::atomic<bool> ownsWindows{false};
     std::atomic<bool> serving{false};
@@ -394,6 +422,7 @@ public:
     }
     void wake() noexcept override { ++script_.woken; }
     std::vector<Window> windows() override {
+        if (script_.query) script_.query();
         if (script_.silent) throw Error("TARGET_NOT_RESPONDING", "The target is not answering.");
         if (script_.peer) {
             for (int attempt = 0; attempt < 200 && !script_.peer->serving; ++attempt) std::this_thread::sleep_for(1ms);
@@ -587,11 +616,89 @@ void multiBackend() {
     error(single.handle({{"id", "b"}, {"op", "snapshot"}, {"windowId", "100"}, {"backend", "UIA"}}), "BACKEND_UNAVAILABLE");
     error(single.handle({{"id", "c"}, {"op", "snapshot"}, {"windowId", "100"}, {"backend", ""}}), "INVALID_REQUEST");
 }
+void simultaneousQueries() {
+    Script first, second, third;
+    std::promise<void> allEntered;
+    auto ready = allEntered.get_future().share();
+    std::atomic<int> entered{0};
+    for (auto* script : {&first, &second, &third}) {
+        script->query = [&] {
+            if (++entered == 3) allEntered.set_value();
+            if (ready.wait_for(2s) != std::future_status::ready) throw Error("TIMEOUT", "No overlap.");
+        };
+    }
+    MultiSession session({{"UIA", [&] { return std::make_unique<Scripted>("UIA", first); }},
+                          {"JAB", [&] { return std::make_unique<Scripted>("JAB", second); }},
+                          {"Third", [&] { return std::make_unique<Scripted>("Third", third); }}},
+                         "parallel", [](int) { return true; }, {}, 500ms);
+    const auto reply = session.handle({{"id", "list"}, {"op", "listWindows"}});
+    check(reply.at("ok") == true && reply.at("backends").size() == 3, "all three queries share a deadline");
+    for (const auto& backend : reply.at("backends")) check(backend.at("ok") == true, "backend started before its peers returned");
+}
+
+void simultaneousDuplicates() {
+    Script uia, jab;
+    MultiSession session({{"UIA", [&] { return std::make_unique<Scripted>("UIA", uia); }},
+                          {"JAB", [&] { return std::make_unique<Scripted>("JAB", jab); }}},
+                         "mutations", [](int) { return true; }, {Action::invoke});
+    const auto capture = [&](const char* backend) {
+        return session.handle({{"id", "capture"}, {"op", "snapshot"}, {"windowId", "100"}, {"backend", backend}})
+            .at("result").at("elements")[1].at("ref");
+    };
+    const auto first = capture("UIA");
+    const auto second = capture("JAB");
+    const auto send = [&](const Json& ref) {
+        return session.handle({{"id", "same"}, {"op", "invoke"}, {"ref", ref}});
+    };
+    std::promise<void> start;
+    const auto ready = start.get_future().share();
+    auto request = std::async(std::launch::async, [&] { ready.wait(); return send(first); });
+    start.set_value();
+    const auto b = send(second);
+    const auto a = request.get();
+    check((a.at("ok") == true) != (b.at("ok") == true), "exactly one concurrent mutation succeeds");
+    error(a.at("ok") == true ? b : a, "DUPLICATE_COMMAND");
+    check(uia.mutations + jab.mutations == 1, "the provider receives one concurrent mutation");
+    capture("UIA");
+    error(send(first), "DUPLICATE_COMMAND");
+    check(uia.mutations + jab.mutations == 1, "a duplicate with an old reference never reaches a provider");
+}
+
+void oneBudgetForSlowQueries() {
+    Script first, second, third;
+    std::promise<void> release;
+    for (auto* script : {&first, &second, &third}) script->blocked = true;
+    first.release = second.release = third.release = release.get_future().share();
+    MultiSession session({{"UIA", [&] { return std::make_unique<Scripted>("UIA", first); }},
+                          {"JAB", [&] { return std::make_unique<Scripted>("JAB", second); }},
+                          {"Third", [&] { return std::make_unique<Scripted>("Third", third); }}},
+                         "deadline", [](int) { return true; }, {}, 400ms);
+    const auto started = Clock::now();
+    const auto reply = session.handle({{"id", "list"}, {"op", "listWindows"}});
+    const auto elapsed = Clock::now() - started;
+    release.set_value();
+    error(reply, "TIMEOUT");
+    check(elapsed < 1050ms, "all stalled providers share one query budget");
+    check(reply.at("backends").size() == 3 && first.sessions == 1 && second.sessions == 1 && third.sessions == 1,
+          "all providers were scheduled within the common budget");
+    for (const auto& backend : reply.at("backends")) check(backend.at("error").at("code") == "TIMEOUT", "backend timeout");
+    const auto caps = session.handle({{"id", "caps"}, {"op", "getCapabilities"}});
+    check(caps.at("result").at("available") == false, "retired backends report unavailable");
+}
 } // namespace
 
-int main() {
+int main(int argc, char** argv) {
     try {
+        if (argc == 4 && std::string_view(argv[1]) == "--history-memory") {
+            const auto length = std::stoul(argv[2]);
+            check(length >= 4 && length <= 128, "history probe ID length");
+            measureHistory(length, std::string_view(argv[3]) == "retain");
+            return 0;
+        }
         multiBackend();
+        simultaneousQueries();
+        simultaneousDuplicates();
+        oneBudgetForSlowQueries();
         secondBackend();
         core();
         completeness();

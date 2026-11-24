@@ -28,6 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import javax.accessibility.Accessible;
 import javax.accessibility.AccessibleAction;
 import javax.accessibility.AccessibleContext;
@@ -81,11 +82,14 @@ public final class FrameworkFixture {
     private TextField awtEdit;
     private TextField awtReadOnly;
     private TextField awtPassword;
+    private JTextField swingEdit;
     private JTabbedPane swingTabs;
     private int publishedAwtPasswordLength = PASSWORD.length();
     private String publishedAwtValue = INITIAL_VALUE;
     private String publishedAwtReadOnly = FIXED_VALUE;
     private int count;
+    private long eventSequence;
+    private static final boolean TRACE = Boolean.getBoolean("desktop.fixture.events");
 
     private FrameworkFixture(String mode, Path stateDirectory, String title) {
         this.swing = mode.equals("swing");
@@ -149,6 +153,8 @@ public final class FrameworkFixture {
     private JPanel swingControls() {
         var fields = new JPanel(new GridLayout(0, 2, 5, 5));
         var edit = named(new JTextField(INITIAL_VALUE, 22), "fixtureEdit", "Fixture edit");
+        swingEdit = edit;
+        if (TRACE) edit.getAccessibleContext().setAccessibleDescription("fixture-description-sentinel");
         onTextChange(edit, "value.txt");
         addField(fields, "Editable text", edit);
         var readOnly = named(new JTextField(FIXED_VALUE, 22), "fixtureReadOnly", "Fixture read-only edit");
@@ -292,7 +298,10 @@ public final class FrameworkFixture {
     }
 
     private Component newIncrementButton() {
-        return button("fixtureIncrement", INCREMENT_LABEL, event -> write("count.txt", Integer.toString(++count)));
+        return button("fixtureIncrement", INCREMENT_LABEL, event -> {
+            trace("counterIncrement", ++count);
+            write("count.txt", Integer.toString(count));
+        });
     }
 
     private Component button(String id, String label, ActionListener handler) {
@@ -337,6 +346,7 @@ public final class FrameworkFixture {
         var dialog = swing ? new JDialog((Frame) window, modalTitle, true)
                 : new Dialog((Frame) window, modalTitle, true);
         modal = named(dialog, "fixtureModalWindow", modalTitle);
+        trace("modalCreated", 0);
         dialog.setLayout(new FlowLayout());
         dialog.add(swing ? new JLabel("Fixture modal dialog") : new Label("Fixture modal dialog"));
         dialog.add(button("fixtureCloseModal", CLOSE_MODAL_LABEL, event -> closeModal()));
@@ -347,18 +357,23 @@ public final class FrameworkFixture {
                     "Fixture text area"));
         }
         dialog.addWindowListener(new WindowAdapter() {
-            @Override public void windowOpened(WindowEvent event) { write("modal.txt", "open"); }
+            @Override public void windowOpened(WindowEvent event) {
+                trace("modalOpened", 0);
+                write("modal.txt", "open");
+            }
             @Override public void windowClosing(WindowEvent event) { closeModal(); }
         });
         dialog.pack();
         dialog.setLocationRelativeTo(window);
         dialog.setVisible(true);
+        trace("modalShowReturned", 0);
     }
 
     private void closeModal() {
         if (modal != null) {
             modal.dispose();
             modal = null;
+            trace("modalClosed", 0);
             write("modal.txt", "closed");
         }
     }
@@ -379,6 +394,7 @@ public final class FrameworkFixture {
             return;
         }
         if (consume("close-modal")) {
+            trace("fixtureRequestedModalClose", 0);
             closeModal();
         }
         // A dialog that the application opens by itself, outside any accessibility request.
@@ -392,6 +408,14 @@ public final class FrameworkFixture {
                         JOptionPane.INFORMATION_MESSAGE);
                 write("option.txt", "closed");
             });
+        }
+        if (TRACE && swing && consume("expose-edit-name")) {
+            swingEdit.getAccessibleContext().setAccessibleName(swingEdit.getText());
+            write("metadata-name.txt", "exposed");
+        }
+        if (TRACE && swing && consume("restore-edit-name")) {
+            swingEdit.getAccessibleContext().setAccessibleName("Fixture edit");
+            write("metadata-name.txt", "restored");
         }
         for (int tab = 0; swing && tab < swingTabs.getTabCount(); tab++) {
             if (consume("select-tab-" + tab)) {
@@ -447,6 +471,7 @@ public final class FrameworkFixture {
                 try {
                     Files.move(pending, stateDirectory.resolve(name), StandardCopyOption.ATOMIC_MOVE,
                             StandardCopyOption.REPLACE_EXISTING);
+                    if (name.equals("modal.txt") || name.equals("count.txt")) trace("published:" + name, attempt);
                     return;
                 } catch (IOException busy) {
                     if (attempt == 100) throw busy;
@@ -458,6 +483,17 @@ public final class FrameworkFixture {
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Writing " + name, interrupted);
+        }
+    }
+
+    private void trace(String event, int number) {
+        if (!TRACE) return;
+        try {
+            String line = System.currentTimeMillis() + "\t" + ++eventSequence + "\t" + event + "\t" + number + "\n";
+            Files.writeString(stateDirectory.resolve("events.tsv"), line, StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException diagnosticFailure) {
+            // A gap in the sequence shows that evidence was unavailable without changing the fixture action.
         }
     }
 

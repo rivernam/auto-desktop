@@ -283,6 +283,7 @@ final class JabSession implements NativeSession {
         var actions = row.putArray("actions");
         if (info.invoke() != null) actions.add("invoke");
         if (info.writable()) actions.add("setValue");
+        if (id.role().equals("Edit")) row.put("setValueSupport", info.writable() ? "unverified" : "unsupported");
         int[] rect = info.bounds();
         if (rect == null) row.putNull("bounds");
         else row.putObject("bounds").put("x", rect[0]).put("y", rect[1]).put("width", rect[2]).put("height", rect[3]);

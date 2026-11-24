@@ -237,7 +237,7 @@ function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]
     return $start
 }
 
-function Start-Cli($start) {
+function Start-Cli($start, [switch]$CaptureStderr) {
     # Windows PowerShell opens the child's stdin writer with the console input encoding. On a UTF-8
     # console (code page 65001) that writer sends a byte order mark ahead of the first request frame.
     $consoleInput = $null
@@ -251,7 +251,7 @@ function Start-Cli($start) {
     finally {
         if ($consoleInput) { try { [Console]::InputEncoding = $consoleInput } catch {} }
     }
-    $cli.BeginErrorReadLine() # Drain per-request audit output without accumulating it.
+    if (!$CaptureStderr) { $cli.BeginErrorReadLine() } # Drain without accumulating per-request audit output.
     return $cli
 }
 
@@ -267,7 +267,8 @@ function Send-UiaRequest($cli, $command, [string]$id = ([guid]::NewGuid().ToStri
     $clock.Stop()
     $endUtc = [DateTime]::UtcNow # the system clock that the JVM's GC log is stamped with
     if ($null -eq $next.Result) { throw "CLI closed before responding to $($command.op)." }
-    $reply = $next.Result | ConvertFrom-Json
+    try { $reply = $next.Result | ConvertFrom-Json -ErrorAction Stop }
+    catch { throw "Invalid CLI JSON for $($command.op)." }
     if ($reply.id -cne $id -or $reply.ok -isnot [bool]) { throw "Invalid CLI reply for $($command.op)." }
     return @{ ms = $clock.Elapsed.TotalMilliseconds; reply = $reply; endUtc = $endUtc }
 }
@@ -904,4 +905,15 @@ function Get-UiaGitInfo {
         $status = Read-Diagnostic $git "-C `"$PSScriptRoot`" status --porcelain --untracked-files=no"
         return [ordered]@{ commit = $head.stdout; dirty = [bool]($status.exitCode -ne 0 -or $status.stdout) }
     } catch { return $null }
+}
+
+function Read-UiaReport([string]$path) {
+    $json = [IO.File]::ReadAllText((Resolve-Path -LiteralPath $path).Path)
+    if ($PSVersionTable.PSEdition -eq 'Core') { return ConvertFrom-Json -InputObject $json -AsHashtable }
+    # Windows PowerShell's ConvertFrom-Json has a 2 MB limit.
+    Add-Type -AssemblyName System.Web.Extensions
+    $serializer = New-Object Web.Script.Serialization.JavaScriptSerializer
+    $serializer.MaxJsonLength = [int]::MaxValue
+    $serializer.RecursionLimit = 200
+    return $serializer.DeserializeObject($json)
 }

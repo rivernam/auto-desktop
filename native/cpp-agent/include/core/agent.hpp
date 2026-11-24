@@ -24,7 +24,7 @@ public:
     const Clock::time_point expires;
 
 private:
-    enum class State { pending, dispatched, cancelled };
+    enum class State { pending, dispatched, cancelledBeforeDispatch, cancelledAfterDispatch };
     std::atomic<State> state{State::pending};
     bool retired = false; // Read and written only by the request worker.
 };

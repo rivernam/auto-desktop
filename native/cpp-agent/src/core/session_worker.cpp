@@ -17,20 +17,20 @@ SessionWorker::SessionWorker(AdapterFactory factory, std::string session, Allowe
       }) {}
 
 SessionWorker::~SessionWorker() {
-    stop();
-    if (exited_.get_future().wait_for(requestBudget) != std::future_status::ready) {
+    requestStop(Clock::now() + requestBudget);
+    if (exited_.get_future().wait_until(closeDeadline_) != std::future_status::ready) {
         // A provider can prevent even Release from returning. End the process
         // so its resources are reclaimed, without unwinding a live COM apartment.
-        std::fputs("The provider session thread did not shut down.\n", stderr);
+        std::fprintf(stderr, "BACKEND_CLEANUP_FAILED: The %s worker did not clean up.\n", backend_.c_str());
         if (abandon_) abandon_();
         std::quick_exit(1);
     }
     thread_.join();
 }
 
-bool SessionWorker::stopped() {
-    const std::lock_guard<std::mutex> lock(mutex_);
-    return stopped_;
+void SessionWorker::requestStop(Clock::time_point deadline) {
+    closeDeadline_ = std::min(closeDeadline_, deadline);
+    stop();
 }
 
 void SessionWorker::attend(bool on) {
@@ -53,6 +53,7 @@ void SessionWorker::stop() {
 }
 
 Json SessionWorker::handle(Json request) {
+    const std::lock_guard<std::mutex> serial(serial_);
     auto id = requestId(request);
     if (id.is_null()) return failure(nullptr, {"INVALID_REQUEST", "Expected one valid UTF-8 JSON request."});
     const auto* op = operation(request);
@@ -74,23 +75,45 @@ Json SessionWorker::handle(Json request) {
         if (named.get_ref<const std::string&>() != backend_)
             return failure(std::move(id), {"BACKEND_UNAVAILABLE", "This session does not include the requested backend."});
     }
-    auto work = std::make_shared<Work>(std::move(request), Clock::now() + budget_);
-    auto reply = work->reply.get_future();
+    return enqueue(std::move(request), Clock::now() + budget_)();
+}
+
+std::function<Json()> SessionWorker::startQuery(Json request, Clock::time_point deadline) {
+    const std::string_view op = operation(request);
+    if (op != "getCapabilities" && op != "listWindows") throw std::invalid_argument("Expected a backend query.");
+    return enqueue(std::move(request), deadline);
+}
+
+std::function<Json()> SessionWorker::enqueue(Json request, Clock::time_point deadline) {
+    auto work = std::make_shared<Work>(std::move(request), deadline);
     {
         const std::lock_guard<std::mutex> lock(mutex_);
         if (stopped_) {
-            if (std::string_view(op) == "getCapabilities")
-                return {{"id", std::move(id)}, {"ok", true}, {"result", capabilities(backend_.c_str(), false)}};
-            if (isMutation(op) && history_.contains(id.get_ref<const std::string&>()))
-                return failure(std::move(id), {"DUPLICATE_COMMAND", "This command ID has already been dispatched."});
-            return failure(std::move(id), {"BACKEND_UNAVAILABLE", backend_ == "UIA"
-                ? "Restart the retired UI Automation session." : "Restart the retired provider session."});
+            return [this, work] {
+                auto id = requestId(work->request);
+                const std::string_view op = operation(work->request);
+                if (op == "getCapabilities") {
+                    Availability state;
+                    state.available = false;
+                    state.reason = initializationFailed_ ? "Could not start the native session."
+                                                        : "The backend session was retired after a fault.";
+                    return Json{{"id", std::move(id)}, {"ok", true}, {"result", capabilities(backend_.c_str(), state)}};
+                }
+                if (isMutation(op) && history_.contains(id.get_ref<const std::string&>()))
+                    return failure(std::move(id), {"DUPLICATE_COMMAND", "This command ID has already been dispatched."});
+                return failure(std::move(id), {"BACKEND_UNAVAILABLE", "Restart the retired provider session."});
+            };
         }
         pending_ = work;
         if (served_) served_->wake();
     }
     ready_.notify_one();
-    if (reply.wait_until(work->deadline.expires) == std::future_status::ready) return reply.get();
+    return [this, work] { return await(work); };
+}
+
+Json SessionWorker::await(const std::shared_ptr<Work>& work) {
+    if (work->result.wait_until(work->deadline.expires) == std::future_status::ready) return work->result.get();
+    auto id = requestId(work->request);
     const bool dispatched = work->deadline.cancel();
     stop();
     if (dispatched)
@@ -139,15 +162,43 @@ void SessionWorker::run(const AdapterFactory& factory, const std::string& sessio
             continue;
         }
         Json reply;
-        try {
-            if (!agent) {
+        if (Clock::now() >= work->deadline.expires) {
+            stop();
+            work->reply.set_value(failure(requestId(work->request), {"TIMEOUT", "The provider request expired before dispatch."}));
+            continue;
+        }
+        if (!agent) {
+            try {
                 adapter = factory();
+                if (!adapter) throw std::runtime_error("Provider factory returned no adapter.");
                 agent.emplace(*adapter, session, std::move(process), std::move(actions), Clock::now, &history_);
+            } catch (const std::exception&) {
+                initializationFailed_ = true;
+                stop();
+                const auto error = Clock::now() >= work->deadline.expires
+                    ? Error{"TIMEOUT", "The provider request expired during initialization."}
+                    : Error{"BACKEND_UNAVAILABLE", "Could not start the native session."};
+                work->reply.set_value(failure(requestId(work->request), error));
+                continue;
             }
+        }
+        try {
+            if (Clock::now() >= work->deadline.expires)
+                throw Error("TIMEOUT", "The provider request expired during initialization.");
             reply = agent->handle(work->request, work->deadline);
+            if (Clock::now() >= work->deadline.expires) {
+                const bool dispatched = work->deadline.cancel();
+                work->deadline.retire();
+                reply = failure(requestId(work->request), dispatched
+                    ? Error{"ACTION_OUTCOME_UNKNOWN", "The provider did not confirm the action before the deadline."}
+                    : Error{"TIMEOUT", "The provider exceeded the request deadline."});
+            }
+        } catch (const Error& error) {
+            work->deadline.retire();
+            reply = failure(requestId(work->request), error);
         } catch (const std::exception&) {
             work->deadline.retire();
-            reply = failure(requestId(work->request), {"INTERNAL_ERROR", "Could not start the native session."});
+            reply = failure(requestId(work->request), {"INTERNAL_ERROR", "The provider could not complete the request."});
         }
         if (work->deadline.retiring()) stop();
         work->reply.set_value(std::move(reply));

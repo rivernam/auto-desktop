@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +19,7 @@ class MultiBackendAgentTest {
         return JsonNodeFactory.instance.objectNode();
     }
 
-    private static final class Scripted implements TypedDesktopAdapter {
+    private static class Scripted implements TypedDesktopAdapter {
         final String backend;
         final List<String> performed = new ArrayList<>();
         String failure;
@@ -198,6 +199,61 @@ class MultiBackendAgentTest {
         assertEquals("BACKEND_UNAVAILABLE", agent.handle(send("listWindows")).at("/error/code").asText());
     }
 
+    @Test void allNativeQueriesStartBeforeAnyBackendCanFinish() {
+        var entered = new CountDownLatch(3);
+        var sources = new LinkedHashMap<String, Agent.BackendSource>();
+        for (String name : List.of("UIA", "JAB", "Third")) {
+            sources.put(name, new Agent.BackendSource(() -> new JnaDesktopAdapter(() -> new Scripted(name) {
+                @Override public JsonNode listWindows() {
+                    entered.countDown();
+                    try {
+                        if (!entered.await(2, TimeUnit.SECONDS)) throw new AgentException("TIMEOUT", "No overlap.");
+                    } catch (InterruptedException ex) {
+                        throw new AssertionError(ex);
+                    }
+                    return JsonNodeFactory.instance.arrayNode();
+                }
+            }, java.time.Duration.ofMillis(500)), true));
+        }
+        try (Agent three = Agent.multi(sources, Set.of(42), Set.of(), System::nanoTime)) {
+            JsonNode reply = three.handle(send("listWindows"));
+            assertTrue(reply.path("ok").asBoolean(), reply.toString());
+            assertEquals(3, reply.path("backends").size());
+            reply.path("backends").forEach(backend -> assertTrue(backend.path("ok").asBoolean()));
+        }
+    }
+
+    @Test void aWindowListWaitsOneBudgetWhenEveryProviderStalls() {
+        var release = new CountDownLatch(1);
+        var entered = new CountDownLatch(3);
+        var sources = new LinkedHashMap<String, Agent.BackendSource>();
+        for (String name : List.of("UIA", "JAB", "Third")) {
+            sources.put(name, new Agent.BackendSource(() -> new JnaDesktopAdapter(() -> new Scripted(name) {
+                @Override public JsonNode listWindows() {
+                    entered.countDown();
+                    try {
+                        assertTrue(release.await(4, TimeUnit.SECONDS));
+                    } catch (InterruptedException ex) {
+                        throw new AssertionError(ex);
+                    }
+                    return JsonNodeFactory.instance.arrayNode();
+                }
+            }, java.time.Duration.ofMillis(400)), false));
+        }
+        try (Agent three = Agent.multi(sources, Set.of(42), Set.of(), System::nanoTime)) {
+            try {
+                JsonNode response = assertTimeout(java.time.Duration.ofMillis(1050),
+                        () -> three.handle(send("listWindows")));
+                assertEquals(0, entered.getCount());
+                assertEquals("TIMEOUT", response.at("/error/code").asText());
+                response.path("backends").forEach(row -> assertEquals("TIMEOUT", row.at("/error/code").asText()));
+                assertFalse(three.handle(send("getCapabilities")).at("/result/available").asBoolean());
+            } finally {
+                release.countDown();
+            }
+        }
+    }
+
     @Test void snapshotSelectsItsBackendExplicitly() {
         JsonNode byDefault = capture(null);
         assertEquals("UIA", byDefault.path("backend").asText());
@@ -291,6 +347,30 @@ class MultiBackendAgentTest {
         assertTrue(jab().performed.isEmpty());
     }
 
+    @Test void simultaneousDuplicateRequestsReachOnlyOneProvider() throws Exception {
+        JsonNode first = capture("UIA");
+        JsonNode second = capture("JAB");
+        var start = new CountDownLatch(1);
+        var callers = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var uia = callers.submit(() -> {
+                start.await();
+                return agent.handle(object().put("id", "same").put("op", "invoke").put("ref", control(first)));
+            });
+            var jab = callers.submit(() -> {
+                start.await();
+                return agent.handle(object().put("id", "same").put("op", "invoke").put("ref", control(second)));
+            });
+            start.countDown();
+            List<JsonNode> replies = List.of(uia.get(5, TimeUnit.SECONDS), jab.get(5, TimeUnit.SECONDS));
+            assertEquals(1, replies.stream().filter(reply -> reply.path("ok").asBoolean()).count());
+            assertEquals(1, replies.stream().filter(reply -> "DUPLICATE_COMMAND".equals(reply.at("/error/code").asText())).count());
+            assertEquals(1, uia().performed.size() + jab().performed.size());
+        } finally {
+            callers.shutdownNow();
+        }
+    }
+
     @Test void aFaultedBackendLeavesTheOtherAndItsReferencesAlone() {
         JsonNode first = capture("UIA");
         JsonNode bridged = capture("JAB");
@@ -321,6 +401,8 @@ class MultiBackendAgentTest {
         JsonNode first = capture("UIA");
         JsonNode bridged = capture("JAB");
         Scripted retired = uia();
+        ObjectNode command = send("invoke").put("ref", control(first));
+        ok(command);
         retired.failure = "BACKEND_UNAVAILABLE";
         fails("BACKEND_UNAVAILABLE", send("snapshot").put("windowId", "100"));
         assertEquals(1, uiaSessions.size(), "A retired adapter is kept until its native session is released.");
@@ -330,6 +412,7 @@ class MultiBackendAgentTest {
         JsonNode stale = capture("UIA");
         assertEquals(2, uiaSessions.size());
         assertTrue(retired.closed);
+        fails("DUPLICATE_COMMAND", command);
         fails("STALE_REFERENCE", send("invoke").put("ref", control(first)));
         ok(send("invoke").put("ref", control(stale)));
         assertEquals(List.of("invoke:UIA-control-1"), uia().performed);
@@ -340,6 +423,8 @@ class MultiBackendAgentTest {
     @Test void aReferenceOfAReplacedAdapterNeverReachesItsReplacement() {
         JsonNode first = capture("UIA");
         uia().finished = true;
+        fails("STALE_REFERENCE", send("findElement").put("snapshotId", first.path("snapshotId").asText())
+                .set("locator", object().put("role", "Button")));
         fails("STALE_REFERENCE", send("invoke").put("ref", control(first)));
         assertEquals(2, uiaSessions.size());
         assertTrue(uia().performed.isEmpty());

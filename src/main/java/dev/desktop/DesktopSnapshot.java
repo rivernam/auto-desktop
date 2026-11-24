@@ -42,6 +42,9 @@ final class DesktopSnapshot {
             // Optional diagnostics. They describe the provider and take no part in lookup.
             copyText(object, properties, "nativeRole");
             copyText(object, properties, "partialReason");
+            String setValueSupport = row.path("setValueSupport").asText();
+            if (setValueSupport.equals("unverified") || setValueSupport.equals("unsupported"))
+                properties.put("setValueSupport", setValueSupport);
             if (row.has("offscreen")) {
                 if (!row.get("offscreen").isBoolean()) throw malformed();
                 properties.set("offscreen", row.get("offscreen"));

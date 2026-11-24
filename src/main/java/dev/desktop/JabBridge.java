@@ -26,6 +26,7 @@ import java.util.Set;
 final class JabBridge extends JabApi {
     /** Read by the composition root. The operator names the library instead of the default locations. */
     static final String LIBRARY_PROPERTY = "desktop.jab.dll";
+    private static final boolean TRACE = "1".equals(System.getenv("AUTO_DESKTOP_NATIVE_TRACE"));
     static final int NAME_CHARS = 1024;
     static final int SHORT_CHARS = 256;
     static final int MAX_ACTIONS = 256;
@@ -295,7 +296,7 @@ final class JabBridge extends JabApi {
 
     static boolean detachWouldBlock() { return detachWouldBlock; }
 
-    /** Below the four seconds the library waits for a reply, so only answered calls pass. */
+    /** Conservative latency guard. Timing alone cannot establish that a reply arrived. */
     private static final long ANSWER_NANOS = 3_500_000_000L;
 
     private static void answered(long started) {
@@ -425,9 +426,13 @@ final class JabBridge extends JabApi {
         actionsToDo.setInt(0, 1);
         actionsToDo.write(4, action.toCharArray(), 0, action.length());
         intOut.setValue(0);
-        thread();
-        beforeMutation.run();
-        return call(11, vm, context, actionsToDo, intOut) != 0;
+        int result = mutation(11, "invoke", beforeMutation, vm, context, actionsToDo, intOut);
+        // OpenJDK copies the failure index only after a reply. A one-action success writes -1.
+        return invokeConfirmed(result, intOut.getValue());
+    }
+
+    static boolean invokeConfirmed(int result, int failureIndex) {
+        return result == 1 && failureIndex == -1;
     }
 
     boolean setText(int vm, long context, String value, Runnable beforeMutation) {
@@ -435,10 +440,22 @@ final class JabBridge extends JabApi {
         try (Memory text = new Memory((value.length() + 1L) * 2)) {
             text.write(0, value.toCharArray(), 0, value.length());
             text.setChar(value.length() * 2L, '\0');
-            thread();
-            beforeMutation.run();
-            return call(12, vm, context, text) != 0;
+            return mutation(12, "setValue", beforeMutation, vm, context, text) == 1;
         }
+    }
+
+    private int mutation(int export, String operation, Runnable beforeMutation, Object... arguments) {
+        thread();
+        beforeMutation.run();
+        long utc = TRACE ? System.currentTimeMillis() : 0;
+        long start = System.nanoTime();
+        int result = calls[export].invokeInt(arguments);
+        boolean overdue = System.nanoTime() - start >= ANSWER_NANOS;
+        if (TRACE) System.err.println("jabNative op=" + operation + " startedEpochMs=" + utc
+                + " finishedEpochMs=" + System.currentTimeMillis() + " raw=" + result
+                + (export == 11 ? " failureIndex=" + intOut.getValue() : ""));
+        if (overdue) throw new Silent();
+        return result;
     }
 
     private static String text(Memory memory, long offset, int chars) {

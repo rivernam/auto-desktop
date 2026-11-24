@@ -21,8 +21,9 @@ import java.util.function.Supplier;
  * UI Automation, or the message window of Java Access Bridge.
  */
 public final class JnaDesktopAdapter implements TypedDesktopAdapter {
-    // Set when a provider thread outlived close() while a library that blocks at unload was in use.
-    private static volatile boolean abandonedNativeThread;
+    static final Duration REQUEST_BUDGET = Duration.ofSeconds(10);
+    // Normal process shutdown is unsafe with an abandoned owner thread or uncertain JAB cleanup.
+    private static volatile boolean nativeExitRequired;
     private final Supplier<? extends TypedDesktopAdapter> factory;
     private final boolean windows;
     private final String backend;
@@ -39,6 +40,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
     private String startFailure;
     // Guarded by this. Set by close(), which ends the adapter for good.
     private boolean closed;
+    private volatile boolean cleanupFailure;
     // True while another backend of the same session runs a request.
     private volatile boolean attending;
     // The session once it exists, for the one call that any thread may make on it.
@@ -48,15 +50,16 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         // Guarded by the adapter monitor, including the claim by the apartment thread.
         boolean started;
         boolean cancelled;
+        volatile boolean dispatched;
     }
 
     public JnaDesktopAdapter() {
-        this(JnaUiaSession::new, Duration.ofSeconds(10), onWindows(), "UIA", "Windows UI Automation", 0);
+        this(JnaUiaSession::new, REQUEST_BUDGET, onWindows(), "UIA", "Windows UI Automation", 0);
     }
 
     /** Java Access Bridge needs its window messages delivered between requests as well. */
     static JnaDesktopAdapter javaAccessBridge() {
-        return new JnaDesktopAdapter(JabSession::new, Duration.ofSeconds(10), onWindows(), "JAB",
+        return new JnaDesktopAdapter(JabSession::new, REQUEST_BUDGET, onWindows(), "JAB",
                 "Java Access Bridge", 250);
     }
 
@@ -73,7 +76,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).startsWith("windows");
     }
 
-    static boolean abandonedNativeThread() { return abandonedNativeThread; }
+    static boolean nativeExitRequired() { return nativeExitRequired; }
 
     private JnaDesktopAdapter(Supplier<? extends TypedDesktopAdapter> factory, Duration timeout, boolean windows,
                               String backend, String provider, long idleMillis) {
@@ -101,7 +104,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
                     Thread.sleep(idleMillis);
                     synchronized (this) {
                         if (retired) return;
-                        if (session == null || apartment.getActiveCount() > 0 || !apartment.getQueue().isEmpty())
+                        if (waker == null || apartment.getActiveCount() > 0 || !apartment.getQueue().isEmpty())
                             continue;
                         apartment.submit(() -> {
                             if (session instanceof NativeSession idle) idle.idle();
@@ -154,6 +157,19 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         return dispatch(TypedDesktopAdapter::listWindows);
     }
 
+    @Override public Supplier<JsonNode> startQuery(boolean windows, long deadline) {
+        long now = System.nanoTime();
+        long remaining = Math.min(deadline - now, timeoutNanos);
+        if (remaining <= 0) return () -> { throw lost(false, true); };
+        try {
+            return submit((nativeSession, beforeMutation) -> windows
+                    ? nativeSession.listWindows() : nativeSession.capabilities(),
+                    now + remaining);
+        } catch (AgentException unavailable) {
+            return () -> { throw unavailable; };
+        }
+    }
+
     @Override public JsonNode snapshot(String windowId, int maxDepth, int maxElements) {
         return dispatch(nativeSession -> nativeSession.snapshot(windowId, maxDepth, maxElements));
     }
@@ -167,21 +183,33 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
     }
 
     @Override public JsonNode perform(DesktopAction action, String key, int processId, String value) {
+        return perform(action, key, processId, value, () -> {});
+    }
+
+    @Override public JsonNode perform(DesktopAction action, String key, int processId, String value, Runnable validate) {
         return dispatch((nativeSession, beforeMutation) -> {
+            Runnable validatedDispatch = () -> {
+                validate.run();
+                beforeMutation.run();
+            };
             if (nativeSession instanceof NativeSession aware) {
-                return aware.perform(action, key, processId, value, beforeMutation);
+                return aware.perform(action, key, processId, value, validatedDispatch);
             }
-            beforeMutation.run();
+            validatedDispatch.run();
             return nativeSession.perform(action, key, processId, value);
-        }, true);
+        });
     }
 
     private JsonNode dispatch(Function<TypedDesktopAdapter, JsonNode> operation) {
-        return dispatch((nativeSession, beforeMutation) -> operation.apply(nativeSession), false);
+        return dispatch((nativeSession, beforeMutation) -> operation.apply(nativeSession));
     }
 
-    private JsonNode dispatch(BiFunction<TypedDesktopAdapter, Runnable, JsonNode> operation, boolean mutation) {
-        long deadline = System.nanoTime() + timeoutNanos;
+    private JsonNode dispatch(BiFunction<TypedDesktopAdapter, Runnable, JsonNode> operation) {
+        return submit(operation, System.nanoTime() + timeoutNanos).get();
+    }
+
+    private Supplier<JsonNode> submit(BiFunction<TypedDesktopAdapter, Runnable, JsonNode> operation,
+                                      long deadline) {
         Request request = new Request();
         Future<JsonNode> reply;
         synchronized (this) {
@@ -195,38 +223,52 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
                     } catch (AgentException reported) {
                         // The provider explained why it cannot start, for example a missing library.
                         if ("BACKEND_UNAVAILABLE".equals(reported.code())) startFailure(reported.getMessage());
+                        checkDeadline(deadline, request);
                         retire();
                         throw reported;
                     } catch (RuntimeException | LinkageError e) {
+                        String reason = "Could not initialize " + provider + " through JNA.";
+                        startFailure(reason);
+                        checkDeadline(deadline, request);
                         retire();
-                        throw unavailable("Could not initialize " + provider + " through JNA.");
+                        throw unavailable(reason);
                     }
                     if (session instanceof NativeSession created) waker = created;
                 }
                 // Initialization or an earlier native call may have consumed the budget.
-                checkReady(deadline, mutation);
+                checkReady(deadline, request);
                 try {
                     // Preflight may itself enter COM. Recheck just before Invoke/SetValue.
-                    return operation.apply(session, () -> checkReady(deadline, mutation));
+                    JsonNode result = operation.apply(session, () -> beginMutation(deadline, request));
+                    checkDeadline(deadline, request);
+                    return result;
                 } catch (AgentException reported) {
-                    if (!"TIMEOUT".equals(reported.code())) throw reported;
+                    if (!"TIMEOUT".equals(reported.code())) {
+                        checkDeadline(deadline, request);
+                        throw reported;
+                    }
                     retire();
-                    throw lost(mutation, true);
+                    throw lost(request.dispatched, true);
                 } catch (RuntimeException | LinkageError e) {
+                    boolean timedOut = deadline - System.nanoTime() <= 0;
                     retire();
-                    throw lost(mutation, false);
+                    throw lost(request.dispatched, timedOut);
                 }
             });
         }
         // A session that is serving its windows for another backend turns to this request now.
         wake();
+        return () -> await(request, reply, deadline);
+    }
+
+    private JsonNode await(Request request, Future<JsonNode> reply, long deadline) {
         try {
             return reply.get(deadline - System.nanoTime(), TimeUnit.NANOSECONDS);
         } catch (TimeoutException e) {
-            throw stopWaiting(request, reply, mutation, true);
+            throw stopWaiting(request, reply, true);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw stopWaiting(request, reply, mutation, false);
+            throw stopWaiting(request, reply, false);
         } catch (CancellationException e) {
             // Only work removed from the queue is cancelled.
             throw unavailable("The JNA desktop session closed before dispatch.");
@@ -234,7 +276,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
             Throwable cause = e.getCause();
             if (cause instanceof AgentException reported) throw reported;
             retire();
-            throw lost(mutation, false);
+            throw lost(request.dispatched, false);
         }
     }
 
@@ -245,11 +287,10 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         request.started = true;
     }
 
-    private synchronized AgentException stopWaiting(Request request, Future<?> reply,
-                                                    boolean mutation, boolean timedOut) {
+    private synchronized AgentException stopWaiting(Request request, Future<?> reply, boolean timedOut) {
         if (request.started) {
             retire();
-            return lost(mutation, timedOut);
+            return lost(request.dispatched, timedOut);
         }
         // The request has not reached initialization or COM. Cancelling it need not retire
         // the unrelated request currently on the apartment thread.
@@ -264,11 +305,20 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         if (retired) throw unavailable(startFailure != null ? startFailure : "The JNA desktop session is closed.");
     }
 
-    private synchronized void checkReady(long deadline, boolean mutation) {
+    private synchronized void beginMutation(long deadline, Request request) {
+        checkReady(deadline, request);
+        request.dispatched = true;
+    }
+
+    private synchronized void checkReady(long deadline, Request request) {
         checkOpen();
+        checkDeadline(deadline, request);
+    }
+
+    private synchronized void checkDeadline(long deadline, Request request) {
         if (deadline - System.nanoTime() <= 0) {
             retire();
-            throw lost(mutation, true);
+            throw lost(request.dispatched, true);
         }
     }
 
@@ -297,8 +347,17 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
             apartment.submit(() -> {
                 waker = null;
                 if (session != null) {
-                    try { session.close(); }
-                    finally { session = null; }
+                    boolean completed = false;
+                    try {
+                        session.close();
+                        completed = true;
+                    } finally {
+                        if (!completed) {
+                            cleanupFailure = true;
+                            if ("JAB".equals(backend)) nativeExitRequired = true;
+                        }
+                        session = null;
+                    }
                 }
             });
         }
@@ -308,7 +367,11 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
 
     /** A provider that cannot start is not retried. Its reason stays in the capabilities. */
     @Override public synchronized boolean finished() {
-        return retired && !closed && startFailure == null && apartment.isTerminated();
+        return retired && !closed && startFailure == null && !cleanupFailure && apartment.isTerminated();
+    }
+
+    @Override public synchronized boolean retired() {
+        return retired;
     }
 
     @Override public void close() {
@@ -318,9 +381,19 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         try {
             // EOF may follow a timeout. Give returning COM calls a bounded cleanup window.
             boolean finished = apartment.awaitTermination(timeoutNanos, TimeUnit.NANOSECONDS);
-            if (!finished && idleMillis > 0) abandonedNativeThread = true;
+            if (!finished) {
+                nativeExitRequired = true;
+                throw cleanupFailed();
+            }
+            if (cleanupFailure) throw cleanupFailed();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            if (!apartment.isTerminated()) nativeExitRequired = true;
+            throw cleanupFailed();
         }
+    }
+
+    private AgentException cleanupFailed() {
+        return new AgentException("BACKEND_CLEANUP_FAILED", "The " + backend + " worker did not clean up.");
     }
 }

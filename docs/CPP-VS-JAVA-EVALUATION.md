@@ -108,6 +108,8 @@ XP의 UIA 가용성은 설치 이미지의 업데이트와 실제 제공자가 �
 
 ## F. 아키텍처 선택
 
+이 절은 WPF 기반 초기 비교다. 현 개발 방침은 Java와 C++를 독립 제품 후보로 유지하고 레거시 Agent 기능 완성 후 운영 조건에서 비교하는 것이다. [Multi-Backend 안정화](MULTI-BACKEND-STABILIZATION.md)
+
 | 후보 | 장점 | 비용과 판단 |
 |---|---|---|
 | Java Core + Java/JNA | 공유 정책·계약·테스트와 기존 Windows 백엔드 활용. 이미 JVM 안에서 UIA COM을 직접 사용 | JDK 배포, JVM 시작·상주 비용, COM ABI 매핑이 있다. 운영 기본으로 사용할 수 있는 검증 범위가 가장 넓다. |

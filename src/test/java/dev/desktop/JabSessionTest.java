@@ -183,6 +183,8 @@ class JabSessionTest {
         assertEquals(30, button.at("/bounds/width").asInt());
         assertEquals("Window", row(snapshot, "Equipment", "frame").get("role").asText());
         assertEquals("[\"setValue\"]", row(snapshot, "Lot", "text").get("actions").toString());
+        assertEquals("unverified", row(snapshot, "Lot", "text").path("setValueSupport").asText());
+        assertEquals("unsupported", row(snapshot, "Recipe", "text").path("setValueSupport").asText());
         assertEquals("[]", row(snapshot, "Recipe", "text").get("actions").toString(), "Read-only text offers no setValue.");
         frame.add(new Node("Gauge", "dial"));
         assertEquals("Custom", row(snapshot(), "Gauge", "dial").get("role").asText());

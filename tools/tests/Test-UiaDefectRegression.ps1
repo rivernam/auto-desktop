@@ -6,12 +6,8 @@ param(
     [switch]$RequireBothBackends
 )
 $ErrorActionPreference = 'Stop'
-# Windows PowerShell 5.1 reads BOM-less UTF-8 as ANSI and ConvertFrom-Json stops at 2 MB.
-Add-Type -AssemblyName System.Web.Extensions
-$serializer = New-Object Web.Script.Serialization.JavaScriptSerializer
-$serializer.MaxJsonLength = [int]::MaxValue
-$serializer.RecursionLimit = 200
-$report = $serializer.DeserializeObject([IO.File]::ReadAllText((Resolve-Path -LiteralPath $ReportPath).Path))
+. (Join-Path $PSScriptRoot '../UiaTest.Common.ps1')
+$report = Read-UiaReport $ReportPath
 $ran = @($report.results | Where-Object { $_.checks })
 if (!$ran.Count) { throw 'The report contains no executed framework.' }
 

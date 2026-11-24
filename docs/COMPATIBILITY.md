@@ -28,8 +28,8 @@ Swing과 AWT 설비 프로그램에는 Agent의 실행 환경과 별개로 **대
 | 대상 JVM의 브리지 | 대상 JVM이 `com.sun.java.accessibility.AccessBridge`를 보조 기술로 로드해야 한다. JVM 옵션, 사용자의 `.accessibility.properties`, `jabswitch -enable` 중 하나로 켠다. Agent는 켜 주지 않는다. |
 | Agent 쪽 DLL | Agent 프로세스와 같은 비트수의 `WindowsAccessBridge-64.dll` 또는 `-32.dll`. 대상 JVM과 같은 버전일 필요는 없었다(JDK 17의 DLL로 Java 23 JVM에 접근). |
 | 같은 세션 | Agent와 대상 JVM이 같은 사용자의 같은 대화형 데스크톱에 있어야 한다. 브리지는 창 메시지와 공유 메모리로 통신한다. |
-| 검증된 조합 | Windows 11 x64, Agent x64(Java 17 JNA, C++), 대상 JVM Oracle JDK 17.0.10 x64와 Eclipse Adoptium 23.0.2 x64 |
-| 미검증 조합 | 대상 JVM Java 6·7·8·11·21, 32비트 JVM, 32비트 Agent와 `WindowsAccessBridge-32.dll`, 구형 `WindowsAccessBridge.dll` ABI, Windows 7/XP. 이 PC에 해당 런타임이 없어 실행하지 못했다. |
+| 검증된 조합 | Windows 11 x64, Agent x64(Java JNA와 C++). 이전 전체 JAB 기능에서 Oracle 17.0.10과 Adoptium 23.0.2, 이번 Multi-Backend 모달·장애 시험에서 Adoptium 21.0.11 Swing과 Oracle 11.0.15 AWT를 확인했다. [안정화 시험 범위](MULTI-BACKEND-STABILIZATION.md) |
+| 미검증 조합 | 대상 JVM Java 6·7·8, 32비트 JVM, 32비트 Agent와 `WindowsAccessBridge-32.dll`, 구형 `WindowsAccessBridge.dll` ABI, Windows 7/XP. |
 
 Java SE 7 Update 6 이전의 JRE는 브리지(Java Access Bridge 2.0.x)를 따로 설치해야 했고, 그 이후에는 JRE에 들어 있다. 구형 설비에서는 설치된 JRE의 `bin`에 `JavaAccessBridge*.dll`과 `WindowsAccessBridge*.dll`이 있는지, 비트수가 무엇인지부터 확인한다. 32비트 JVM만 있는 설비에서 64비트 Agent가 접근할 수 있는지는 실제 조합으로 확인해야 한다. [Java Access Bridge Adapter의 검증 범위와 조건](JAVA-ACCESS-BRIDGE.md) · [Oracle Java Access Bridge 안내](https://docs.oracle.com/en/java/javase/17/access/java-access-bridge-overview.html)
 

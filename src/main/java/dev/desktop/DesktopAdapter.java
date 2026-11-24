@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.Objects;
+import java.util.function.Supplier;
 import dev.desktop.protocol.ReadOnlyDesktopAdapter;
 
 /**
@@ -19,6 +20,14 @@ public interface DesktopAdapter extends ReadOnlyDesktopAdapter<JsonNode>, AutoCl
 
     default JsonNode listWindows() {
         return call(request("listWindows"));
+    }
+
+    /**
+     * Start a multi-backend read. Blocking adapters must enqueue on their own worker immediately and
+     * honour the shared monotonic deadline. The default is for immediate, in-memory adapters.
+     */
+    default Supplier<JsonNode> startQuery(boolean windows, long deadline) {
+        return windows ? this::listWindows : this::capabilities;
     }
 
     /** Capture a bounded tree. Returned element keys identify objects in this session. */
@@ -58,12 +67,30 @@ public interface DesktopAdapter extends ReadOnlyDesktopAdapter<JsonNode>, AutoCl
         return false;
     }
 
+    /** True while the adapter no longer serves requests, including during native cleanup. */
+    default boolean retired() {
+        return false;
+    }
+
     /**
      * While on, another backend of the same session is inside a request. An adapter whose provider
      * owns windows in this process answers their messages meanwhile, so that request never waits
      * for this adapter's thread.
      */
     default void attend(boolean on) {}
+
+    /** Rechecks the policy before dispatch. Native backends can defer this until their preflight ends. */
+    default JsonNode perform(DesktopAction action, String key, int processId, String value, Runnable validate) {
+        validate.run();
+        try {
+            return perform(action, key, processId, value);
+        } catch (AgentException ex) {
+            // Older adapters cannot distinguish a transport timeout from a provider call in flight.
+            if ("TIMEOUT".equals(ex.code()))
+                throw new AgentException("ACTION_OUTCOME_UNKNOWN", "The action timed out. Inspect the target before retrying.");
+            throw ex;
+        }
+    }
 
     /** Compatibility entry point for existing JSON worker adapters. */
     JsonNode call(ObjectNode request);

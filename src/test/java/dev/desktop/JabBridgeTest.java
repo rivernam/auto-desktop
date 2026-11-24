@@ -15,6 +15,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Library selection and start-up failures of the Java Access Bridge backend. No JVM is contacted. */
 class JabBridgeTest {
+    @Test void invokeNeedsTrueAndTheBridgeSuccessIndex() {
+        assertTrue(JabBridge.invokeConfirmed(1, -1));
+        assertFalse(JabBridge.invokeConfirmed(1, 0), "A return without an updated failure index cannot confirm Invoke.");
+        assertFalse(JabBridge.invokeConfirmed(0, -1));
+        assertFalse(JabBridge.invokeConfirmed(17, -1));
+    }
+
     @Test void anExplicitLibraryIsTheOnlyCandidate() {
         Path explicit = Path.of("C:\\equipment\\jre\\bin\\WindowsAccessBridge-64.dll").toAbsolutePath();
         assertEquals(List.of(explicit), JabBridge.candidates(explicit.toString(), "C:\\agent-jre", "C:\\Windows\\System32", true));

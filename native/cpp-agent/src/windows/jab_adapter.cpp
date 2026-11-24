@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <atomic>
 #include <charconv>
+#include <cstdio>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -385,23 +386,54 @@ public:
         std::copy(action.begin(), action.end(), todo_->actions[0].name);
         JInt failure = 0;
         before();
-        return timed([&] { return doActions_(vm, context, todo_.get(), &failure); }) != FALSE;
+        const BOOL result = mutation("invoke", [&] { return doActions_(vm, context, todo_.get(), &failure); }, &failure);
+        // A one-action success writes -1. An untouched out parameter cannot confirm dispatch.
+        return result == TRUE && failure == -1;
     }
 
     bool setText(long vm, JObject context, const std::wstring& value, const BeforeMutation& before) {
         if (value.size() > maxText || value.find(L'\0') != std::wstring::npos) return false;
         before();
-        return timed([&] { return setText_(vm, context, value.c_str()); }) != FALSE;
+        return mutation("setValue", [&] { return setText_(vm, context, value.c_str()); }) == TRUE;
     }
 
 private:
     template<class Call>
+    BOOL mutation(const char* op, Call&& call, const JInt* failure = nullptr) {
+        static const bool trace = [] {
+            wchar_t value[2]{};
+            return GetEnvironmentVariableW(L"AUTO_DESKTOP_NATIVE_TRACE", value, 2) == 1 && value[0] == L'1';
+        }();
+        if (!trace) return timed(std::forward<Call>(call));
+        const auto epochMs = [] {
+            return std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+        };
+        const auto started = epochMs();
+        const auto ticks = GetTickCount64();
+        const BOOL result = call();
+        const auto elapsed = GetTickCount64() - ticks;
+        if (failure)
+            std::fprintf(stderr, "jabNative op=%s startedEpochMs=%lld finishedEpochMs=%lld raw=%d failureIndex=%d\n",
+                         op, started, epochMs(), result, *failure);
+        else
+            std::fprintf(stderr, "jabNative op=%s startedEpochMs=%lld finishedEpochMs=%lld raw=%d\n",
+                         op, started, epochMs(), result);
+        checkAnswered(elapsed);
+        return result;
+    }
+
+    template<class Call>
     auto timed(Call&& call) {
         const auto started = GetTickCount64();
         auto result = call();
-        // Below the four seconds the library waits for a reply, so only answered calls pass.
-        if (GetTickCount64() - started >= 3500) throw Silent{};
+        checkAnswered(GetTickCount64() - started);
         return result;
+    }
+
+    static void checkAnswered(ULONGLONG elapsed) {
+        // Conservative latency guard. Timing alone cannot establish that a reply arrived.
+        if (elapsed >= 3500) throw Silent{};
     }
 
     template<class Function>

@@ -37,6 +37,7 @@ private:
     void start(Slot& slot);
     SessionWorker& live(Slot& slot);
     Json call(Slot& target, Json request);
+    std::vector<Json> queries(const Json& id, const char* op);
     Slot* owner(const std::string& token);
     Slot* route(const Json& request, std::string_view op, const Json& id);
     Json capabilities(const Json& id);
@@ -47,6 +48,7 @@ private:
     std::set<Action> actions_;
     const std::chrono::milliseconds budget_;
     std::function<void()> abandon_;
+    std::mutex serial_;
     CommandHistory history_;
     std::vector<Slot> slots_;
 };

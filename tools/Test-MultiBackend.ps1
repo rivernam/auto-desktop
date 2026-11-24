@@ -4,8 +4,8 @@
 [CmdletBinding()]
 param(
     [ValidateSet('Java', 'Cpp', 'Both')][string]$Agent = 'Both',
-    [ValidateSet('Functional', 'Performance', 'Soak')][string]$Mode = 'Functional',
-    [ValidateSet('AwtMixed', 'Safety', 'JabFault', 'UiaFault', 'Environment', 'TargetRestart')]
+    [ValidateSet('Functional', 'Performance', 'Resources', 'Soak')][string]$Mode = 'Functional',
+    [ValidateSet('AwtMixed', 'Safety', 'JabFault', 'UiaFault', 'Environment', 'TargetRestart', 'IsolatedJab', 'UiaContexts', 'Metadata')]
     [string[]]$Scenario = @('AwtMixed', 'Safety', 'JabFault', 'UiaFault', 'Environment', 'TargetRestart'),
     [string]$Jar = 'target/desktop-agent.jar',
     [string]$CppAgent = 'target/cpp-agent/Release/cpp-agent.exe',
@@ -41,6 +41,7 @@ $JvmOptions = ConvertTo-UiaJvmOptions $JvmOptions
 $implementations = if ($Agent -eq 'Both') { @('Java', 'Cpp') } else { @($Agent) }
 $bridgeProperty = '-Djavax.accessibility.assistive_technologies=com.sun.java.accessibility.AccessBridge'
 
+if (!('MbProcessControl' -as [type])) {
 Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
@@ -55,6 +56,9 @@ public static class MbProcessControl {
     [DllImport("user32.dll")] static extern bool IsIconic(IntPtr window);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr window);
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+    [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr window, int command);
+    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr window);
     [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);
 
     // "Default" while the user's desktop receives input. Null on the lock screen or a secure desktop.
@@ -78,17 +82,35 @@ public static class MbProcessControl {
         if (IsIconic(window)) return "minimized";
         return GetForegroundWindow() == window ? "foreground" : "background";
     }
+
+    public static uint ForegroundProcess() {
+        uint process;
+        GetWindowThreadProcessId(GetForegroundWindow(), out process);
+        return process;
+    }
 }
 '@
+}
 $hostProbe = Initialize-UiaHostProbe
 
 # What the desktop looked like: whether somebody was using the PC, whether the user's desktop
 # received input at all, and how each fixture window was shown. A result is read against this.
 function Get-MbHost {
-    $state = [ordered]@{ utc = [DateTime]::UtcNow.ToString('o'); inputDesktop = [MbProcessControl]::InputDesktop() }
-    if ($hostProbe) { try { $state.userIdleMs = [Math]::Round([UiaHostProbe]::UserIdleMs()) } catch {} }
+    $now = [DateTimeOffset]::UtcNow
+    $desktop = [MbProcessControl]::InputDesktop()
+    $state = [ordered]@{ utc = $now.ToString('o'); inputDesktop = $desktop; inputDesktopAccessible = [bool]$desktop }
+    if ($hostProbe) {
+        $signals = Get-UiaHostSample 0 0 @()
+        foreach ($key in 'userIdleMs','cpuBusyMs','cpuIdleMs','processorPerformanceRaw','processorPerformanceBase','acPower','batteryPercent') {
+            if ($signals.Contains($key)) { $state[$key] = $signals[$key] }
+        }
+    }
+    if ($null -ne $state.userIdleMs) { $state.lastInputEpochMs = $now.ToUnixTimeMilliseconds() - $state.userIdleMs }
+    $foreground = [MbProcessControl]::ForegroundProcess()
+    $state.foreground = if ($foreground) { 'external' } else { 'unavailable' }
     $state.fixtures = @(foreach ($target in $targets.ToArray()) {
         if (!$target.process) { continue }
+        if ($target.process.Id -eq $foreground) { $state.foreground = $target.kind }
         $window = 0
         try { $target.process.Refresh(); if (!$target.process.HasExited) { $window = $target.process.MainWindowHandle.ToInt64() } } catch {}
         [ordered]@{ kind = $target.kind; processId = $target.process.Id; window = [MbProcessControl]::WindowState($window) }
@@ -112,6 +134,7 @@ function Start-MbTarget([string]$kind, [bool]$bridge = $true, [string]$java = $f
     } else {
         $start.FileName = $java
         $property = if ($bridge) { "$bridgeProperty " }
+        if ($Mode -eq 'Functional') { $property += '-Ddesktop.fixture.events=true ' }
         $start.Arguments = "$property-cp ""$classes"" FrameworkFixture $($kind.ToLowerInvariant()) ""$directory"" ""$title"""
     }
     $start.UseShellExecute = $false
@@ -158,7 +181,7 @@ function Read-MbStable($target, [string]$file, [int]$timeoutMs = 3000) {
 
 function Wait-Mb($target, [string]$file, [string]$value, [int]$timeoutMs = 8000) {
     if (!(Wait-JabFile $target.stateDir $file $value $timeoutMs)) {
-        throw "The $($target.kind) fixture did not report $file=$value (it holds '$(Read-Mb $target $file)')."
+        throw "The $($target.kind) fixture did not report the expected $file state."
     }
 }
 
@@ -188,9 +211,13 @@ function Start-MbAgent([string]$implementation, [string]$backendMode, [int[]]$pi
     $start.RedirectStandardOutput = $true
     $start.RedirectStandardError = $true
     $start.StandardOutputEncoding = [Text.Encoding]::UTF8
+    $trace = $Mode -eq 'Functional'
+    if ($trace) { $start.EnvironmentVariables['AUTO_DESKTOP_NATIVE_TRACE'] = '1' }
     $clock = [Diagnostics.Stopwatch]::StartNew()
-    $cli = Start-Cli $start
+    $cli = Start-Cli $start -CaptureStderr:$trace
     return @{ cli = $cli; implementation = $implementation; mode = $backendMode; clock = $clock; processId = $cli.Id
+        stderr = $(if ($trace) { $cli.StandardError.ReadToEndAsync() })
+        trace = New-Object 'Collections.Generic.List[string]'
         requests = New-Object 'Collections.Generic.List[object]' }
 }
 
@@ -205,16 +232,62 @@ function Stop-MbAgent($run, [int]$timeoutMs = 30000) {
         $result.exitMs = [Math]::Round($clock.Elapsed.TotalMilliseconds, 1)
         if ($result.exited) { $result.exitCode = $run.cli.ExitCode }
         else { $run.cli.Kill(); [void]$run.cli.WaitForExit(5000); $result.killed = $true }
+        if ($run.stderr -and $run.stderr.Wait(1000)) {
+            $stderr = $run.stderr.Result
+            if ($run.auditSentinel) { $result.auditSentinelSeen = $stderr.Contains($run.auditSentinel) }
+            foreach ($line in ($stderr -split '\r?\n')) {
+                if ($line -match '^(jabNative |BACKEND_CLEANUP_FAILED: )') { $run.trace.Add($line) }
+            }
+        }
     } finally { $run.cli.Dispose(); $run.cli = $null }
     return $result
 }
 
 function Send-Mb($run, $command, [string]$expected = 'OK', [int]$timeoutMs = 30000, [string]$id = ([guid]::NewGuid().ToString())) {
-    $response = Send-UiaRequest $run.cli $command $id $timeoutMs
+    $entry = [ordered]@{ op = $command.op; backend = $command.backend }
+    if ($Mode -eq 'Functional') {
+        $entry.id = $id
+        $entry.ref = $command.ref
+        $entry.startedEpochMs = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+        if ($command.op -in 'invoke','setValue') { $entry.hostBefore = Get-MbHost }
+    }
+    $run.requests.Add($entry)
+    try { $response = Send-UiaRequest $run.cli $command $id $timeoutMs }
+    catch { $entry.driverFailure = $_.Exception.Message; throw }
     $code = if ($response.reply.ok) { 'OK' } else { $response.reply.error.code }
-    $run.requests.Add([ordered]@{ op = $command.op; backend = $command.backend; code = $code; ms = [Math]::Round($response.ms, 1) })
+    $entry.code = $code
+    $entry.ms = [Math]::Round($response.ms, 1)
+    if ($Mode -eq 'Functional') {
+        $entry.finishedEpochMs = ([DateTimeOffset]$response.endUtc).ToUnixTimeMilliseconds()
+        if ($response.reply.backends) { $entry.backends = $response.reply.backends }
+        if ($command.op -eq 'snapshot' -and $response.reply.ok) {
+            $entry.snapshot = @{ elements = @($response.reply.result.elements).Count; truncated = $response.reply.result.truncated
+                edits = @($response.reply.result.elements | Where-Object role -eq 'Edit').Count }
+        }
+    }
     if ($expected -and $code -cne $expected) { throw "$($command.op) expected $expected, received $code." }
     return @{ code = $code; ms = $response.ms; reply = $response.reply; result = $response.reply.result }
+}
+
+# Put both frames in the pipe before reading a reply, as a client with an outstanding request can do.
+function Send-MbPipelinedDuplicate($run, [string]$ref) {
+    $id = 'pipelined-' + [guid]::NewGuid()
+    $line = ConvertTo-Json -Compress @{ id = $id; op = 'invoke'; ref = $ref }
+    $frames = [Text.Encoding]::UTF8.GetBytes("$line`n$line`n")
+    $started = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+    $run.cli.StandardInput.BaseStream.Write($frames, 0, $frames.Length)
+    $run.cli.StandardInput.BaseStream.Flush()
+    foreach ($expected in 'OK','DUPLICATE_COMMAND') {
+        $read = $run.cli.StandardOutput.ReadLineAsync()
+        if (!$read.Wait(12000) -or !$read.Result) { throw 'The pipelined mutation received no reply.' }
+        try { $reply = $read.Result | ConvertFrom-Json -ErrorAction Stop }
+        catch { throw 'The pipelined mutation received invalid JSON.' }
+        $code = if ($reply.ok) { 'OK' } else { $reply.error.code }
+        $run.requests.Add([ordered]@{ id = $id; op = 'invoke'; ref = $ref; code = $code; pipelined = $true
+            startedEpochMs = $started; finishedEpochMs = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() })
+        Require-Mb ($reply.id -ceq $id -and $code -ceq $expected) "Pipelined mutation expected $expected, received $code."
+        if ($reply.ok) { Require-Dispatch @{ result = $reply.result } }
+    }
 }
 
 function Get-MbWindow($run, $target, [string]$name, [int]$timeoutMs = 10000) {
@@ -288,15 +361,17 @@ function New-MbScenario([string]$name, [string]$implementation, [string]$method,
 
 # One named check. A failure ends the scenario unless the check only records an observation.
 function Step($row, [string]$name, [scriptblock]$body, [switch]$Continue) {
-    $check = [ordered]@{ name = $name; status = 'NOT_RUN' }
+    $check = [ordered]@{ name = $name; status = 'NOT_RUN'; classification = 'NOT_RUN' }
     $row.checks.Add($check)
     if ($row.aborted) { $check.reason = 'An earlier step of this scenario failed.'; return }
     try {
         $evidence = & $body
         if ($null -ne $evidence) { $check.evidence = $evidence }
         $check.status = 'PASS'
+        $check.classification = 'PASS'
     } catch {
         $check.status = 'FAIL'
+        $check.classification = 'INCONCLUSIVE'
         $check.reason = $_.Exception.Message
         $check.host = Get-MbHost
         if (!$Continue) { $row.aborted = $true }
@@ -306,14 +381,140 @@ function Step($row, [string]$name, [scriptblock]$body, [switch]$Continue) {
 function Complete-MbScenario($row, $run) {
     $states = @($row.checks | ForEach-Object status)
     $row.status = if ($states -contains 'FAIL') { 'FAIL' } elseif ($states -contains 'NOT_RUN' -or !$states.Count) { 'INCOMPLETE' } else { 'PASS' }
+    $row.classification = switch ($row.status) { PASS { 'PASS' } FAIL { 'INCONCLUSIVE' } default { 'NOT_RUN' } }
     $row.hostAtEnd = Get-MbHost
+    $row.fixtureTimeline = @(foreach ($target in $targets.ToArray()) {
+        if (!$target.process) { continue }
+        $events = Read-Mb $target 'events.tsv'
+        [ordered]@{ kind = $target.kind; processId = $target.process.Id; timeline = @($events -split '\r?\n' |
+            Where-Object { $_ -match '^\d+\t\d+\t(counterIncrement|modalCreated|modalOpened|modalShowReturned|modalClosed|fixtureRequestedModalClose|published:(modal|count)\.txt)\t\d+$' })
+            counter = Read-Mb $target 'count.txt'; modal = Read-Mb $target 'modal.txt' }
+    })
     if ($run) {
         $row.agentProcessId = $run.processId
         $row.requests = $run.requests.Count
-        # The last requests of a scenario that did not pass, with their codes and latencies.
-        if ($row.status -ne 'PASS') { $row.requestLog = @($run.requests | Select-Object -Last 60) }
+        $row.requestLog = $run.requests
+        $row.nativeTrace = $run.trace
     }
     $row.Remove('aborted')
+}
+
+# An independent IUIAutomation process checks the same HWND for the specific native Edit.
+function Read-MbProviderEdit([long]$window, [int]$processId, [string]$automationId) {
+    if ($automationId -notmatch '^-?\d+$') { throw 'The fixture edit ID is not a numeric native ID.' }
+    $probe = Join-Path $PSScriptRoot 'Probe-UiaRuntimeIds.ps1'
+    $arguments = "-NoProfile -NonInteractive -MTA -ExecutionPolicy RemoteSigned -File `"$probe`" -WindowHandle $window -ProcessId $processId -EditAutomationId $automationId -MaxDepth 32"
+    $result = Read-Diagnostic "$env:SystemRoot/System32/WindowsPowerShell/v1.0/powershell.exe" $arguments 7000 -Utf8
+    if ($result.exitCode -ne 0 -or !$result.stdout) { return @{ status = 'PROBE_UNAVAILABLE' } }
+    $observed = $result.stdout | ConvertFrom-Json
+    $status = if ($observed.matchingEdits -gt 0) { 'EDIT_PRESENT' }
+        elseif ($observed.propertyErrors -or $observed.elementLimitReached) { 'PROBE_INCOMPLETE' }
+        else { 'EDIT_ABSENT' }
+    return @{ status = $status; elements = $observed.elements; propertyErrors = $observed.propertyErrors
+        unusableRuntimeIds = $observed.unusableRuntimeIds; matchingEdits = $observed.matchingEdits }
+}
+
+function Test-UiaContexts([string]$implementation) {
+    $row = New-MbScenario 'UiaContexts' $implementation 'real' 'Read the same AWT provider in foreground, background, minimized and restored states.'
+    $run = $null
+    try {
+        $awt = Start-MbTarget 'Awt'
+        $wpf = Start-MbTarget 'Wpf'
+        $run = Start-MbAgent $implementation 'multi' @($awt.process.Id, $wpf.process.Id)
+        $window = (Get-MbWindow $run $awt).id
+        $other = (Get-MbWindow $run $wpf).id
+        $locator = Get-AwtEditLocator $awt
+        foreach ($context in 'foreground','background','minimized','restored') {
+            switch ($context) {
+                foreground {
+                    [void][MbProcessControl]::ShowWindowAsync([IntPtr][long]$window, 9)
+                    [void][MbProcessControl]::SetForegroundWindow([IntPtr][long]$window)
+                }
+                background { [void][MbProcessControl]::SetForegroundWindow([IntPtr][long]$other) }
+                minimized  { [void][MbProcessControl]::ShowWindowAsync([IntPtr][long]$window, 6) }
+                restored   { [void][MbProcessControl]::ShowWindowAsync([IntPtr][long]$window, 9) }
+            }
+            Start-Sleep -Milliseconds 250
+            $seen = [MbProcessControl]::WindowState([long]$window)
+            $expected = if ($context -eq 'restored') { @('foreground','background') } else { @($context) }
+            if ($seen -notin $expected) {
+                $row.checks.Add([ordered]@{ name = $context; status = 'NOT_RUN'; classification = 'NOT_RUN'
+                    reason = "The window manager reported '$seen' after requesting '$context'."; host = Get-MbHost })
+                continue
+            }
+            Step $row $context {
+                $before = Read-MbProviderEdit $window $awt.process.Id $locator.automationId
+                $shot = Get-MbSnapshot $run $window 'UIA' ''
+                $found = if ($shot.code -ceq 'OK') {
+                    (Send-Mb $run @{ op = 'findElement'; snapshotId = $shot.result.snapshotId; locator = $locator } '').code
+                } else { $shot.code }
+                $after = Read-MbProviderEdit $window $awt.process.Id $locator.automationId
+                return [ordered]@{ windowState = $seen; providerBefore = $before; providerAfter = $after
+                    snapshotCode = $shot.code; elements = @($shot.result.elements).Count; locatorCode = $found; host = Get-MbHost }
+            }
+            $last = $row.checks[$row.checks.Count - 1]
+            if ($last.status -ne 'PASS') { continue }
+            $evidence = $last.evidence
+            if ($evidence.providerBefore.status -ceq 'EDIT_PRESENT' -and $evidence.providerAfter.status -ceq 'EDIT_PRESENT' -and
+                $evidence.locatorCode -ceq 'OK') { continue }
+            $last.status = 'FAIL'
+            $last.classification = if ($evidence.providerBefore.status -ceq 'EDIT_ABSENT' -and
+                $evidence.providerAfter.status -ceq 'EDIT_ABSENT' -and $evidence.locatorCode -ne 'OK') {
+                'PROVIDER_LIMITATION'
+            } else { 'INCONCLUSIVE' }
+        }
+        foreach ($context in 'virtualDesktop','lockedDesktop','secureInputDesktop') {
+            $row.checks.Add([ordered]@{ name = $context; status = 'NOT_RUN'; classification = 'NOT_RUN'
+                reason = 'Requires a dedicated desktop or VM session.' })
+        }
+    } catch { $row.failure = $_.Exception.Message }
+    finally {
+        Complete-MbScenario $row $run
+        if ($run) { $row.exit = Stop-MbAgent $run }
+        Stop-MbTargets
+    }
+    return $row
+}
+
+function Test-Metadata([string]$implementation) {
+    $row = New-MbScenario 'Metadata' $implementation 'real' 'Compare the text entered into a Swing fixture with the accessibility metadata and audit stream.'
+    $run = $null
+    try {
+        $swing = Start-MbTarget 'Swing'
+        $run = Start-MbAgent $implementation 'jab' @($swing.process.Id)
+        Step $row 'jabValueAndMetadataBoundary' {
+            $window = (Get-MbWindow $run $swing).id
+            $shot = (Get-MbSnapshot $run $window 'JAB').result
+            $edit = Find-Mb $run $shot @{ role = 'Edit'; name = 'Fixture edit' }
+            Require-Mb ($edit.setValueSupport -ceq 'unverified') 'The editable Swing row must describe the public bridge capability accurately.'
+            $password = @($shot.elements | Where-Object nativeRole -ceq 'password text')
+            Require-Mb ($password.Count -eq 1 -and $password[0].name -ceq '') 'The password role must have no exposed name.'
+            $secret = 'metadata-sentinel-' + [guid]::NewGuid()
+            $run.auditSentinel = $secret
+            Set-MbValue $run $swing $edit.ref $secret
+            $live = (Get-MbInfo $run $edit.ref).result
+            $normal = (Get-MbSnapshot $run $window 'JAB').result
+            $published = ConvertTo-Json -Compress -Depth 12 @($live, $normal)
+            Require-Mb (!$published.Contains($secret) -and !$published.Contains('fixture-description-sentinel')) 'The editable value or description was exposed.'
+            Send-MbCommand $swing 'expose-edit-name'
+            Wait-Mb $swing 'metadata-name.txt' 'exposed'
+            $changed = (Get-MbSnapshot $run $window 'JAB').result
+            $named = Find-Mb $run $changed @{ role = 'Edit'; name = $secret }
+            Require-Mb ($named.name -ceq $secret) 'The provider-defined dynamic name must remain usable as a locator.'
+            Send-MbCommand $swing 'restore-edit-name'
+            Wait-Mb $swing 'metadata-name.txt' 'restored'
+            $end = Stop-MbAgent $run
+            Require-Mb ($end.exited -and $end.exitCode -eq 0 -and $end.auditSentinelSeen -eq $false) 'The audit stream included fixture text or was unavailable.'
+            return [ordered]@{ passwordNameRedacted = $true; typedValueOmitted = $true; descriptionOmitted = $true
+                dynamicProviderNameIsObservable = $true; auditContainsTypedValue = $false }
+        }
+    } catch { $row.failure = $_.Exception.Message }
+    finally {
+        Complete-MbScenario $row $run
+        if ($run) { [void](Stop-MbAgent $run) }
+        Stop-MbTargets
+    }
+    return $row
 }
 
 # --- Scenarios ----------------------------------------------------------------------------------
@@ -347,7 +548,7 @@ function Test-AwtMixed([string]$implementation) {
             $s.uiaEdit = Find-Mb $run $s.uia (Get-AwtEditLocator $awt)
             $s.value1 = 'uia-first-' + [guid]::NewGuid()
             Set-MbValue $run $awt $s.uiaEdit.ref $s.value1
-            return [ordered]@{ elements = @($s.uia.elements).Count; fixtureValue = Read-Mb $awt 'value.txt' }
+            return [ordered]@{ elements = @($s.uia.elements).Count; fixtureValueMatched = $true }
         }
         Step $row 'jabInvoke' {
             $s.jab = (Get-MbSnapshot $run $s.window 'JAB').result
@@ -380,7 +581,7 @@ function Test-AwtMixed([string]$implementation) {
             # The UIA snapshot predates three JAB captures and the modal dialog.
             $s.value2 = 'uia-second-' + [guid]::NewGuid()
             Set-MbValue $run $awt $s.uiaEdit.ref $s.value2
-            return [ordered]@{ fixtureValue = Read-Mb $awt 'value.txt' }
+            return [ordered]@{ fixtureValueMatched = $true }
         }
         Step $row 'uiaSetValueAgainWithNewSnapshot' {
             $again = (Get-MbSnapshot $run $s.window 'UIA').result
@@ -391,7 +592,7 @@ function Test-AwtMixed([string]$implementation) {
             $s.jab = (Get-MbSnapshot $run $s.window 'JAB').result
             $button = Find-Mb $run $s.jab @{ role = 'Button'; name = 'Increment fixture counter' }
             $count = Invoke-MbCounter $run $awt $button.ref
-            return [ordered]@{ fixtureValue = Read-Mb $awt 'value.txt'; fixtureCount = $count }
+            return [ordered]@{ fixtureValueMatched = $true; fixtureCount = $count }
         }
         Step $row 'sameAgentProcessThroughout' {
             $run.cli.Refresh()
@@ -469,12 +670,25 @@ function Test-Safety([string]$implementation) {
             Wait-Mb $awt 'value.txt' $value
             $before = Read-MbStable $awt 'count.txt'
             [void](Send-Mb $run @{ op = 'invoke'; ref = $s.jabButton2.ref } 'DUPLICATE_COMMAND' 30000 $id)
-            Assert-MbUnchanged $awt 'count.txt' $before 'A duplicate command ID reached the other backend:'
+            Assert-MbUnchanged $awt 'count.txt' $before 'The counter changed during the duplicate observation window:'
             $id = 'shared-' + [guid]::NewGuid()
             Require-Dispatch (Send-Mb $run @{ op = 'invoke'; ref = $s.jabButton2.ref } 'OK' 30000 $id)
             Wait-Mb $awt 'count.txt' ([string]([int]$before + 1))
             [void](Send-Mb $run @{ op = 'setValue'; ref = $s.uiaEdit2.ref; value = 'must-not-arrive' } 'DUPLICATE_COMMAND' 30000 $id)
-            Assert-MbUnchanged $awt 'value.txt' $value 'A duplicate command ID reached the other backend:'
+            Assert-MbUnchanged $awt 'value.txt' $value 'The text changed during the duplicate observation window:'
+            $id = 'same-backend-' + [guid]::NewGuid()
+            $newCount = [int](Read-MbStable $awt 'count.txt') + 1
+            Require-Dispatch (Send-Mb $run @{ op = 'invoke'; ref = $s.jabButton2.ref } 'OK' 30000 $id)
+            Wait-Mb $awt 'count.txt' ([string]$newCount)
+            [void](Send-Mb $run @{ op = 'invoke'; ref = $s.jabButton2.ref } 'DUPLICATE_COMMAND' 30000 $id)
+            $prior = $s.jabButton2.ref
+            $s.jab2 = (Get-MbSnapshot $run $s.window 'JAB').result
+            [void](Send-Mb $run @{ op = 'invoke'; ref = $prior } 'DUPLICATE_COMMAND' 30000 $id)
+            Assert-MbUnchanged $awt 'count.txt' ([string]$newCount) 'An extra counter event was observed:'
+            $s.jabButton2 = Find-Mb $run $s.jab2 @{ role = 'Button'; name = 'Increment fixture counter' }
+            Send-MbPipelinedDuplicate $run $s.jabButton2.ref
+            Wait-Mb $awt 'count.txt' ([string]($newCount + 1))
+            Assert-MbUnchanged $awt 'count.txt' ([string]($newCount + 1)) 'The pipelined command produced an extra counter event:'
         }
         Step $row 'referenceOfOtherSessionRefused' {
             $other = Start-MbAgent $implementation 'multi' @($awt.process.Id)
@@ -534,11 +748,87 @@ function Assert-MbUnchanged($target, [string]$file, [string]$value, [string]$mes
     do {
         $now = Read-Mb $target $file
         if ($null -eq $now) { $unreadable++ }
-        elseif ($now -cne $value) { throw "$message $file changed from '$value' to '$now'." }
+        elseif ($now -cne $value) { throw "$message $file changed." }
         else { $same++ }
         Start-Sleep -Milliseconds 50
     } while ($clock.ElapsedMilliseconds -lt $milliseconds)
     if (!$same) { throw "$message $file could not be read back ($unreadable failed reads)." }
+}
+
+# PoC: a separate process and PID allowlist for each JAB target, plus a standalone UIA process.
+function Test-IsolatedJab([string]$implementation) {
+    $row = New-MbScenario 'IsolatedJab' $implementation 'real' 'Two separate JAB clients and a standalone UIA client while JVM A is inside a Swing modal listener.'
+    $workers = [ordered]@{}
+    $s = @{}
+    try {
+        $a = Start-MbTarget 'Swing'
+        $b = Start-MbTarget 'Awt' $true $secondJavaExe
+        $wpf = Start-MbTarget 'Wpf'
+        $workers.a = Start-MbAgent $implementation 'jab' @($a.process.Id)
+        $workers.b = Start-MbAgent $implementation 'jab' @($b.process.Id)
+        $workers.uia = Start-MbAgent $implementation 'uia' @($wpf.process.Id)
+        Step $row 'baselineThreeProcesses' {
+            $s.aWindow = (Get-MbWindow $workers.a $a).id
+            $s.bWindow = (Get-MbWindow $workers.b $b).id
+            $s.wpfWindow = (Get-MbWindow $workers.uia $wpf).id
+            $shot = (Get-MbSnapshot $workers.a $s.aWindow 'JAB').result
+            $s.opener = Find-Mb $workers.a $shot @{ role = 'Button'; name = 'Open fixture modal' }
+            $s.aRef = (Find-Mb $workers.a $shot @{ role = 'Button'; name = 'Increment fixture counter' }).ref
+            $shot = (Get-MbSnapshot $workers.b $s.bWindow 'JAB').result
+            $s.bRef = (Find-Mb $workers.b $shot @{ role = 'Button'; name = 'Increment fixture counter' }).ref
+            $shot = (Get-MbSnapshot $workers.uia $s.wpfWindow 'UIA').result
+            $s.wpfRef = (Find-Mb $workers.uia $shot @{ automationId = 'fixtureIncrement'; role = 'Button' }).ref
+            [void](Invoke-MbCounter $workers.b $b $s.bRef)
+            [void](Invoke-MbCounter $workers.uia $wpf $s.wpfRef)
+        }
+        Step $row 'observeSeparateProcessesDuringModal' {
+            $aReply = Send-Mb $workers.a @{ op = 'invoke'; ref = $s.opener.ref } 'ACTION_OUTCOME_UNKNOWN'
+            Wait-Mb $a 'modal.txt' 'open'
+            $before = [int](Read-MbStable $b 'count.txt')
+            $bInfo = Get-MbInfo $workers.b $s.bRef ''
+            $bInvoke = Send-Mb $workers.b @{ op = 'invoke'; ref = $s.bRef } ''
+            $bSnapshot = Get-MbSnapshot $workers.b $s.bWindow 'JAB' ''
+            $wpfCount = Invoke-MbCounter $workers.uia $wpf $s.wpfRef
+            if ($bInvoke.code -ceq 'OK') { Wait-Mb $b 'count.txt' ([string]($before + 1)) }
+            else { Assert-MbUnchanged $b 'count.txt' ([string]$before) 'B changed while its bridge reported a failure:' }
+            Require-Mb ((Read-Mb $a 'modal.txt') -ceq 'open') 'A did not remain modal while the other processes were tested.'
+            $s.bCountDuring = Read-MbStable $b 'count.txt'
+            $s.bSnapshotCode = $bSnapshot.code
+            return [ordered]@{ aCode = $aReply.code; aMs = $aReply.ms; aModal = 'open'; bInfo = $bInfo.code; bInvoke = $bInvoke.code
+                bInvokeMs = $bInvoke.ms; bSnapshot = $bSnapshot.code; bSnapshotMs = $bSnapshot.ms
+                bCountBefore = $before; bCountDuring = $s.bCountDuring; wpfCount = $wpfCount
+                jvmIsolation = ($bInfo.code -ceq 'OK' -and $bInvoke.code -ceq 'OK' -and $bSnapshot.code -ceq 'OK') }
+        } -Continue
+        Step $row 'resumeRecoverAndRestartBridgeProcess' {
+            Require-Mb ($null -ne $s.bCountDuring) 'The isolation observation did not complete.'
+            Send-MbCommand $a 'close-modal'
+            Wait-Mb $a 'modal.txt' 'closed'
+            Start-Sleep -Milliseconds 350
+            [void](Get-MbInfo $workers.a $s.aRef)
+            if ($s.bSnapshotCode -cne 'OK') { [void](Get-MbInfo $workers.b $s.bRef 'STALE_REFERENCE') }
+            Assert-MbUnchanged $b 'count.txt' $s.bCountDuring 'B received a delayed action after A recovered:' 750
+            $stopped = Stop-MbAgent $workers.b
+            Require-Mb ($stopped.exited -and $stopped.exitCode -eq 0) 'B did not shut down normally once A recovered.'
+            $workers.restarted = Start-MbAgent $implementation 'jab' @($b.process.Id)
+            [void](Get-MbInfo $workers.restarted $s.bRef 'STALE_REFERENCE')
+            $shot = (Get-MbSnapshot $workers.restarted $s.bWindow 'JAB').result
+            $button = Find-Mb $workers.restarted $shot @{ role = 'Button'; name = 'Increment fixture counter' }
+            return [ordered]@{ previousWorkerExit = $stopped; bCountAfterRestart = (Invoke-MbCounter $workers.restarted $b $button.ref) }
+        }
+    } catch {
+        $row.failure = $_.Exception.Message
+    } finally {
+        if ($a -and $a.process) { Send-MbCommand $a 'close-modal' }
+        Complete-MbScenario $row $null
+        $row.workers = [ordered]@{}
+        foreach ($entry in $workers.GetEnumerator()) {
+            $exit = Stop-MbAgent $entry.Value
+            $row.workers[$entry.Key] = @{ pid = $entry.Value.processId; requests = $entry.Value.requests
+                nativeTrace = $entry.Value.trace; exit = $exit }
+        }
+        Stop-MbTargets
+    }
+    return $row
 }
 
 # A Swing listener that opens a modal dialog keeps its JVM from answering the bridge. Nothing is injected.
@@ -579,7 +869,9 @@ function Test-JabFault([string]$implementation) {
             $s.formsButton = Find-Mb $run $s.uia @{ automationId = 'fixtureIncrement'; role = 'Button' }
         }
         Step $row 'jabActionOutcomeUnknown' {
-            $reply = Send-Mb $run @{ op = 'invoke'; ref = $s.opener.ref } 'ACTION_OUTCOME_UNKNOWN' 30000
+            $id = 'modal-' + [guid]::NewGuid()
+            $reply = Send-Mb $run @{ op = 'invoke'; ref = $s.opener.ref } 'ACTION_OUTCOME_UNKNOWN' 30000 $id
+            [void](Send-Mb $run @{ op = 'invoke'; ref = $s.opener.ref } 'DUPLICATE_COMMAND' 30000 $id)
             Wait-Mb $swing 'modal.txt' 'open'
             return [ordered]@{ code = $reply.code; ms = [Math]::Round($reply.ms); fixtureModal = Read-Mb $swing 'modal.txt' }
         }
@@ -606,7 +898,7 @@ function Test-JabFault([string]$implementation) {
             $value = 'during-jab-fault-' + [guid]::NewGuid()
             Set-MbValue $run $forms $s.formsEdit.ref $value
             $count = Invoke-MbCounter $run $forms $s.formsButton.ref
-            return [ordered]@{ elements = @($shot.elements).Count; fixtureValue = Read-Mb $forms 'value.txt'; fixtureCount = $count }
+            return [ordered]@{ elements = @($shot.elements).Count; fixtureValueMatched = $true; fixtureCount = $count }
         }
         Step $row 'jabRecoversWithEarlierReferences' {
             Send-MbCommand $swing 'close-modal'
@@ -637,7 +929,7 @@ function Test-JabFault([string]$implementation) {
             Set-MbValue $run $awt $edit.ref $value
             $s.otherJvmCode = $viaJab.code
             return [ordered]@{ jabSnapshotOfHealthyJvm = $viaJab.code; jabSnapshotMs = [Math]::Round($viaJab.ms)
-                jvmIsolated = ($viaJab.code -ceq 'OK'); uiaTextOnHealthyJvm = Read-Mb $awt 'value.txt' }
+                jvmIsolated = ($viaJab.code -ceq 'OK'); uiaTextOnHealthyJvmMatched = $true }
         } -Continue
         Step $row 'agentExitsWhileJvmIsSilent' {
             Require-Mb ((Read-Mb $swing 'modal.txt') -ceq 'open') 'The modal dialog must be open for this check.'
@@ -687,7 +979,10 @@ function Test-UiaFault([string]$implementation) {
             [void](Invoke-MbCounter $run $awt $s.jabButton.ref)
             $s.uia = (Get-MbSnapshot $run $s.forms 'UIA').result
             $s.formsEdit = Find-Mb $run $s.uia @{ automationId = 'fixtureEdit' }
-            Set-MbValue $run $forms $s.formsEdit.ref ('before-uia-fault-' + [guid]::NewGuid())
+            $s.previousCommand = 'before-uia-fault-' + [guid]::NewGuid()
+            $value = 'before-fault-' + [guid]::NewGuid()
+            Require-Dispatch (Send-Mb $run @{ op = 'setValue'; ref = $s.formsEdit.ref; value = $value } 'OK' 30000 $s.previousCommand)
+            Wait-Mb $forms 'value.txt' $value
         }
         Step $row 'uiaRequestFailsOnSuspendedTarget' {
             Require-Mb ([MbProcessControl]::NtSuspendProcess($forms.process.Handle) -eq 0) 'The WPF fixture could not be suspended.'
@@ -744,11 +1039,12 @@ function Test-UiaFault([string]$implementation) {
             Set-MbValue $run $awt $edit.ref $value
             # References of the retired UIA session are dead. The JAB reference predates the restart.
             [void](Get-MbInfo $run $s.formsEdit.ref 'STALE_REFERENCE')
+            [void](Send-Mb $run @{ op = 'setValue'; ref = $edit.ref; value = 'duplicate' } 'DUPLICATE_COMMAND' 30000 $s.previousCommand)
             $count = Invoke-MbCounter $run $awt $s.jabButton.ref
             $run.cli.Refresh()
             Require-Mb ($run.cli.Id -eq $run.processId -and !$run.cli.HasExited) 'The Agent process changed.'
             return [ordered]@{ recoveryMs = $clock.ElapsedMilliseconds; codesWhileWaiting = @($codes | Select-Object -Unique)
-                firstSnapshotElements = $first.elements; fixtureValue = Read-Mb $awt 'value.txt'; fixtureCount = $count }
+                firstSnapshotElements = $first.elements; fixtureValueMatched = $true; fixtureCount = $count }
         } -Continue
         Step $row 'agentExitsWhileUiaIsFaulted' {
             Require-Mb ([MbProcessControl]::NtSuspendProcess($forms.process.Handle) -eq 0) 'The WPF fixture could not be suspended.'
@@ -777,7 +1073,7 @@ function Test-UiaFault([string]$implementation) {
             $uia = (Get-MbSnapshot $run (Get-MbWindow $run $forms).id 'UIA').result
             $edit = Find-Mb $run $uia @{ automationId = 'fixtureEdit' }
             Set-MbValue $run $forms $edit.ref ('next-agent-' + [guid]::NewGuid())
-            return [ordered]@{ awtCount = $count; wpfValue = Read-Mb $forms 'value.txt' }
+            return [ordered]@{ awtCount = $count; wpfValueMatched = $true }
         }
     } catch {
         $row.failure = $_.Exception.Message
@@ -810,7 +1106,7 @@ function Test-Environment([string]$implementation) {
             $shot = (Get-MbSnapshot $run $window.id 'UIA').result
             $edit = Find-Mb $run $shot (Get-AwtEditLocator $awt)
             Set-MbValue $run $awt $edit.ref ('without-bridge-library-' + [guid]::NewGuid())
-            return [ordered]@{ jabReason = $rows[1].reason; fixtureValue = Read-Mb $awt 'value.txt' }
+            return [ordered]@{ jabReason = $rows[1].reason; fixtureValueMatched = $true }
         } -Continue
         [void](Stop-MbAgent $run)
         $run = $null
@@ -827,7 +1123,7 @@ function Test-Environment([string]$implementation) {
             $shot = (Get-MbSnapshot $run $window.id 'UIA').result
             $edit = Find-Mb $run $shot (Get-AwtEditLocator $plain)
             Set-MbValue $run $plain $edit.ref ('bridge-disabled-' + [guid]::NewGuid())
-            return [ordered]@{ bridge = $bridge.bridge; fixtureValue = Read-Mb $plain 'value.txt' }
+            return [ordered]@{ bridge = $bridge.bridge; fixtureValueMatched = $true }
         }
     } catch {
         $row.failure = $_.Exception.Message
@@ -997,6 +1293,69 @@ function Get-PerformanceSummary($runs) {
 
 # --- Soak ---------------------------------------------------------------------------------------
 
+function Measure-MbResources([string]$implementation, [string]$workload, $awt, $wpf) {
+    $row = [ordered]@{ agent = $implementation; workload = $workload; status = 'FAIL'; samples = @() }
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    $run = $null
+    try {
+        $run = Start-MbAgent $implementation 'multi' @($awt.process.Id, $wpf.process.Id)
+        $window = (Get-MbWindow $run $awt).id
+        $other = (Get-MbWindow $run $wpf).id
+        $locator = Get-AwtEditLocator $awt
+        $shot = (Get-MbSnapshot $run $window 'UIA').result
+        $uiaElements = @($shot.elements).Count
+        $edit = Find-Mb $run $shot $locator
+        $shot = (Get-MbSnapshot $run $window 'JAB').result
+        $button = Find-Mb $run $shot @{ role = 'Button'; name = 'Increment fixture counter' }
+        $before = [int](Read-MbStable $awt 'count.txt')
+        $state = @{ run = $run; window = $window; mutations = 0; modals = 0; editLocator = $locator
+            uiaElements = $uiaElements; jabElements = @($shot.elements).Count }
+        $row.samples += @{ label = 'before'; process = Process-Sample $run.cli }
+        if ($workload -ceq 'idle') { Start-Sleep -Seconds 4 }
+        else {
+            for ($i = 0; $i -lt $Iterations; $i++) {
+                switch ($workload) {
+                    snapshot { [void](Get-MbSnapshot $run $window 'UIA') }
+                    snapshotLocator {
+                        $current = (Get-MbSnapshot $run $window 'UIA').result
+                        [void](Find-Mb $run $current $locator)
+                    }
+                    getElementInfo { [void](Get-MbInfo $run $edit.ref) }
+                    invoke { Require-Dispatch (Send-Mb $run @{ op = 'invoke'; ref = $button.ref }) }
+                    setValue {
+                        $value = 'resource-sample-' + [guid]::NewGuid()
+                        Require-Dispatch (Send-Mb $run @{ op = 'setValue'; ref = $edit.ref; value = $value })
+                    }
+                    mixed { Invoke-MbSoakIteration $state $awt ([ordered]@{}) $i }
+                    snapshotReplace {
+                        $next = if ($i % 2) { $window } else { $other }
+                        [void](Get-MbSnapshot $run $next 'UIA')
+                    }
+                }
+            }
+            if ($workload -ceq 'invoke') { Wait-Mb $awt 'count.txt' ([string]($before + $Iterations)) }
+            if ($workload -ceq 'setValue') { Wait-Mb $awt 'value.txt' $value }
+        }
+        $row.samples += @{ label = 'after'; process = Process-Sample $run.cli }
+        Start-Sleep -Milliseconds 500
+        $row.samples += @{ label = 'settled'; process = Process-Sample $run.cli }
+        $row.mutations = switch ($workload) { invoke { $Iterations } setValue { $Iterations } mixed { $state.mutations } default { 0 } }
+        $row.requests = $run.requests.Count
+        $row.exit = Stop-MbAgent $run
+        Require-Mb ($row.exit.exited -and $row.exit.exitCode -eq 0) 'Agent did not exit normally.'
+        Require-Mb (!@($row.samples | Where-Object { !$_.process.available }).Count) 'Resource sample unavailable.'
+        $row.status = 'PASS'
+    } catch {
+        $row.failure = $_.Exception.Message
+        $row.host = Get-MbHost
+        if ($run) { $row.requestLog = @($run.requests | Select-Object -Last 15) }
+    } finally {
+        if ($run) { [void](Stop-MbAgent $run) }
+        $row.elapsedSeconds = [Math]::Round($clock.Elapsed.TotalSeconds, 2)
+    }
+    return $row
+}
+
 function Get-MbJvmReferences($target, [string]$jcmd) {
     if (!$jcmd) { return $null }
     try { $dump = Read-Diagnostic $jcmd "$($target.process.Id) GC.class_histogram" 20000 } catch { return $null }
@@ -1113,7 +1472,9 @@ function Test-MbSoak([string]$implementation) {
                 $iterations++
             } catch {
                 $failures.Add([ordered]@{ iteration = $iterations; elapsedSeconds = [Math]::Round($clock.Elapsed.TotalSeconds, 1); message = $_.Exception.Message })
-                if ($failures.Count -ge 20) { throw }
+                $failures[$failures.Count - 1].host = Get-MbHost
+                $failures[$failures.Count - 1].requests = @($state.run.requests | Select-Object -Last 30)
+                break
             }
         }
         $samples.Add([ordered]@{ utc = [DateTime]::UtcNow.ToString('o'); elapsedSeconds = [Math]::Round($clock.Elapsed.TotalSeconds, 1)
@@ -1184,6 +1545,7 @@ function Get-PeArchitecture($path) {
 }
 
 $environment = Get-UiaEnvironment
+Set-UiaHostInfo $environment
 $environment.git = Get-UiaGitInfo
 $nt = Get-ItemProperty 'HKLM:/SOFTWARE/Microsoft/Windows NT/CurrentVersion' -ErrorAction SilentlyContinue
 $environment.windows = @{ edition = $nt.EditionID; version = $nt.DisplayVersion; build = "$($nt.CurrentBuildNumber).$($nt.UBR)" }
@@ -1192,7 +1554,12 @@ $environment.javaAgent = @{ java = (Read-Diagnostic $javaExe '-version').stderr;
 $environment.cppAgent = @{ architecture = Get-PeArchitecture $CppAgent; sha256 = (Get-FileHash -LiteralPath $CppAgent).Hash }
 $environment.fixtureJava = (Read-Diagnostic $fixtureJavaExe '-version').stderr
 $environment.secondFixtureJava = if ($SecondFixtureJava) { (Read-Diagnostic $secondJavaExe '-version').stderr }
-$environment.bridge = Get-JabEnvironment @{ executable = $fixtureJavaExe }
+$environment.bridge = Get-JabEnvironment @{ executable = $fixtureJavaExe; version = $environment.fixtureJava }
+if ($SecondFixtureJava) {
+    $environment.bridge.secondFixtureJvm = (Get-JabEnvironment @{
+        executable = $secondJavaExe; version = $environment.secondFixtureJava }).fixtureJvm
+}
+$environment.swingAwtFixtureSha256 = (Get-FileHash -LiteralPath (Join-Path $classes 'FrameworkFixture.class')).Hash
 $environment.wpfFixtureSha256 = (Get-FileHash -LiteralPath $wpfScript).Hash
 $report = [ordered]@{
     schema = 1; startedUtc = [DateTime]::UtcNow.ToString('o'); invocation = $MyInvocation.Line; mode = $Mode
@@ -1200,7 +1567,7 @@ $report = [ordered]@{
         warmup = $Warmup; durationSeconds = $DurationSeconds; sampleSeconds = $SampleSeconds }
     environment = $environment; status = 'FAIL'
     # 'real': nothing but the Agent and the applications. 'faultInjection': the script creates the fault.
-    methods = [ordered]@{ real = 'Only the Agent and unmodified fixture applications take part.'
+    methods = [ordered]@{ real = 'Agent calls are checked against synthetic fixture state and, where configured, independent read-only observations.'
         faultInjection = 'The script creates the fault: a suspended target process, a bridge library path that does not exist, or a JVM started without the bridge.' }
 }
 try {
@@ -1251,6 +1618,18 @@ try {
         }
         $report.summary = Get-PerformanceSummary $runs
         $report.status = if (@($runs | Where-Object failure).Count) { 'FAIL' } else { 'PASS' }
+    } elseif ($Mode -eq 'Resources') {
+        $report.runs = New-Object 'Collections.Generic.List[object]'
+        $awt = Start-MbTarget 'Awt'
+        $wpf = Start-MbTarget 'Wpf'
+        foreach ($implementation in $implementations) {
+            foreach ($workload in 'idle','snapshot','snapshotLocator','getElementInfo','invoke','setValue','mixed','snapshotReplace') {
+                $resource = Measure-MbResources $implementation $workload $awt $wpf
+                $report.runs.Add($resource)
+                Save-UiaCheckpoint $report $OutputPath
+            }
+        }
+        $report.status = if (@($report.runs | Where-Object status -ne 'PASS').Count) { 'FAIL' } else { 'PASS' }
     } else {
         $soaks = New-Object 'Collections.Generic.List[object]'
         $report.soak = $soaks
@@ -1272,3 +1651,4 @@ try {
 }
 "$Mode $($report.status). See $OutputPath."
 if ($report.status -ne 'PASS') { exit 1 }
+exit 0

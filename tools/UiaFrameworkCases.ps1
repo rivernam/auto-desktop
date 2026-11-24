@@ -32,7 +32,14 @@ function Stop-FrameworkCase([string]$classification, [string]$message, $evidence
 # Win32 and MSAA access to the fixture that uses neither UI Automation nor an Agent.
 function Initialize-FrameworkNative {
     if ('FrameworkNative' -as [type]) { return }
-    Add-Type -ReferencedAssemblies Accessibility -TypeDefinition @'
+    $references = @('Accessibility')
+    $options = @{}
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        $references += 'System.Runtime', 'System.Collections', 'System.Runtime.InteropServices'
+        # Windows Accessibility's reference to .NET Framework's System.Runtime is unified at load time.
+        $options.CompilerOptions = '/nowarn:1701'
+    }
+    Add-Type @options -ReferencedAssemblies $references -TypeDefinition @'
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;

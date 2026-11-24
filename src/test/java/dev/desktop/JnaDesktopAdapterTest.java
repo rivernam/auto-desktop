@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class JnaDesktopAdapterTest {
-    private static final class Session implements TypedDesktopAdapter {
+    private static class Session implements TypedDesktopAdapter {
         final Set<Thread> threads = Collections.synchronizedSet(new HashSet<>());
         final CountDownLatch closed = new CountDownLatch(1);
         final AtomicInteger mutations = new AtomicInteger();
@@ -80,13 +80,73 @@ class JnaDesktopAdapterTest {
                 assertTimeoutPreemptively(Duration.ofSeconds(3), () -> {
                     var failure = assertThrows(AgentException.class,
                             () -> adapter.perform(DesktopAction.INVOKE, "k", 7, null));
-                    assertEquals("ACTION_OUTCOME_UNKNOWN", failure.code());
+                    assertEquals("TIMEOUT", failure.code());
                 });
                 assertEquals(0, entered.getCount());
                 assertFalse(adapter.capabilities().path("available").asBoolean());
             } finally { unblock.countDown(); }
             await(session.get().closed);
             assertEquals(0, session.get().mutations.get());
+        }
+    }
+
+    @Test void failedNativeCleanupIsReportedByTheOwner() {
+        var adapter = new JnaDesktopAdapter(() -> new Session() {
+            @Override public void close() { throw new AssertionError("unsafe provider detail"); }
+        }, Duration.ofSeconds(1));
+        adapter.capabilities();
+        assertEquals("BACKEND_CLEANUP_FAILED", assertThrows(AgentException.class, adapter::close).code());
+    }
+
+    @Test void aLateProviderErrorCannotBeatTheQueryDeadline() throws Exception {
+        var entered = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        try (var adapter = new JnaDesktopAdapter(() -> new Session() {
+            @Override public JsonNode listWindows() {
+                entered.countDown();
+                await(release);
+                throw new AgentException("TARGET_NOT_RESPONDING", "Provider replied late.");
+            }
+        }, Duration.ofSeconds(2))) {
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(250);
+            var query = adapter.startQuery(true, deadline);
+            try {
+                await(entered);
+                while (System.nanoTime() - deadline <= 0) Thread.sleep(5);
+            } finally {
+                release.countDown();
+            }
+            // A multi-backend caller may still be collecting another backend's reply.
+            Thread.sleep(100);
+            assertEquals("TIMEOUT", assertThrows(AgentException.class, query::get).code());
+        }
+    }
+
+    @Test void closingTheAdapterDoesNotDiscardAnInTimeMutationReply() throws Exception {
+        var entered = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        try (var adapter = new JnaDesktopAdapter(() -> {
+            Session created = new Session();
+            created.duringMutation = () -> {
+                entered.countDown();
+                await(release);
+            };
+            return created;
+        }, Duration.ofSeconds(2))) {
+            var action = java.util.concurrent.CompletableFuture.supplyAsync(
+                    () -> adapter.perform(DesktopAction.INVOKE, "k", 7, null));
+            var owner = new Thread(adapter::close);
+            try {
+                await(entered);
+                owner.start();
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+                while (!adapter.retired() && System.nanoTime() - deadline < 0) Thread.sleep(5);
+                assertTrue(adapter.retired());
+            } finally {
+                release.countDown();
+                owner.join(2000);
+            }
+            assertTrue(action.get(2, TimeUnit.SECONDS).path("available").asBoolean());
         }
     }
 

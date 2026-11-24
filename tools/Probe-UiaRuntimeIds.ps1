@@ -7,7 +7,8 @@ param(
     [Parameter(Mandatory)][long]$WindowHandle,
     [Parameter(Mandatory)][int]$ProcessId,
     [ValidateRange(0, 32)][int]$MaxDepth = 12,
-    [ValidateRange(1, 5000)][int]$MaxElements = 2000
+    [ValidateRange(1, 5000)][int]$MaxElements = 2000,
+    [string]$EditAutomationId
 )
 $ErrorActionPreference = 'Stop'
 if ([Console]::IsOutputRedirected) { [Console]::OutputEncoding = New-Object Text.UTF8Encoding($false) }
@@ -46,7 +47,8 @@ interface IProbeElement {
     void _14(); void _15(); void _16(); void _17(); void _18(); void _19();
     [PreserveSig] int get_CurrentProcessId(out int value);
     [PreserveSig] int get_CurrentControlType(out int value);
-    void _22(); void _23(); void _24(); void _25(); void _26(); void _27(); void _28(); void _29();
+    void _22(); void _23(); void _24(); void _25(); void _26(); void _27(); void _28();
+    [PreserveSig] int get_CurrentAutomationId([MarshalAs(UnmanagedType.BStr)] out string value);
     [PreserveSig] int get_CurrentClassName([MarshalAs(UnmanagedType.BStr)] out string value);
     void _31(); void _32(); void _33(); void _34(); void _35();
     [PreserveSig] int get_CurrentNativeWindowHandle(out IntPtr value);
@@ -66,7 +68,7 @@ public static class UiaRuntimeIdProbe {
     public sealed class Row {
         public int Depth, ControlType, ProcessId, RuntimeIdLength = -1, DuplicateOf = -1;
         public long Handle;
-        public string Path, ClassName, FrameworkId, RuntimeIdResult, Error;
+        public string Path, ClassName, FrameworkId, RuntimeIdResult, Error, AutomationId;
         public bool Duplicated;
     }
 
@@ -99,7 +101,7 @@ public static class UiaRuntimeIdProbe {
         } finally { SafeArrayDestroy(array); }
     }
 
-    public static List<Row> Walk(long window, int maxDepth, int maxElements, out bool limited) {
+    public static List<Row> Walk(long window, int maxDepth, int maxElements, bool checkEdit, out bool limited) {
         var automation = (IProbeAutomation)Activator.CreateInstance(
             Type.GetTypeFromCLSID(new Guid("FF48DBA4-60EF-4201-AA87-54103EEF594E")));
         IProbeWalker walker; IProbeElement root;
@@ -116,6 +118,8 @@ public static class UiaRuntimeIdProbe {
             var row = new Row { Depth = item.Item2 };
             IntPtr handle;
             int status = item.Item1.get_CurrentControlType(out row.ControlType);
+            if (status >= 0 && checkEdit && row.ControlType == 50004)
+                status = item.Item1.get_CurrentAutomationId(out row.AutomationId);
             if (status >= 0) status = item.Item1.get_CurrentProcessId(out row.ProcessId);
             if (status >= 0) status = item.Item1.get_CurrentClassName(out row.ClassName);
             if (status >= 0) status = item.Item1.get_CurrentFrameworkId(out row.FrameworkId);
@@ -131,7 +135,7 @@ public static class UiaRuntimeIdProbe {
             while (child != null && children.Count < maxElements) {
                 children.Add(child);
                 IProbeElement next;
-                if (walker.GetNextSiblingElement(child, out next) < 0) break;
+                if (walker.GetNextSiblingElement(child, out next) < 0) { row.Error = "siblings"; break; }
                 child = next;
             }
             for (int i = children.Count - 1; i >= 0; i--) stack.Push(Tuple.Create(children[i], item.Item2 + 1, row.Path));
@@ -157,7 +161,7 @@ function Group-Rows($selected) {
 }
 
 $limited = $false
-$rows = [UiaRuntimeIdProbe]::Walk($WindowHandle, $MaxDepth, $MaxElements, [ref]$limited)
+$rows = [UiaRuntimeIdProbe]::Walk($WindowHandle, $MaxDepth, $MaxElements, [bool]$EditAutomationId, [ref]$limited)
 if (!$rows.Count -or $rows[0].ProcessId -ne $ProcessId) { throw 'The window does not belong to the requested process.' }
 $empty = @($rows | Where-Object { $_.RuntimeIdLength -le 0 })
 $duplicates = @($rows | Where-Object { $_.DuplicateOf -ge 0 -or $_.Duplicated })
@@ -167,6 +171,9 @@ ConvertTo-Json -Depth 6 -InputObject ([ordered]@{
     maxDepth = $MaxDepth; maxElements = $MaxElements; elementLimitReached = $limited
     elements = $rows.Count
     propertyErrors = @($rows | Where-Object Error).Count
+    matchingEdits = if ($EditAutomationId) {
+        @($rows | Where-Object { $_.ProcessId -eq $ProcessId -and $_.ControlType -eq 50004 -and $_.AutomationId -ceq $EditAutomationId }).Count
+    } else { $null }
     unusableRuntimeIds = $empty.Count
     unusableRuntimeIdGroups = [object[]]@(Group-Rows $empty)
     duplicateRuntimeIds = $duplicates.Count

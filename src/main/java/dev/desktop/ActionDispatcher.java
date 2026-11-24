@@ -23,7 +23,7 @@ final class ActionDispatcher {
     }
 
     JsonNode dispatch(DesktopAdapter adapter, String id, DesktopAction action, DesktopSnapshot.Element target,
-                      JsonNode value) {
+                      JsonNode value, Runnable checkReference) {
         if (!allowedProcess.test(target.processId()) || !allowedActions.contains(action.wireName()))
             throw new AgentException("PERMISSION_DENIED", "The process and action must both be allowed.");
         if (!target.properties().get("enabled").booleanValue())
@@ -40,12 +40,10 @@ final class ActionDispatcher {
             throw new AgentException("SESSION_LIMIT", "Start a new agent session to dispatch more commands.");
         // Remember the ID before dispatch. A timeout can arrive after the action has taken effect.
         dispatched.add(id);
-        try {
-            return adapter.perform(action, target.key(), target.processId(), text);
-        } catch (AgentException ex) {
-            if ("TIMEOUT".equals(ex.code()))
-                throw new AgentException("ACTION_OUTCOME_UNKNOWN", "The action timed out. Inspect the target before retrying.");
-            throw ex;
-        }
+        return adapter.perform(action, target.key(), target.processId(), text, () -> {
+            checkReference.run();
+            if (!allowedProcess.test(target.processId()))
+                throw new AgentException("PERMISSION_DENIED", "The target process is no longer allowed.");
+        });
     }
 }

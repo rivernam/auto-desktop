@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.jna.platform.win32.Kernel32;
 import dev.desktop.protocol.Utf8Frames;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -27,11 +29,17 @@ public final class Cli {
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
             .enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
 
-    public static void main(String[] args) throws IOException {
-        int status = run(args, System.in, System.out);
+    public static void main(String[] args) {
+        int status;
+        try {
+            status = run(args, System.in, new FileOutputStream(FileDescriptor.out));
+        } catch (IOException failure) {
+            System.err.println("The agent input or output stream failed.");
+            status = 1;
+        }
         System.out.flush();
         // A provider thread that never returned holds native state that a normal exit would wait on.
-        if (JnaDesktopAdapter.abandonedNativeThread() || JabBridge.detachWouldBlock()) {
+        if (JnaDesktopAdapter.nativeExitRequired() || JabBridge.detachWouldBlock()) {
             System.err.flush();
             // Unloading Java Access Bridge sends untimed messages to every JVM, so library detach is skipped.
             Kernel32.INSTANCE.TerminateProcess(Kernel32.INSTANCE.GetCurrentProcess(), status);
@@ -116,6 +124,10 @@ public final class Cli {
                 output.write('\n');
                 output.flush();
             }
+        } catch (AgentException failure) {
+            if (!"BACKEND_CLEANUP_FAILED".equals(failure.code())) throw failure;
+            System.err.println("BACKEND_CLEANUP_FAILED: " + failure.getMessage());
+            return 1;
         }
         return 0;
     }

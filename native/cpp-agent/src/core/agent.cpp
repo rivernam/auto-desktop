@@ -51,7 +51,14 @@ void RequestDeadline::beginMutation() {
 }
 
 bool RequestDeadline::cancel() {
-    return state.exchange(State::cancelled) == State::dispatched;
+    auto current = state.load();
+    while (current == State::pending || current == State::dispatched) {
+        const auto cancelled = current == State::dispatched ? State::cancelledAfterDispatch
+                                                           : State::cancelledBeforeDispatch;
+        if (state.compare_exchange_weak(current, cancelled)) return cancelled == State::cancelledAfterDispatch;
+    }
+    // The waiter and worker can cross the deadline at nearly the same instant.
+    return current == State::cancelledAfterDispatch;
 }
 
 bool CommandHistory::contains(const std::string& id) const {
@@ -314,6 +321,8 @@ Json Agent::publicElement(std::size_t index, const Element& row) const {
                 {"enabled", row.enabled}, {"offscreen", row.offscreen}, {"actions", std::move(actions)},
                 {"backend", adapter_.backend()}};
     if (!identity.nativeRole.empty()) result["nativeRole"] = identity.nativeRole;
+    if (identity.role == "Edit" && std::string_view(adapter_.backend()) == "JAB")
+        result["setValueSupport"] = row.writable ? "unverified" : "unsupported";
     if (row.partial) {
         result["partial"] = true;
         if (!row.partialReason.empty()) result["partialReason"] = row.partialReason;

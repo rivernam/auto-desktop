@@ -9,6 +9,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.function.IntPredicate;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -157,22 +159,37 @@ public final class Agent implements AutoCloseable {
         return issuer;
     }
 
+    private List<Supplier<JsonNode>> startQueries(boolean windows) {
+        long deadline = System.nanoTime() + JnaDesktopAdapter.REQUEST_BUDGET.toNanos();
+        List<Supplier<JsonNode>> queries = new ArrayList<>(backends.size());
+        for (Backend backend : backends) queries.add(adapter(backend).startQuery(windows, deadline));
+        return queries;
+    }
+
+    private void attendQueries(boolean on) {
+        // A provider with a message window pumps it after its own query while its peers finish.
+        for (Backend backend : backends) backend.adapter.attend(on);
+    }
+
     private ObjectNode capabilities() {
         ObjectNode result = object().put("backend", MULTI);
         ArrayNode rows = JsonNodeFactory.instance.arrayNode();
         boolean available = false;
-        for (Backend backend : backends) {
-            JsonNode row;
-            attend(backend, true);
-            try {
-                row = adapter(backend).capabilities();
-            } catch (AgentException failed) {
-                row = DesktopCapabilities.unavailable(backend.name, failed.getMessage());
-            } finally {
-                attend(backend, false);
+        var queries = startQueries(false);
+        try {
+            attendQueries(true);
+            for (int i = 0; i < backends.size(); i++) {
+                JsonNode row;
+                try {
+                    row = queries.get(i).get();
+                } catch (AgentException failed) {
+                    row = DesktopCapabilities.unavailable(backends.get(i).name, failed.getMessage());
+                }
+                available |= row.path("available").asBoolean();
+                rows.add(row);
             }
-            available |= row.path("available").asBoolean();
-            rows.add(row);
+        } finally {
+            attendQueries(false);
         }
         result.put("available", available);
         if (!available) result.put("reason", "No backend of this session is available.");
@@ -191,16 +208,26 @@ public final class Agent implements AutoCloseable {
      * a backend that has no such window.
      */
     private ArrayNode windows(ObjectNode response) {
+        var queries = startQueries(true);
+        try {
+            attendQueries(true);
+            return mergeWindows(response, queries);
+        } finally {
+            attendQueries(false);
+        }
+    }
+
+    private ArrayNode mergeWindows(ObjectNode response, List<Supplier<JsonNode>> queries) {
         ArrayNode status = response.putArray("backends");
         Map<String, ObjectNode> merged = new LinkedHashMap<>();
         AgentException first = null;
         boolean sameCode = true;
         int failures = 0;
-        for (Backend backend : backends) {
+        for (int i = 0; i < backends.size(); i++) {
+            Backend backend = backends.get(i);
             ObjectNode entry = status.addObject().put("backend", backend.name);
-            attend(backend, true);
             try {
-                JsonNode listed = adapter(backend).listWindows();
+                JsonNode listed = queries.get(i).get();
                 if (!listed.isArray()) throw new AgentException("WORKER_PROTOCOL", "Invalid window list.");
                 List<ObjectNode> added = new ArrayList<>();
                 for (JsonNode row : listed) {
@@ -225,8 +252,6 @@ public final class Agent implements AutoCloseable {
                 failures++;
                 if (first == null) first = failed;
                 else sameCode &= first.code().equals(failed.code());
-            } finally {
-                attend(backend, false);
             }
         }
         if (failures == backends.size()) {
@@ -301,8 +326,11 @@ public final class Agent implements AutoCloseable {
         for (Backend backend : backends) {
             if (backend.snapshot == null) continue;
             if (backend.snapshot.expired(now)) backend.snapshot = null;
-            else if (backend.snapshot.id().equals(snapshotId))
+            else if (backend.snapshot.id().equals(snapshotId)) {
+                if (issuer(backend).retired())
+                    throw new AgentException("BACKEND_UNAVAILABLE", "The snapshot's backend was retired.");
                 return backend.snapshot.find(snapshotId, scopeRef, request.get("locator"));
+            }
         }
         throw DesktopSnapshot.stale();
     }
@@ -330,12 +358,15 @@ public final class Agent implements AutoCloseable {
         String ref = string(request, "ref", 128);
         // The action goes to the backend that issued the reference and to no other.
         Backend backend = owner(ref);
-        DesktopSnapshot.Element target = backend.snapshot.resolve(ref);
+        DesktopSnapshot current = backend.snapshot;
+        DesktopSnapshot.Element target = current.resolve(ref);
         DesktopAdapter adapter = issuer(backend);
         JsonNode result;
         attend(backend, true);
         try {
-            result = actions.dispatch(adapter, id, action, target, request.path("value"));
+            result = actions.dispatch(adapter, id, action, target, request.path("value"), () -> {
+                if (current.expired(nanoTime.getAsLong())) throw DesktopSnapshot.stale();
+            });
         } finally {
             attend(backend, false);
         }
@@ -347,26 +378,31 @@ public final class Agent implements AutoCloseable {
     }
 
     /** Closes every backend. One that waits on a provider call does not delay the release of the others. */
-    @Override public void close() {
+    @Override public synchronized void close() {
         if (backends.size() == 1) {
             backends.get(0).adapter.close();
             return;
         }
-        List<Thread> closers = new ArrayList<>();
+        List<FutureTask<Void>> cleanups = new ArrayList<>();
         for (Backend backend : backends) {
-            Thread closer = new Thread(backend.adapter::close, "close-" + backend.name);
+            var cleanup = new FutureTask<Void>(backend.adapter::close, null);
+            cleanups.add(cleanup);
+            Thread closer = new Thread(cleanup, "close-" + backend.name);
             closer.setDaemon(true);
             closer.start();
-            closers.add(closer);
         }
-        for (Thread closer : closers) {
+        boolean failed = false;
+        for (var cleanup : cleanups) {
             try {
-                closer.join();
+                cleanup.get();
+            } catch (ExecutionException failure) {
+                failed = true;
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
-                return;
+                throw new AgentException("BACKEND_CLEANUP_FAILED", "Interrupted while closing the backends.");
             }
         }
+        if (failed) throw new AgentException("BACKEND_CLEANUP_FAILED", "A backend did not finish cleanup.");
     }
 
     private static String string(ObjectNode node, String field, int limit) {

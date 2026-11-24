@@ -1,12 +1,8 @@
 # Assert the regression on a report from Windows with the observed empty-runtime-ID provider.
 param([Parameter(Mandatory)][string]$ReportPath)
 $ErrorActionPreference = 'Stop'
-# Windows PowerShell 5.1 reads BOM-less UTF-8 as ANSI and ConvertFrom-Json stops at 2 MB.
-Add-Type -AssemblyName System.Web.Extensions
-$serializer = New-Object Web.Script.Serialization.JavaScriptSerializer
-$serializer.MaxJsonLength = [int]::MaxValue
-$serializer.RecursionLimit = 200
-$report = $serializer.DeserializeObject([IO.File]::ReadAllText((Resolve-Path -LiteralPath $ReportPath).Path))
+. (Join-Path $PSScriptRoot '../UiaTest.Common.ps1')
+$report = Read-UiaReport $ReportPath
 $rows = @($report.results | Where-Object { $_.framework -ceq 'WinFormsFramework' })
 if ($rows.Count -ne 2 -or @($rows | ForEach-Object { $_.backend } | Sort-Object -Unique).Count -ne 2) {
     throw 'A WinFormsFramework report for both backends is required.'
