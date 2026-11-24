@@ -12,6 +12,11 @@ function Get-FrameworkSpec($name) {
     return $spec
 }
 
+function Get-JabSpec {
+    return @{ byName = $true; edit = 'Fixture edit'; readOnly = 'Fixture read-only edit'; password = 'Fixture password'
+        list = 'Fixture list'; modalClose = 'Close fixture modal' }
+}
+
 function Require-Framework($condition, [string]$message) {
     if (!$condition) { throw $message }
 }
@@ -189,14 +194,20 @@ function Invoke-FixtureButton($run, $element, [string]$file, [string]$expected, 
     Stop-FrameworkCase 'UIA_PROVIDER_LIMITATION' "Invoke returned but the fixture did not report $file. A direct BM_CLICK and the MSAA default action on the same HWND had no effect either." $evidence
 }
 
-function Start-FrameworkAgent($implementation, [switch]$WithoutPid) {
-    if ($implementation -eq 'JNA') {
-        $start = New-CliStartInfo JNA -JvmOptions (ConvertTo-UiaJvmOptions $JvmOptions) -WithoutPid:$WithoutPid
+function Start-FrameworkAgent($implementation, [switch]$WithoutPid, [string]$ExtraArguments) {
+    # Jab and CppJab are the same two Agents with the Java Access Bridge backend selected.
+    $bridge = $implementation -in 'Jab', 'CppJab'
+    if ($bridge -and $JabDll -and !$ExtraArguments) { $ExtraArguments = "--jab-dll ""$JabDll""" }
+    if ($implementation -in 'JNA', 'Jab') {
+        $start = New-CliStartInfo $(if ($bridge) { 'JAB' } else { 'JNA' }) -JvmOptions (ConvertTo-UiaJvmOptions $JvmOptions) `
+            -WithoutPid:$WithoutPid -ExtraArguments $ExtraArguments
     } else {
         $start = New-Object Diagnostics.ProcessStartInfo
         $start.FileName = $CppAgent
         $start.Arguments = '--allow-action invoke --allow-action setValue'
         if (!$WithoutPid) { $start.Arguments += " --allow-pid $($fixture.Id)" }
+        if ($bridge) { $start.Arguments += ' --backend jab' }
+        if ($ExtraArguments) { $start.Arguments += " $ExtraArguments" }
         $start.UseShellExecute = $false
         $start.CreateNoWindow = $true
         $start.RedirectStandardInput = $true
@@ -267,6 +278,7 @@ function Get-FrameworkTree($snapshot) {
         if (!$owned) { $foreign++ }
         # Foreign-hosted content may include text outside the fixture.
         $identity = if ($owned) { @($node.role, $node.name, $node.automationId, $node.className) } else { @('foreign') }
+        if ($owned -and $node.nativeRole) { $identity += $node.nativeRole }
         $path = ,$identity
         $isChrome = $node.role -ceq 'TitleBar'
         if ($node.parentRef) {
@@ -329,7 +341,7 @@ function Get-FrameworkClassification($row, $check) {
     # A lookup that the Agent refuses on a tree which an independent client also cannot identify.
     if ($row.providerOmissions -gt 0 -and $check.reason -match 'INCOMPLETE_SNAPSHOT|incomplete') { return 'UIA_PROVIDER_LIMITATION' }
     # Swing draws lightweight components. UI Automation sees the frame and nothing inside it.
-    if ($row.framework -eq 'Swing' -and $check.reason -match 'ELEMENT_NOT_FOUND|candidate') { return 'JAB_ONLY' }
+    if ($row.framework -eq 'Swing' -and $row.backend -in 'JNA', 'Cpp' -and $check.reason -match 'ELEMENT_NOT_FOUND|candidate') { return 'JAB_ONLY' }
     return 'UNCLASSIFIED'
 }
 
@@ -344,6 +356,8 @@ function Find-FrameworkElement($run, $snapshot, $locator, [string]$scope, [strin
 }
 
 function Get-FixtureLocator($spec, [string]$control, [string]$role) {
+    # Java Access Bridge has no identifier. The accessible name that the application set is the handle.
+    if ($spec.byName) { return @{ role = $role; name = $spec[$control] } }
     $id = $spec[$control]
     $marker = if ($control -eq 'readOnly') { 'read-only-id.txt' } else { "$control-id.txt" }
     if ([IO.File]::Exists((Join-Path $stateDir $marker))) { $id = Read-State $marker }

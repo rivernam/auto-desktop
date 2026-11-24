@@ -202,7 +202,8 @@ function ConvertTo-UiaJvmOptions([string[]]$options) {
     return @($options | Where-Object { $_ } | ForEach-Object { $_ -split '[,\s]+' } | Where-Object { $_ })
 }
 
-function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]$GcLogPath, [string[]]$JvmOptions, [switch]$WithoutPid) {
+function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]$GcLogPath, [string[]]$JvmOptions, [switch]$WithoutPid,
+                          [string]$ExtraArguments) {
     $start = New-Object Diagnostics.ProcessStartInfo
     $start.FileName = $javaExe
     if ($TrackNativeMemory) { $start.Arguments = '-XX:NativeMemoryTracking=summary ' }
@@ -223,8 +224,10 @@ function New-CliStartInfo([string]$backend, [switch]$TrackNativeMemory, [string]
         'PowerShell' { $start.Arguments += ' --backend powershell' }
         'CSharp' { $start.Arguments += " --csharp-worker `"$CSharpWorker`"" }
         'JNA' { $start.Arguments += ' --backend jna' }
+        'JAB' { $start.Arguments += ' --backend jab' }
         default { throw "Unknown backend $backend." }
     }
+    if ($ExtraArguments) { $start.Arguments += " $ExtraArguments" }
     $start.UseShellExecute = $false
     $start.CreateNoWindow = $true
     $start.RedirectStandardInput = $true

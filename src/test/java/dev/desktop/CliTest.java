@@ -59,6 +59,39 @@ class CliTest {
                 InputStream.nullInputStream(), OutputStream.nullOutputStream()));
     }
 
+    @Test void javaAccessBridgeIsSelectedOnlyByName(@TempDir Path directory) throws Exception {
+        String library = directory.resolve("WindowsAccessBridge-64.dll").toString();
+        String previous = System.getProperty(JabBridge.LIBRARY_PROPERTY);
+        try {
+            for (String[] args : List.of(new String[]{"--jab-dll", library},
+                    new String[]{"--backend", "jna", "--jab-dll", library},
+                    new String[]{"--backend", "jab", "--jab-dll", "WindowsAccessBridge-64.dll"},
+                    new String[]{"--backend", "jab", "--jab-dll", library, "--jab-dll", library},
+                    new String[]{"--backend", "jab", "--csharp-worker", "worker.exe"})) {
+                assertEquals(2, Cli.run(args, InputStream.nullInputStream(), OutputStream.nullOutputStream()));
+            }
+            assertNull(System.getProperty(JabBridge.LIBRARY_PROPERTY), "A rejected command line configures nothing.");
+            assertEquals(0, Cli.run(new String[]{"--backend", "jab"},
+                    InputStream.nullInputStream(), OutputStream.nullOutputStream()));
+
+            // The named library is absent. The session reports that and does not answer through UI Automation.
+            var output = new ByteArrayOutputStream();
+            var input = new java.io.ByteArrayInputStream(("{\"id\":\"1\",\"op\":\"getCapabilities\"}\n"
+                    + "{\"id\":\"2\",\"op\":\"listWindows\"}\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            assertEquals(0, Cli.run(new String[]{"--backend", "jab", "--jab-dll", library}, input, output));
+            String[] replies = output.toString(java.nio.charset.StandardCharsets.UTF_8).split("\n");
+            assertEquals(2, replies.length);
+            if (System.getProperty("os.name", "").startsWith("Windows")) {
+                assertTrue(replies[0].contains("\"backend\":\"JAB\"") && replies[0].contains("\"available\":false")
+                        && replies[0].contains("does not exist"), replies[0]);
+            }
+            assertTrue(replies[1].contains("BACKEND_UNAVAILABLE"), replies[1]);
+        } finally {
+            if (previous == null) System.clearProperty(JabBridge.LIBRARY_PROPERTY);
+            else System.setProperty(JabBridge.LIBRARY_PROPERTY, previous);
+        }
+    }
+
     @Test void invalidPolicyStopsBeforeReadingCommands() throws Exception {
         InputStream unreadable = new InputStream() {
             @Override public int read() { throw new AssertionError("read before policy validation"); }

@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /** UI Automation session confined to the COM apartment of its constructor. */
-final class JnaUiaSession implements TypedDesktopAdapter {
+final class JnaUiaSession implements NativeSession {
     private static final int ELEMENT_NOT_AVAILABLE = 0x80040201;
     private static final int UIA_TIMEOUT = 0x80131505;
     private static final int RPC_TIMEOUT = 0x8001011f;
@@ -388,11 +388,8 @@ final class JnaUiaSession implements TypedDesktopAdapter {
         }
     }
 
-    @Override public JsonNode perform(DesktopAction action, String key, int processId, String value) {
-        return perform(action, key, processId, value, () -> {});
-    }
-
-    JsonNode perform(DesktopAction action, String key, int processId, String value, Runnable beforeMutation) {
+    @Override public JsonNode perform(DesktopAction action, String key, int processId, String value,
+                                      Runnable beforeMutation) {
         try (UiaCom.Ref desktop = desktop()) {
             Entry entry = resolve(active, key, processId, desktop, false);
             Info info = inspect(entry.node());

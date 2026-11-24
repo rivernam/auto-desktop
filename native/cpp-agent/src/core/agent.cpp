@@ -71,10 +71,19 @@ Json failure(Json id, const Error& error) {
 }
 
 Json capabilities(const char* backend, bool available) {
-    Json result{{"backend", backend}, {"available", available}, {"physicalInput", false},
+    Availability availability;
+    availability.available = available;
+    return capabilities(backend, availability);
+}
+
+Json capabilities(const char* backend, const Availability& availability) {
+    Json result{{"backend", backend}, {"available", availability.available}, {"physicalInput", false},
                 {"screenshot", false}, {"operations", Json::array()}};
-    if (available) result["operations"] = operations;
-    else result["reason"] = "UI Automation could not access the interactive desktop.";
+    if (availability.available) result["operations"] = operations;
+    else result["reason"] = availability.reason;
+    if (availability.javaWindows)
+        result["bridge"] = {{"javaWindows", availability.javaWindows->first},
+                            {"connectedWindows", availability.javaWindows->second}};
     return result;
 }
 
@@ -110,7 +119,7 @@ Json Agent::handle(const Json& request, RequestDeadline& deadline) {
         Json result;
         expire();
         if (op == "getCapabilities") {
-            result = capabilities(adapter_.backend(), adapter_.available());
+            result = capabilities(adapter_.backend(), adapter_.availability());
         } else if (op == "listWindows") {
             result = Json::array();
             for (const auto& window : adapter_.windows()) {
@@ -258,6 +267,7 @@ Json Agent::info(const Json& request) {
     live.parent = captured.parent;
     // Completeness describes the capture. A live property read cannot change it.
     live.partial = captured.partial;
+    live.partialReason = captured.partialReason;
     return publicElement(index, live);
 }
 
@@ -303,7 +313,11 @@ Json Agent::publicElement(std::size_t index, const Element& row) const {
                 {"className", identity.className}, {"processId", row.pid}, {"bounds", std::move(bounds)},
                 {"enabled", row.enabled}, {"offscreen", row.offscreen}, {"actions", std::move(actions)},
                 {"backend", adapter_.backend()}};
-    if (row.partial) result["partial"] = true;
+    if (!identity.nativeRole.empty()) result["nativeRole"] = identity.nativeRole;
+    if (row.partial) {
+        result["partial"] = true;
+        if (!row.partialReason.empty()) result["partialReason"] = row.partialReason;
+    }
     return result;
 }
 } // namespace desktop

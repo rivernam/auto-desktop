@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <functional>
 #include <optional>
 #include <stdexcept>
@@ -25,10 +26,12 @@ struct Bounds {
 struct Identity {
     std::string name, role, automationId, className;
     bool clipped = false;
+    // The role as the provider names it, when the shared role vocabulary is coarser. Not a locator field.
+    std::string nativeRole;
 
     bool operator==(const Identity& other) const {
         return name == other.name && role == other.role && automationId == other.automationId
-            && className == other.className && clipped == other.clipped;
+            && className == other.className && clipped == other.clipped && nativeRole == other.nativeRole;
     }
 };
 
@@ -43,6 +46,8 @@ struct Element {
     bool writable = false;
     // The capture omitted or cut short part of this element's own subtree.
     bool partial = false;
+    // Optional cause of partial: "limit", "provider" or "limit,provider".
+    std::string partialReason;
 };
 
 struct Window {
@@ -59,6 +64,14 @@ struct Capture {
     bool truncated = false;
 };
 
+struct Availability {
+    bool available = true;
+    // Shown to the operator when the backend cannot be used.
+    std::string reason = "UI Automation could not access the interactive desktop.";
+    // Java Access Bridge: visible Java top-level windows, and those a bridge-enabled JVM answers for.
+    std::optional<std::pair<int, int>> javaWindows;
+};
+
 using BeforeMutation = std::function<void()>;
 using AllowedProcess = std::function<bool(int)>;
 
@@ -67,6 +80,14 @@ public:
     virtual ~DesktopAdapter() = default;
     virtual const char* backend() const { return "UIA"; }
     virtual bool available() { return true; }
+    virtual Availability availability() {
+        Availability result;
+        result.available = available();
+        return result;
+    }
+    // A positive interval asks the session thread to call idle() while no request is running.
+    virtual std::chrono::milliseconds idleInterval() const { return std::chrono::milliseconds::zero(); }
+    virtual void idle() noexcept {}
     virtual std::vector<Window> windows() = 0;
     virtual Capture capture(const std::string& windowId, std::optional<std::size_t> scope,
                             int depth, int limit) = 0;

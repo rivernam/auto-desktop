@@ -39,6 +39,9 @@ final class DesktopSnapshot {
                 copyText(object, properties, field);
             }
             copyText(object, properties, "backend");
+            // Optional diagnostics. They describe the provider and take no part in lookup.
+            copyText(object, properties, "nativeRole");
+            copyText(object, properties, "partialReason");
             if (row.has("offscreen")) {
                 if (!row.get("offscreen").isBoolean()) throw malformed();
                 properties.set("offscreen", row.get("offscreen"));
@@ -151,8 +154,13 @@ final class DesktopSnapshot {
         if (!captured.key().equals(live.key()) || captured.processId() != live.processId()
                 || (live.parentKey() != null && !refByKey.containsKey(live.parentKey()))) throw malformed();
         // Completeness describes the capture. A live property read cannot change it.
-        if (captured.partial()) live.properties().put("partial", true);
-        else live.properties().remove("partial");
+        live.properties().remove("partial");
+        live.properties().remove("partialReason");
+        if (captured.partial()) {
+            live.properties().put("partial", true);
+            if (captured.properties().has("partialReason"))
+                live.properties().set("partialReason", captured.properties().get("partialReason"));
+        }
         return publicElement(live);
     }
 

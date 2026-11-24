@@ -14,6 +14,7 @@ import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Label;
 import java.awt.Panel;
+import java.awt.TextArea;
 import java.awt.TextField;
 import java.awt.Window;
 import java.awt.event.ActionListener;
@@ -32,6 +33,7 @@ import javax.accessibility.AccessibleAction;
 import javax.accessibility.AccessibleContext;
 import javax.accessibility.AccessibleRole;
 import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -40,11 +42,17 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTree;
 import javax.swing.Timer;
@@ -55,6 +63,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 public final class FrameworkFixture {
     private static final String INITIAL_VALUE = "initial fixture value";
     private static final String FIXED_VALUE = "fixed fixture value";
+    private static final String PASSWORD = "synthetic";
     private static final String INCREMENT_LABEL = "Increment fixture counter";
     private static final String OPEN_MODAL_LABEL = "Open fixture modal";
     private static final String CLOSE_MODAL_LABEL = "Close fixture modal";
@@ -71,6 +80,9 @@ public final class FrameworkFixture {
     private Timer commands;
     private TextField awtEdit;
     private TextField awtReadOnly;
+    private TextField awtPassword;
+    private JTabbedPane swingTabs;
+    private int publishedAwtPasswordLength = PASSWORD.length();
     private String publishedAwtValue = INITIAL_VALUE;
     private String publishedAwtReadOnly = FIXED_VALUE;
     private int count;
@@ -98,6 +110,8 @@ public final class FrameworkFixture {
         write("value.txt", INITIAL_VALUE);
         write("read-only.txt", FIXED_VALUE);
         write("disabled-click.txt", "0");
+        // The length only. The masked text itself never reaches a state file.
+        write("password-length.txt", Integer.toString(PASSWORD.length()));
 
         window = swing ? swingWindow() : awtWindow();
         window.addWindowListener(onClose(this::close));
@@ -118,8 +132,17 @@ public final class FrameworkFixture {
         var tabs = named(new JTabbedPane(), "fixtureTabs", "Fixture tabs");
         tabs.addTab("Controls", swingControls());
         tabs.addTab("Data", swingData());
+        swingTabs = tabs;
         content.add(tabs, BorderLayout.CENTER);
         frame.setContentPane(content);
+
+        var menu = named(new JMenu("Fixture menu"), "fixtureMenu", "Fixture menu");
+        var item = named(new JMenuItem("Fixture menu item"), "fixtureMenuItem", "Fixture menu item");
+        item.addActionListener(event -> write("selected.txt", "Fixture menu item"));
+        menu.add(item);
+        var menuBar = new JMenuBar();
+        menuBar.add(menu);
+        frame.setJMenuBar(menuBar);
         return frame;
     }
 
@@ -132,7 +155,17 @@ public final class FrameworkFixture {
         readOnly.setEditable(false);
         onTextChange(readOnly, "read-only.txt");
         addField(fields, "Read-only text", readOnly);
-        addField(fields, "Password", named(new JPasswordField("synthetic", 22), "fixturePassword", "Fixture password"));
+        var password = named(new JPasswordField(PASSWORD, 22), "fixturePassword", "Fixture password");
+        password.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent event) { update(); }
+            @Override public void removeUpdate(DocumentEvent event) { update(); }
+            @Override public void changedUpdate(DocumentEvent event) { update(); }
+
+            private void update() {
+                write("password-length.txt", Integer.toString(password.getPassword().length));
+            }
+        });
+        addField(fields, "Password", password);
 
         var combo = named(new JComboBox<>(CHOICES), "fixtureCombo", "Fixture combo box");
         combo.addActionListener(event -> write("selected.txt", String.valueOf(combo.getSelectedItem())));
@@ -151,6 +184,18 @@ public final class FrameworkFixture {
         check.addItemListener(event -> write("selected.txt", Boolean.toString(check.isSelected())));
         fields.add(check);
         fields.add(button("fixtureModal", OPEN_MODAL_LABEL, event -> showModal()));
+
+        var area = named(new JTextArea("fixture notes", 2, 22), "fixtureTextArea", "Fixture text area");
+        addField(fields, "Notes", new JScrollPane(area));
+        var radios = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        var group = new ButtonGroup();
+        for (String label : new String[] {"Fixture radio one", "Fixture radio two"}) {
+            var radio = named(new JRadioButton(label), "fixtureRadio", label);
+            radio.addActionListener(event -> write("selected.txt", label));
+            group.add(radio);
+            radios.add(radio);
+        }
+        addField(fields, "Mode", radios);
 
         var panel = new JPanel(new BorderLayout(6, 6));
         panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
@@ -200,9 +245,9 @@ public final class FrameworkFixture {
         awtReadOnly.addTextListener(event -> syncAwtTextFiles());
         addField(fields, "Editable text", awtEdit);
         addField(fields, "Read-only text", awtReadOnly);
-        var password = named(new TextField("synthetic", 22), "fixturePassword", "Fixture password");
-        password.setEchoChar('*');
-        addField(fields, "Password", password);
+        awtPassword = named(new TextField(PASSWORD, 22), "fixturePassword", "Fixture password");
+        awtPassword.setEchoChar('*');
+        addField(fields, "Password", awtPassword);
 
         var choice = named(new Choice(), "fixtureCombo", "Fixture combo box");
         for (String value : CHOICES) {
@@ -295,6 +340,12 @@ public final class FrameworkFixture {
         dialog.setLayout(new FlowLayout());
         dialog.add(swing ? new JLabel("Fixture modal dialog") : new Label("Fixture modal dialog"));
         dialog.add(button("fixtureCloseModal", CLOSE_MODAL_LABEL, event -> closeModal()));
+        if (!swing) {
+            // In the dialog, because a second native text control in the frame would share the control
+            // identifier that the UI Automation checks use for the editable field.
+            dialog.add(named(new TextArea("fixture notes", 2, 22, TextArea.SCROLLBARS_NONE), "fixtureTextArea",
+                    "Fixture text area"));
+        }
         dialog.addWindowListener(new WindowAdapter() {
             @Override public void windowOpened(WindowEvent event) { write("modal.txt", "open"); }
             @Override public void windowClosing(WindowEvent event) { closeModal(); }
@@ -330,6 +381,24 @@ public final class FrameworkFixture {
         if (consume("close-modal")) {
             closeModal();
         }
+        // A dialog that the application opens by itself, outside any accessibility request.
+        if (consume("open-modal")) {
+            EventQueue.invokeLater(this::showModal);
+        }
+        if (swing && consume("open-option-pane")) {
+            EventQueue.invokeLater(() -> {
+                write("option.txt", "open");
+                JOptionPane.showMessageDialog(window, "Fixture option pane message", title + " option",
+                        JOptionPane.INFORMATION_MESSAGE);
+                write("option.txt", "closed");
+            });
+        }
+        for (int tab = 0; swing && tab < swingTabs.getTabCount(); tab++) {
+            if (consume("select-tab-" + tab)) {
+                swingTabs.setSelectedIndex(tab);
+                write("tab.txt", swingTabs.getTitleAt(tab));
+            }
+        }
         if (consume("replace-control")) {
             incrementButton.setEnabled(false);
             incrementButton.setName("fixtureRetired");
@@ -345,6 +414,11 @@ public final class FrameworkFixture {
     private void syncAwtTextFiles() {
         publishedAwtValue = publishAwtText(awtEdit, "value.txt", publishedAwtValue);
         publishedAwtReadOnly = publishAwtText(awtReadOnly, "read-only.txt", publishedAwtReadOnly);
+        int passwordLength = awtPassword.getText().length();
+        if (passwordLength != publishedAwtPasswordLength) {
+            publishedAwtPasswordLength = passwordLength;
+            write("password-length.txt", Integer.toString(passwordLength));
+        }
     }
 
     private String publishAwtText(TextField field, String stateFile, String previous) {
@@ -367,10 +441,22 @@ public final class FrameworkFixture {
         try {
             Path pending = stateDirectory.resolve(name + ".pending");
             Files.writeString(pending, content, StandardCharsets.UTF_8);
-            Files.move(pending, stateDirectory.resolve(name), StandardCopyOption.ATOMIC_MOVE,
-                    StandardCopyOption.REPLACE_EXISTING);
+            // Windows refuses to replace a file that a reader holds open at that instant.
+            for (int attempt = 0; ; attempt++) {
+                try {
+                    Files.move(pending, stateDirectory.resolve(name), StandardCopyOption.ATOMIC_MOVE,
+                            StandardCopyOption.REPLACE_EXISTING);
+                    return;
+                } catch (IOException busy) {
+                    if (attempt == 100) throw busy;
+                    Thread.sleep(5);
+                }
+            }
         } catch (IOException failure) {
             throw new UncheckedIOException("Writing " + name, failure);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Writing " + name, interrupted);
         }
     }
 

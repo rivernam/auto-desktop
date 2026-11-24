@@ -21,6 +21,8 @@ The fixture writes atomic UTF-8 state files for its PID (`ready`), toolkit and r
 
 Create the empty command file `replace-control` to replace the increment button, `close-modal` to dismiss the dialog, or `close-fixture` to exit. Replacement completes when `replaced` contains `ready`.
 
+Swing also has a menu bar (**Fixture menu** with **Fixture menu item**), a `JTextArea` and two radio buttons. The AWT modal dialog also holds a `TextArea`. `password-length.txt` holds the length of the masked field and never its text. The command file `open-modal` makes the application open the modal dialog by itself, outside any accessibility request. In Swing, `open-option-pane` shows a `JOptionPane` (`option.txt` is `open`, then `closed`), and `select-tab-0` or `select-tab-1` selects a tab (`tab.txt` holds its title).
+
 ## Java Access Bridge probe
 
 With a Windows x64 OpenJDK distribution that includes `windowsaccessbridge-64.dll`, enable Java Access Bridge for the fixture JVM with its provider property. The following commands use separate PowerShell processes because the fixture runs until closed. Substitute `awt` to inspect the AWT fixture.
