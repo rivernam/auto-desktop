@@ -139,6 +139,17 @@ public final class Agent implements AutoCloseable {
         return backend.adapter;
     }
 
+    /**
+     * Tells every other backend that a request is about to run, or has ended. A provider that walks
+     * the desktop also reaches the hidden windows of this process, and must not wait for their threads.
+     */
+    private void attend(Backend busy, boolean on) {
+        if (!multi) return;
+        for (Backend other : backends) {
+            if (other != busy) other.adapter.attend(on);
+        }
+    }
+
     /** The adapter that issued the backend's current references. A replaced adapter cannot honour them. */
     private DesktopAdapter issuer(Backend backend) {
         DesktopAdapter issuer = backend.adapter;
@@ -152,10 +163,13 @@ public final class Agent implements AutoCloseable {
         boolean available = false;
         for (Backend backend : backends) {
             JsonNode row;
+            attend(backend, true);
             try {
                 row = adapter(backend).capabilities();
             } catch (AgentException failed) {
                 row = DesktopCapabilities.unavailable(backend.name, failed.getMessage());
+            } finally {
+                attend(backend, false);
             }
             available |= row.path("available").asBoolean();
             rows.add(row);
@@ -184,6 +198,7 @@ public final class Agent implements AutoCloseable {
         int failures = 0;
         for (Backend backend : backends) {
             ObjectNode entry = status.addObject().put("backend", backend.name);
+            attend(backend, true);
             try {
                 JsonNode listed = adapter(backend).listWindows();
                 if (!listed.isArray()) throw new AgentException("WORKER_PROTOCOL", "Invalid window list.");
@@ -210,6 +225,8 @@ public final class Agent implements AutoCloseable {
                 failures++;
                 if (first == null) first = failed;
                 else sameCode &= first.code().equals(failed.code());
+            } finally {
+                attend(backend, false);
             }
         }
         if (failures == backends.size()) {
@@ -261,12 +278,15 @@ public final class Agent implements AutoCloseable {
         // The adapter may replace its native references even when a capture fails.
         target.snapshot = null;
         JsonNode captured;
+        attend(target, true);
         try {
             captured = scope == null ? adapter.snapshot(windowId, depth, limit)
                     : adapter.snapshotSubtree(windowId, scope.key(), scope.processId(), depth, limit);
         } catch (AgentException ex) {
             if (scope != null && "SNAPSHOT_SCOPE_UNSUPPORTED".equals(ex.code())) target.snapshot = previous;
             throw ex;
+        } finally {
+            attend(target, false);
         }
         target.snapshot = new DesktopSnapshot(windowId, captured, depth, limit, nanoTime.getAsLong());
         ObjectNode described = target.snapshot.describe();
@@ -296,7 +316,13 @@ public final class Agent implements AutoCloseable {
         Backend backend = owner(ref);
         DesktopSnapshot current = backend.snapshot;
         DesktopSnapshot.Element element = current.resolve(ref);
-        return current.liveInfo(element, issuer(backend).elementInfo(element.key(), element.processId()));
+        DesktopAdapter adapter = issuer(backend);
+        attend(backend, true);
+        try {
+            return current.liveInfo(element, adapter.elementInfo(element.key(), element.processId()));
+        } finally {
+            attend(backend, false);
+        }
     }
 
     private JsonNode perform(ObjectNode request, String id, DesktopAction action) {
@@ -305,7 +331,14 @@ public final class Agent implements AutoCloseable {
         // The action goes to the backend that issued the reference and to no other.
         Backend backend = owner(ref);
         DesktopSnapshot.Element target = backend.snapshot.resolve(ref);
-        JsonNode result = actions.dispatch(issuer(backend), id, action, target, request.path("value"));
+        DesktopAdapter adapter = issuer(backend);
+        JsonNode result;
+        attend(backend, true);
+        try {
+            result = actions.dispatch(adapter, id, action, target, request.path("value"));
+        } finally {
+            attend(backend, false);
+        }
         // The provider accepted the call. Only the application can show that it had an effect.
         if (result instanceof ObjectNode reply && !reply.has("effectVerified")) {
             return reply.deepCopy().put("effectVerified", false);

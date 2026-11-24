@@ -58,6 +58,13 @@ public interface DesktopAdapter extends ReadOnlyDesktopAdapter<JsonNode>, AutoCl
         return false;
     }
 
+    /**
+     * While on, another backend of the same session is inside a request. An adapter whose provider
+     * owns windows in this process answers their messages meanwhile, so that request never waits
+     * for this adapter's thread.
+     */
+    default void attend(boolean on) {}
+
     /** Compatibility entry point for existing JSON worker adapters. */
     JsonNode call(ObjectNode request);
 

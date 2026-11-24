@@ -59,6 +59,20 @@ SessionWorker& MultiSession::live(Slot& slot) {
     return *slot.worker;
 }
 
+// One request to one backend. The other backends serve the messages of their own windows meanwhile:
+// a provider that walks the desktop also reaches the hidden windows of this process.
+Json MultiSession::call(Slot& target, Json request) {
+    auto& worker = live(target);
+    for (auto& slot : slots_) {
+        if (&slot != &target) slot.worker->attend(true);
+    }
+    auto reply = worker.handle(std::move(request));
+    for (auto& slot : slots_) {
+        if (&slot != &target) slot.worker->attend(false);
+    }
+    return reply;
+}
+
 MultiSession::Slot* MultiSession::owner(const std::string& token) {
     for (auto& slot : slots_) {
         if (token.compare(0, slot.prefix.size(), slot.prefix) == 0) return &slot;
@@ -102,7 +116,7 @@ Json MultiSession::handle(Json request) {
     } catch (const Error& error) {
         return failure(std::move(id), error);
     }
-    auto reply = live(*slot).handle(std::move(request));
+    auto reply = call(*slot, std::move(request));
     if (op == "snapshot" && reply.at("ok") == true) reply["result"]["backend"] = slot->config.name;
     return reply;
 }
@@ -119,7 +133,7 @@ Json MultiSession::capabilities(const Json& id) {
             failed.reason = "The backend session was retired after a fault.";
             row = desktop::capabilities(slot.config.name.c_str(), failed);
         } else {
-            const auto reply = worker.handle({{"id", id}, {"op", "getCapabilities"}});
+            const auto reply = call(slot, {{"id", id}, {"op", "getCapabilities"}});
             if (reply.at("ok") == true) {
                 row = reply.at("result");
             } else {
@@ -147,7 +161,7 @@ Json MultiSession::windows(const Json& id) {
     bool sameCode = true;
     std::size_t failures = 0;
     for (auto& slot : slots_) {
-        const auto reply = live(slot).handle({{"id", id}, {"op", "listWindows"}});
+        const auto reply = call(slot, {{"id", id}, {"op", "listWindows"}});
         if (reply.at("ok") == true) {
             for (const auto& window : reply.at("result")) {
                 // The same handle with another owner process is another window. Keep both rows.

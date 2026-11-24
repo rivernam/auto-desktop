@@ -33,6 +33,12 @@ Swing과 AWT 창은 Java Access Bridge 백엔드로 연다. `--backend uia`가 �
 ./target/cpp-agent/Release/cpp-agent.exe --backend jab --allow-pid 1234 --allow-action invoke --allow-action setValue
 ```
 
+`--backend multi`는 UIA와 JAB를 한 프로세스에서 함께 연다. `snapshot` 요청의 `backend`로 `UIA`나 `JAB`를 고른다. [Multi-Backend](../../docs/MULTI-BACKEND.md)
+
+```powershell
+./target/cpp-agent/Release/cpp-agent.exe --backend multi --allow-pid 1234 --allow-action invoke --allow-action setValue
+```
+
 `getCapabilities`, `listWindows`, `snapshot`, `findElement`, `getElementInfo`, `invoke`, `setValue`를 제공한다. `windowId`는 조회 결과에서, `snapshotId`와 `ref`는 최신 스냅샷에서 가져온다. 지원 필드와 오류 코드, 같은 세션에서의 요청 순서는 [공통 API](../../docs/API.md)에 있다.
 
 ## 세션 동작
@@ -41,6 +47,7 @@ Swing과 AWT 창은 Java Access Bridge 백엔드로 연다. `--backend uia`가 �
 - `src/core`는 Locator, 최신 스냅샷의 참조와 120초 만료, 액션 허용 정책, 4,096개의 명령 ID 기록, 요청 기한을 관리한다. 참조는 세션별 GUID에서 파생된 불투명 문자열이다. 새 조회가 Adapter에 전달되면 기존 참조를 폐기한다. 유휴 중 TTL이 만료되면 소유 스레드에서 네이티브 캐시도 해제한다.
 - `src/windows`는 Control View, HWND와 프로세스 시작 시각, Runtime ID, 조상 경로를 검증하는 Adapter다. 창 목록은 데스크톱 직계 창 뒤에 소유 창(모달, 팝업)을 `ownerWindowId`와 함께 덧붙이고, 하위 트리가 잘린 요소에는 `partial`을 표시한다. 원인과 검증은 [UIA Agent 결함 분석](../../docs/UIA-AGENT-DEFECTS.md)에 있다. 창의 시작 시각을 읽을 권한이 없으면 해당 창의 스냅샷이나 참조 재검증을 거부할 수 있다. 편집·비밀번호·ValuePattern 요소의 이름을 가리고 하위 트리를 건너뛴다. Value 속성을 읽지 않는다.
 - `src/windows/jab_adapter.cpp`는 Java Access Bridge Adapter다. 같은 세션 스레드가 브리지 DLL을 로드하고 모든 호출과 창 메시지 처리를 맡으며, 요청이 없을 때도 250 ms마다 메시지를 처리한다. 받은 컨텍스트 핸들은 한 번씩 반환하고, 응답하지 않는 JVM의 핸들은 보류한다. 그런 JVM이 있으면 DLL을 내리지 않고 프로세스를 끝낸다. 요소 모델과 제약은 [Java Access Bridge Adapter](../../docs/JAVA-ACCESS-BRIDGE.md)에 있다.
+- `src/core/multi_session.cpp`는 multi 모드의 라우터다. 백엔드마다 `SessionWorker` 하나(스레드, Adapter, 최신 스냅샷)를 두고 명령 ID 기록만 공유한다. 참조와 스냅샷 ID의 접두사로 발급한 백엔드를 가려 그 워커로만 전달한다. 기한을 넘긴 UIA 워커는 스레드가 끝난 뒤 새 워커로 바뀌고, JAB 워커는 바꾸지 않는다.
 - UIA 호출과 COM 자원 해제는 같은 전용 MTA 스레드에서 수행한다. 요청 기한은 10초다. 변경 호출에 진입하기 전에 기한이 지나면 `TIMEOUT`, 진입한 호출의 결과를 확인할 수 없으면 `ACTION_OUTCOME_UNKNOWN`을 반환한다. Java/JNA는 일부 변경 사전 검사의 타임아웃도 결과 미상으로 처리한다. 타임아웃 뒤 C++ 세션은 폐기되며, 호출이 반환되는 시점에 소유 스레드가 참조를 해제한다. EOF 후 정리가 10초 내 끝나지 않으면 종료 코드 1로 프로세스 종료를 시도한다. 외부 호출자는 응답이 끊긴 변경을 재전송하기 전에 대상 상태를 확인해야 한다.
 
 ## Java/JNA와 비교

@@ -88,6 +88,12 @@ public:
     // A positive interval asks the session thread to call idle() while no request is running.
     virtual std::chrono::milliseconds idleInterval() const { return std::chrono::milliseconds::zero(); }
     virtual void idle() noexcept {}
+    // Handles the provider's own window messages until done() holds. The session thread calls it
+    // while another backend of the same process runs a request, so that request never waits for
+    // this thread. Only an adapter with an idle interval is asked.
+    virtual void serve(const std::function<bool()>& done) noexcept { (void)done; }
+    // Ends a wait inside serve() early. Callable from any thread.
+    virtual void wake() noexcept {}
     virtual std::vector<Window> windows() = 0;
     virtual Capture capture(const std::string& windowId, std::optional<std::size_t> scope,
                             int depth, int limit) = 0;

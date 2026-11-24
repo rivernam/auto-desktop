@@ -26,6 +26,11 @@ class MultiBackendAgentTest {
         boolean finished;
         boolean closed;
         int captures;
+        boolean attending;
+        int attended;
+        // The peer whose attention a request observes.
+        Scripted peer;
+        boolean peerAttendedDuringRequest;
 
         Scripted(String backend) { this.backend = backend; }
 
@@ -40,7 +45,13 @@ class MultiBackendAgentTest {
             return result;
         }
 
+        @Override public void attend(boolean on) {
+            attending = on;
+            if (on) attended++;
+        }
+
         public JsonNode listWindows() {
+            if (peer != null) peerAttendedDuringRequest = peer.attending;
             check();
             var rows = JsonNodeFactory.instance.arrayNode();
             // Window 100 is visible to both backends. Each also has one window of its own.
@@ -342,6 +353,22 @@ class MultiBackendAgentTest {
         fails("BACKEND_UNAVAILABLE", send("snapshot").put("windowId", "100").put("backend", "JAB"));
         assertEquals(1, jabSessions.size());
         capture("UIA");
+    }
+
+    @Test void theOtherBackendAttendsItsWindowsDuringARequest() {
+        uia().peer = jab();
+        jab().peer = uia();
+        ok(send("listWindows"));
+        assertTrue(uia().peerAttendedDuringRequest && jab().peerAttendedDuringRequest);
+        assertFalse(uia().attending || jab().attending, "Attention ends with the request.");
+        int before = jab().attended;
+        JsonNode first = capture("UIA");
+        ok(send("getElementInfo").put("ref", control(first)));
+        ok(send("invoke").put("ref", control(first)));
+        assertEquals(before + 3, jab().attended);
+        uia().failure = "TIMEOUT";
+        fails("TIMEOUT", send("snapshot").put("windowId", "100"));
+        assertFalse(jab().attending, "Attention ends when the request fails.");
     }
 
     @Test void closingTheSessionClosesEveryBackend() {

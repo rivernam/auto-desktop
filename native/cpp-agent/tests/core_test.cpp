@@ -369,14 +369,36 @@ struct Script {
     std::atomic<bool> silent{false};
     std::atomic<bool> blocked{false};
     std::shared_future<void> release;
+    // Set for a provider that owns windows: it serves their messages while its peer runs a request.
+    std::atomic<bool> ownsWindows{false};
+    std::atomic<bool> serving{false};
+    std::atomic<int> served{0};
+    std::atomic<int> woken{0};
+    // The peer whose serving state a request observes.
+    Script* peer = nullptr;
+    std::atomic<bool> peerServedDuringRequest{false};
 };
 
 class Scripted final : public DesktopAdapter {
 public:
     Scripted(const char* name, Script& script) : name_(name), script_(script) { ++script_.sessions; }
     const char* backend() const override { return name_; }
+    std::chrono::milliseconds idleInterval() const override {
+        return script_.ownsWindows ? 50ms : std::chrono::milliseconds::zero();
+    }
+    void serve(const std::function<bool()>& done) noexcept override {
+        ++script_.served;
+        script_.serving = true;
+        while (!done()) std::this_thread::sleep_for(1ms);
+        script_.serving = false;
+    }
+    void wake() noexcept override { ++script_.woken; }
     std::vector<Window> windows() override {
         if (script_.silent) throw Error("TARGET_NOT_RESPONDING", "The target is not answering.");
+        if (script_.peer) {
+            for (int attempt = 0; attempt < 200 && !script_.peer->serving; ++attempt) std::this_thread::sleep_for(1ms);
+            script_.peerServedDuringRequest = script_.peer->serving.load();
+        }
         // Bound the fake provider even if the test itself fails.
         if (script_.blocked) script_.release.wait_for(3s);
         const bool uia = std::string_view(name_) == "UIA";
@@ -412,6 +434,8 @@ private:
 
 void multiBackend() {
     Script uia, jab;
+    // Like the bridge, the second provider owns windows from the start.
+    jab.ownsWindows = true;
     std::promise<void> unblock;
     uia.release = jab.release = unblock.get_future().share();
     {
@@ -472,6 +496,17 @@ void multiBackend() {
                                    {"locator", {{"role", "Button"}}}}), "STALE_REFERENCE");
         error(send("invoke", {{"ref", "other-session-1"}}), "STALE_REFERENCE");
         error(send("invoke", {{"ref", 5}}), "INVALID_REQUEST");
+
+        // While one backend runs a request, a backend that owns windows serves their messages.
+        uia.peer = &jab;
+        listed = send("listWindows");
+        for (int attempt = 0; attempt < 200 && jab.serving; ++attempt) std::this_thread::sleep_for(1ms);
+        check(listed.at("ok") == true && uia.peerServedDuringRequest && jab.served >= 1 && !jab.serving,
+              "the bridge thread serves its windows during a UIA request and stops afterwards");
+        check(send("getElementInfo", {{"ref", button(bridged)}}).at("ok") == true && !jab.serving,
+              "a request for the serving backend is not delayed");
+        check(uia.served == 0, "a backend without windows is never asked to serve");
+        uia.peer = nullptr;
 
         // An action goes to the backend that issued the reference. Command IDs are shared.
         const auto done = session.handle({{"id", "command"}, {"op", "setValue"}, {"ref", button(second)}, {"value", "x"}});

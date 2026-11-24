@@ -33,11 +33,21 @@ bool SessionWorker::stopped() {
     return stopped_;
 }
 
+void SessionWorker::attend(bool on) {
+    {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        attending_ = on;
+        if (!on && served_) served_->wake();
+    }
+    ready_.notify_one();
+}
+
 void SessionWorker::stop() {
     {
         const std::lock_guard<std::mutex> lock(mutex_);
         stopped_ = true;
         pending_.reset();
+        if (served_) served_->wake();
     }
     ready_.notify_one();
 }
@@ -77,6 +87,7 @@ Json SessionWorker::handle(Json request) {
                 ? "Restart the retired UI Automation session." : "Restart the retired provider session."});
         }
         pending_ = work;
+        if (served_) served_->wake();
     }
     ready_.notify_one();
     if (reply.wait_until(work->deadline.expires) == std::future_status::ready) return reply.get();
@@ -94,11 +105,13 @@ void SessionWorker::run(const AdapterFactory& factory, const std::string& sessio
     std::optional<Agent> agent;
     for (;;) {
         std::shared_ptr<Work> work;
+        bool serve = false;
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            const auto ready = [&] { return stopped_ || pending_; };
-            auto wake = agent ? agent->nextExpiry() : Clock::time_point::max();
             const auto tick = adapter ? adapter->idleInterval() : std::chrono::milliseconds::zero();
+            const bool serves = adapter && tick.count() > 0;
+            const auto ready = [&] { return stopped_ || pending_ || (serves && attending_); };
+            auto wake = agent ? agent->nextExpiry() : Clock::time_point::max();
             if (tick.count() > 0) wake = std::min(wake, Clock::now() + tick);
             if (wake != Clock::time_point::max()) {
                 ready_.wait_until(lock, wake, ready);
@@ -107,6 +120,18 @@ void SessionWorker::run(const AdapterFactory& factory, const std::string& sessio
             }
             if (stopped_) return;
             work = std::move(pending_);
+            serve = !work && serves && attending_;
+            if (serve) served_ = adapter.get();
+        }
+        if (serve) {
+            // Another backend is inside a request. Answer the messages of this provider's windows at once.
+            adapter->serve([&] {
+                const std::lock_guard<std::mutex> lock(mutex_);
+                return stopped_ || pending_ || !attending_;
+            });
+            const std::lock_guard<std::mutex> lock(mutex_);
+            served_ = nullptr;
+            continue;
         }
         if (!work) {
             agent->expire();

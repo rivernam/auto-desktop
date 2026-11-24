@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 
 /**
  * Java Access Bridge session for AWT and Swing windows, confined to the thread of its constructor.
@@ -130,6 +131,19 @@ final class JabSession implements NativeSession {
         bridge.pump();
         releaseDeferred();
     }
+
+    /**
+     * The bridge keeps a hidden window on this thread. A UI Automation client that walks the desktop
+     * sends it messages and waits for the answer, so they are handled as they arrive.
+     */
+    @Override public void serve(BooleanSupplier done) {
+        while (!closed && !done.getAsBoolean() && !Thread.currentThread().isInterrupted()) {
+            bridge.pump();
+            bridge.await(250);
+        }
+    }
+
+    @Override public void wake() { bridge.wake(); }
 
     @Override public JsonNode capabilities() {
         try {

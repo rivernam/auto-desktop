@@ -39,6 +39,10 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
     private String startFailure;
     // Guarded by this. Set by close(), which ends the adapter for good.
     private boolean closed;
+    // True while another backend of the same session runs a request.
+    private volatile boolean attending;
+    // The session once it exists, for the one call that any thread may make on it.
+    private volatile NativeSession waker;
 
     private static final class Request {
         // Guarded by the adapter monitor, including the claim by the apartment thread.
@@ -112,6 +116,31 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         ticker.start();
     }
 
+    /**
+     * While on, the session thread answers the messages of the provider's own windows as they
+     * arrive. A request for this adapter ends that at once.
+     */
+    @Override public void attend(boolean on) {
+        if (idleMillis <= 0 || !windows) return;
+        synchronized (this) {
+            attending = on;
+            if (retired) return;
+            if (on) {
+                apartment.submit(() -> {
+                    if (session instanceof NativeSession serving)
+                        serving.serve(() -> !attending || !apartment.getQueue().isEmpty());
+                });
+                return;
+            }
+        }
+        wake();
+    }
+
+    private void wake() {
+        NativeSession target = waker;
+        if (target != null) target.wake();
+    }
+
     @Override public JsonNode capabilities() {
         try {
             return dispatch(TypedDesktopAdapter::capabilities);
@@ -172,6 +201,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
                         retire();
                         throw unavailable("Could not initialize " + provider + " through JNA.");
                     }
+                    if (session instanceof NativeSession created) waker = created;
                 }
                 // Initialization or an earlier native call may have consumed the budget.
                 checkReady(deadline, mutation);
@@ -188,6 +218,8 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
                 }
             });
         }
+        // A session that is serving its windows for another backend turns to this request now.
+        wake();
         try {
             return reply.get(deadline - System.nanoTime(), TimeUnit.NANOSECONDS);
         } catch (TimeoutException e) {
@@ -263,6 +295,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
         if (apartment.getPoolSize() > 0) {
             // Release COM pointers on their owning apartment once an in-flight call returns.
             apartment.submit(() -> {
+                waker = null;
                 if (session != null) {
                     try { session.close(); }
                     finally { session = null; }
@@ -270,6 +303,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
             });
         }
         apartment.shutdown();
+        wake();
     }
 
     /** A provider that cannot start is not retried. Its reason stays in the capabilities. */

@@ -23,6 +23,8 @@ public:
     void onAbandon(std::function<void()> handler) { abandon_ = std::move(handler); }
     // True once a fault or a timeout retired the session. Later requests are refused.
     bool stopped();
+    // While on, the session thread serves the provider's own messages between requests.
+    void attend(bool on);
     // True once the session thread has released its provider and ended.
     bool finished() const { return finished_; }
 
@@ -42,6 +44,9 @@ private:
     std::condition_variable ready_;
     std::shared_ptr<Work> pending_;
     bool stopped_ = false;
+    bool attending_ = false;
+    // The adapter inside serve(), which wake() may be called on. Guarded by mutex_.
+    DesktopAdapter* served_ = nullptr;
     CommandHistory ownHistory_;
     // Shared with the other backends of a multi-backend session.
     CommandHistory& history_;

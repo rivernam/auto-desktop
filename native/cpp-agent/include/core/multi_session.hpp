@@ -36,6 +36,7 @@ private:
 
     void start(Slot& slot);
     SessionWorker& live(Slot& slot);
+    Json call(Slot& target, Json request);
     Slot* owner(const std::string& token);
     Slot* route(const Json& request, std::string_view op, const Json& id);
     Json capabilities(const Json& id);
