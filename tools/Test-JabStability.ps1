@@ -161,9 +161,21 @@ try {
     $steady = [ordered]@{ iterations = 0; failures = New-Object 'Collections.Generic.List[object]'; samples = New-Object 'Collections.Generic.List[object]' }
     $report.steady = $steady
     $latencies = [ordered]@{}
+    $codes = @{}
+    $mutations = 0
+    $steady.sessions = 1
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $nextSample = 0
     while ($clock.Elapsed.TotalSeconds -lt $DurationSeconds) {
+        # One session dispatches at most 4,096 commands. Start the next session before that limit.
+        if ($mutations -ge 4000) {
+            foreach ($request in $run.requests) { $codes[$request.code] = 1 + [int]$codes[$request.code] }
+            Stop-Cli $run.cli JNA
+            $run = Start-FrameworkAgent $Backend
+            $window = Get-FrameworkWindow $run
+            $mutations = 0
+            $steady.sessions++
+        }
         if ($clock.Elapsed.TotalSeconds -ge $nextSample) {
             $steady.samples.Add((Get-StabilitySample $run $steady.iterations))
             $nextSample += $SampleSeconds
@@ -172,6 +184,7 @@ try {
         $times = [ordered]@{}
         try {
             Invoke-StabilityIteration $run $window $times
+            $mutations += $(if ($Framework -eq 'Swing') { 2 } else { 1 })
             Add-UiaLatencies $latencies $times
             $steady.iterations++
         } catch {
@@ -182,9 +195,10 @@ try {
     $steady.samples.Add((Get-StabilitySample $run $steady.iterations))
     $steady.elapsedSeconds = $clock.Elapsed.TotalSeconds
     $steady.latencyMs = Get-UiaLatencySummary $latencies
-    $steady.requests = $run.requests.Count
+    foreach ($request in $run.requests) { $codes[$request.code] = 1 + [int]$codes[$request.code] }
     $steady.requestCodes = [ordered]@{}
-    foreach ($group in $run.requests | Group-Object { $_.code } | Sort-Object Name) { $steady.requestCodes[$group.Name] = $group.Count }
+    foreach ($code in $codes.Keys | Sort-Object) { $steady.requestCodes[$code] = $codes[$code] }
+    $steady.requests = ($codes.Values | Measure-Object -Sum).Sum
     $run.requests.Clear()
     $steady.growth = [ordered]@{
         agentPrivateBytes = Get-Growth $steady.samples { param($s) $s.agent.privateBytes }
