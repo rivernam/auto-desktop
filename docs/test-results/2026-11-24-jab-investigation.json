@@ -169,15 +169,14 @@
   "status": "NOT_RUN for exploration and actions: no 32-bit bridge library and no 32-bit JVM on this host."
  },
  "mfc": {
-  "status": "NOT_RUN",
-  "checked": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\atlmfc\\include\\afxwin.h is absent. vswhere lists no ATL or MFC package.",
-  "toInstall": "\"C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\setup.exe\" modify --installPath \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\" --add Microsoft.VisualStudio.Component.VC.ATLMFC --quiet --norestart",
-  "thenRun": [
-   "cmake -S tests/fixtures/mfc -B target/framework-fixtures/build-mfc -G \"Visual Studio 17 2022\" -A x64",
-   "cmake --build target/framework-fixtures/build-mfc --config Release",
-   "tools/Test-UiaFrameworks.ps1 -Framework Mfc -Backend Both -DiagnoseAccessibility"
-  ],
-  "note": "The installation changes the development environment and needs elevation. It was not performed."
+  "status": "RUN after the first report",
+  "before": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\atlmfc\\include\\afxwin.h is absent. vswhere lists no ATL or MFC package.",
+  "installed": "Microsoft.VisualStudio.Component.VC.ATLMFC through the Visual Studio Installer, with the approval of the user. atlmfc\\include\\afxwin.h and atlmfc\\lib\\x64\\uafxcw.lib exist afterwards.",
+  "command": "\"C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\setup.exe\" modify --installPath \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\" --add Microsoft.VisualStudio.Component.VC.ATLMFC --quiet --norestart",
+  "firstRun": "18 of 21 on both agents. The modal check failed and two later checks did not run: the fixture wrote the dialog result (canceled) into modal.txt, where the Win32 fixture and the runner use modal-result.txt for the result and modal.txt=closed. The agents had opened, listed, captured and closed the dialog.",
+  "fixtureChange": "tests/fixtures/mfc/fixture.cpp now writes <popup>-result.txt and then closed, as the Win32 fixture does.",
+  "result": "21 of 21 on both agents, identical trees of 79 elements. See 2026-11-24-jab-uia-mfc.json (the working tree held the fixture change, so git.dirty is true) and 2026-11-24-jab-uia-mfc-frames.json.",
+  "notRun": "The x86 MFC build, MSAA comparison of owner-drawn controls beyond the 256-node probe, and menus."
  },
  "delphiVcl": {
   "status": "NOT_RUN",

@@ -16,9 +16,10 @@ Windows 11 Pro 25H2(빌드 26200), Agent x64, 대상 JVM Oracle JDK 17.0.10과 E
 | JAB 반복 안정성, AWT 5분 | Java/JNA 4,042회, C++ 4,481회, 실패 0 | [Java](test-results/2026-11-24-jab-stability-java-awt.json) · [C++](test-results/2026-11-24-jab-stability-cpp-awt.json) |
 | UIA 회귀, 여섯 프레임워크 | 256개 중 PASS 214, 이전 결과와 검사 단위까지 같음 | [JSON](test-results/2026-11-24-jab-uia-regression.json) |
 | UIA, Win32 x86 픽스처와 x86 C++ Agent | 22/22 | [x86 픽스처](test-results/2026-11-24-jab-uia-win32-x86.json) · [x86 Agent](test-results/2026-11-24-jab-uia-cpp-x86.json) |
+| UIA, MFC x64 대화상자 (구성 요소 설치 후 첫 실행) | 두 Agent 21/21, 트리 일치. SDI·MDI·Property Sheet는 탐색 확인 | [JSON](test-results/2026-11-24-jab-uia-mfc.json) · [프레임](test-results/2026-11-24-jab-uia-mfc-frames.json) |
 | 원인 실험, 환경 조사, MSAA 프로브 | 기록 | [JSON](test-results/2026-11-24-jab-investigation.json) |
 
-통과하지 못한 JAB 검사는 Swing의 모달을 여는 버튼과 AWT의 텍스트 입력이며 둘 다 Java 쪽 구현의 제약이다. 미실행: Java 6·7·8·11·21과 32비트 JVM, 32비트 브리지, MFC, Delphi VCL, 1시간 이상 연속 시험. 최종 실행 중 Java 17 Swing 실행 한 번이 픽스처의 명령 파일 경합으로 실패했다. 픽스처를 고친 뒤 다시 실행한 결과를 저장했다.
+통과하지 못한 JAB 검사는 Swing의 모달을 여는 버튼과 AWT의 텍스트 입력이며 둘 다 Java 쪽 구현의 제약이다. 미실행: Java 6·7·8·11·21과 32비트 JVM, 32비트 브리지, Delphi VCL, 1시간 이상 연속 시험. MFC 결과는 픽스처 수정이 작업 트리에 있는 상태에서 측정해 `git.dirty`가 true다. 최종 실행 중 Java 17 Swing 실행 한 번이 픽스처의 명령 파일 경합으로 실패했다. 픽스처를 고친 뒤 다시 실행한 결과를 저장했다.
 
 ## JNA 장시간 측정 및 분석 도구
 

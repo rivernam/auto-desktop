@@ -285,7 +285,11 @@ private:
         popupStateFile_ = file;
         const auto result = dialog.DoModal();
         popup_ = nullptr;
-        controls_.state.Write(file, result == IDOK ? L"accepted" : result == IDCANCEL ? L"canceled" : L"failed");
+        // Same contract as the Win32 fixture: the result in its own file, then the popup state.
+        std::wstring resultFile(file);
+        resultFile.insert(resultFile.rfind(L'.'), L"-result");
+        controls_.state.Write(resultFile.c_str(), result == IDOK ? L"accepted" : result == IDCANCEL ? L"canceled" : L"failed");
+        controls_.state.Write(file, L"closed");
         if (closePending_) PostMessage(WM_CLOSE);
     }
 

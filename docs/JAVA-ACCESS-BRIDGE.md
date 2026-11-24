@@ -13,7 +13,8 @@ Swing과 AWT 창은 UI Automation에 창 틀만 보인다. 두 Agent(Java/JNA, C
 | AWT 버튼 | UIA Invoke, `BM_CLICK`, MSAA 기본 동작으로는 움직이지 않던 `java.awt.Button`이 JAB에서는 실제로 실행된다. |
 | 두 구현의 일치 | Swing과 AWT 모두 두 Agent가 같은 트리를 캡처했고 모든 검사에서 같은 판정을 냈다. |
 | 기존 UIA 회귀 | Win32, WPF, WinForms 두 종류, Swing, AWT 모두 이전 결과와 같다. |
-| 미실행 | Java 6·7·8·11·21 대상 JVM, x86 JVM과 x86 브리지, MFC, Delphi VCL, 1시간 이상 연속 시험은 아래에 사유와 함께 적었다. |
+| MFC (UIA) | MFC 구성 요소를 설치해 처음으로 실행했다. 두 Agent 모두 21/21, 트리 일치. |
+| 미실행 | Java 6·7·8·11·21 대상 JVM, x86 JVM과 x86 브리지, Delphi VCL, 1시간 이상 연속 시험은 아래에 사유와 함께 적었다. |
 
 ## 구조
 
@@ -348,7 +349,8 @@ JAB를 넣은 뒤 같은 명령으로 UIA 회귀를 다시 돌렸다. 256개 검
 | AWT (UIA) | 15/19 | 15/19 |
 | Swing (UIA) | 6/19 | 6/19 |
 | Win32 x86 픽스처 | 22/22 | 22/22, x86 Agent도 22/22 |
-| MFC, Delphi VCL | NOT_RUN | NOT_RUN |
+| MFC x64 | 21/21 | 21/21 |
+| Delphi VCL | NOT_RUN | NOT_RUN |
 
 단위 테스트는 Java 83개 중 79개 실행·통과(나머지 4개는 GUI 통합 테스트), C++ 코어 테스트는 x64와 x86에서 통과했다. Java GUI 통합 테스트는 PowerShell과 JNA 백엔드 2개가 통과했고 C# 워커가 필요한 2개는 워커가 빌드돼 있지 않아 건너뛰었다.
 
@@ -410,16 +412,30 @@ AWT 설비 화면은 버튼은 JAB, 텍스트 입력은 UIA가 필요한 실제 
 
 MSAA는 UIA가 참조를 주지 못한 요소를 보여 준다. 그러나 **위치보다 강한 동일성을 제공하지 않는다.** 이 프로젝트는 자식 번호나 이름이 같다는 이유로 같은 요소라고 판단하지 않는다는 원칙을 갖고 있고, JAB Adapter도 그렇게 만들었다. MSAA Adapter는 이 원칙을 그대로 지키면 참조를 발급할 수 없다. 목록 선택에서는 호출이 반환해도 앱이 반응하지 않는 사례도 나왔다.
 
-따라서 다음 단계에서 MSAA Adapter를 바로 구현하기보다 먼저 정할 것이 있다. 위치로만 식별되는 요소에 "약한 참조"를 허용할지, 허용한다면 어떤 재검증(부모 HWND, 자식 수, 이름, 역할)과 어떤 표시를 붙일지다. MFC와 Delphi VCL에서 MSAA가 필요한 사례가 있는지는 두 픽스처를 실행하지 못해 확인하지 못했다. 이 두 가지가 정해지면 범위를 다음과 같이 제안한다. 읽기 전용 탐색, 위치 기반 참조의 명시적 표시, 기본 동작(`accDoDefaultAction`)과 선택(`accSelect`)을 별도 액션으로 추가, 조작 후 앱 상태 확인 절차.
+따라서 다음 단계에서 MSAA Adapter를 바로 구현하기보다 먼저 정할 것이 있다. 위치로만 식별되는 요소에 "약한 참조"를 허용할지, 허용한다면 어떤 재검증(부모 HWND, 자식 수, 이름, 역할)과 어떤 표시를 붙일지다. MFC 픽스처에서는 UIA만으로 모든 요소를 읽어 MSAA가 필요한 사례가 나오지 않았다. Delphi VCL은 픽스처를 실행하지 못해 확인하지 못했다. 이 두 가지가 정해지면 범위를 다음과 같이 제안한다. 읽기 전용 탐색, 위치 기반 참조의 명시적 표시, 기본 동작(`accDoDefaultAction`)과 선택(`accSelect`)을 별도 액션으로 추가, 조작 후 앱 상태 확인 절차.
 
 ## MFC와 Delphi VCL
 
-두 픽스처 모두 이번에도 실행하지 못했다. 다른 프레임워크로 대체하지 않았다.
+MFC는 사용자 승인을 받아 Visual Studio Installer로 `Microsoft.VisualStudio.Component.VC.ATLMFC`를 설치한 뒤 실행했다. Delphi VCL은 실행하지 못했고 다른 프레임워크로 대체하지 않았다.
 
 | 대상 | 상태 | 확인한 것 | 필요한 조치 |
 |---|---|---|---|
-| MFC | `NOT_RUN` | 설치된 MSVC 14.44의 `atlmfc\include\afxwin.h`가 없고 `vswhere`에 ATL/MFC 패키지가 없다. | Visual Studio Installer에서 `Microsoft.VisualStudio.Component.VC.ATLMFC`를 추가한다. 관리자 권한이 필요하고 개발 환경을 바꾸므로 수행하지 않았다. 명령은 아래에 있다. |
+| MFC x64 (UIA 백엔드) | 두 Agent 21/21 | 대화상자 픽스처 79개 요소, 트리 일치. 버튼, 편집, owner-drawn 버튼, 교체, 10,000행 가상 목록의 제한 표시, 모달을 통과했다. | x86 MFC 빌드와 메뉴는 미실행 |
 | Delphi VCL | `NOT_RUN` | `dcc32`, `dcc64`, `bds`가 없고 Embarcadero·Borland 설치 흔적이 없다. | 라이선스가 있는 Delphi(Win32 컴파일러, VCL, DataSnap/MIDAS) 설치. 빌드 절차는 [픽스처 README](../tests/fixtures/delphi-vcl/README.md)에 있다. |
+
+MFC의 첫 실행은 18/21이었다. 원인은 픽스처였다. 모달의 결과(`canceled`)를 `modal.txt`에 썼는데, Win32 픽스처와 검사는 결과를 `modal-result.txt`에, 닫힘을 `modal.txt=closed`로 쓴다. Agent는 모달을 열고, 창 목록에서 찾고, 자체 스냅샷으로 닫는 데까지 성공한 상태였다. 픽스처를 같은 규약으로 고친 뒤 21/21이 됐다. [원본](test-results/2026-11-24-jab-uia-mfc.json)
+
+회귀 검사는 대화상자만 다룬다. SDI 프레임, MDI 프레임, Property Sheet는 픽스처의 버튼을 Invoke로 눌러 열고 두 Agent로 따로 캡처했다. 결과는 두 Agent가 같다. [원본](test-results/2026-11-24-jab-uia-mfc-frames.json)
+
+| 창 | 창 목록 | 스냅샷 |
+|---|---|---|
+| SDI 프레임 (`AfxFrameOrView140su`) | 소유자 없는 창으로 나열 | 3개 요소: Window, Edit, TitleBar |
+| MDI 프레임 (`AfxMDIFrame140su`) | 소유자 없는 창으로 나열 | 9개 요소: 프레임과 자식 문서 창 2개(각각 Window와 Edit) |
+| Property Sheet (`#32770`) | `ownerWindowId`가 있는 소유 창으로 나열 | 10개 요소: Tab과 TabItem 2개(General, Advanced), 버튼 3개, Edit |
+
+이 픽스처에서 UIA만으로 읽지 못한 요소는 없었다. MFC에서 MSAA가 필요한 사례는 이 범위에서는 나오지 않았다. 탭 선택과 메뉴는 API에 액션이 없어 조작하지 않았다.
+
+설치와 재현 명령:
 
 ```powershell
 & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" modify `
@@ -449,7 +465,7 @@ cmake --build target/framework-fixtures/build-mfc --config Release
 2. 모달을 여는 Swing 버튼의 처리 방침을 정한다. 앱 수정 가이드, 또는 명시적 허용과 capability를 가진 별도 입력 Adapter 중 하나다.
 3. 선택·토글·펼치기 액션을 API에 추가한다(탭, 체크박스, 콤보, 메뉴, 트리). JAB는 접근성 액션과 선택 인터페이스로 지원할 수 있다.
 4. UIA와 JAB를 함께 여는 읽기 전용 Router를 만든다. AWT처럼 두 백엔드가 모두 필요한 창이 대상이다.
-5. MFC 구성 요소를 설치해 MFC 픽스처를 검증하고, Delphi 환경을 확보한다.
+5. Delphi 환경을 확보해 VCL 픽스처를 검증한다. MFC는 x86 빌드와 메뉴를 추가로 본다.
 6. MSAA의 위치 기반 참조 정책을 정한 뒤 Adapter 범위를 확정한다.
 7. 1시간 이상 연속 시험과 대량 요소 화면의 성능을 측정한다.
 

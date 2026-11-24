@@ -17,7 +17,7 @@ Invoke와 SetValue의 응답을 실제 GUI의 카운터와 입력값에 대조�
 | UI 프레임워크 | JNA 탐색 | C++ 탐색 | JNA 조작 | C++ 조작 | 접근성 기술과 제약 |
 |---|---|---|---|---|---|
 | Win32 Native x64 | PASS | PASS | PASS | PASS | 기본 트리 76개와 목록 하위 범위, 일반·owner-drawn 버튼, 편집, 교체 검증. 소유 대화상자를 창 목록에서 찾아 자체 스냅샷으로 닫았다. |
-| MFC | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | 실제 MFC Dialog, SDI, MDI, Property Sheet 소스 준비. 설치된 VS의 ATL 경로에 MFC 헤더와 라이브러리가 없다. |
+| MFC x64 | PASS | PASS | PASS | PASS | 2026-11-24에 MFC 구성 요소를 설치해 실행했다. 대화상자 79개 요소에서 두 Agent 21/21, 트리 일치. SDI·MDI 프레임과 Property Sheet는 창 목록과 스냅샷까지 확인했다. x86 빌드와 메뉴는 미실행. [결과](test-results/2026-11-24-jab-uia-mfc.json) · [프레임](test-results/2026-11-24-jab-uia-mfc-frames.json) |
 | Delphi VCL | NOT_RUN | NOT_RUN | NOT_RUN | NOT_RUN | 실제 TStringGrid/TDBGrid/TTreeView/TListView, owner-drawn 및 TCustomControl 소스 준비. Delphi 컴파일러 부재. |
 | Swing | PARTIAL | PARTIAL | NOT_RUN | NOT_RUN | UIA에는 창과 내부 프레임만 보였다. 컨트롤은 Java Access Bridge에서 관찰됐다. |
 | AWT | PARTIAL | PARTIAL | PARTIAL | PARTIAL | UIA에서 HWND 기반 버튼·Edit·List를 읽고 두 Agent에서 편집 필드 변경을 확인했다. 버튼은 Invoke가 반환되어도 카운터가 증가하지 않았다. 직접 보낸 `BM_CLICK`과 MSAA 기본 동작도 같아 Provider 제약으로 분류했다. |
