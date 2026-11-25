@@ -14,6 +14,7 @@ import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.Label;
 import java.awt.Panel;
+import java.awt.Point;
 import java.awt.TextArea;
 import java.awt.TextField;
 import java.awt.Window;
@@ -120,8 +121,13 @@ public final class FrameworkFixture {
         window = swing ? swingWindow() : awtWindow();
         window.addWindowListener(onClose(this::close));
         window.pack();
+        // Never focusable: neither showing the window nor an automation action may take the focus of whoever is
+        // using the PC. The fixture is driven through accessibility APIs, which do not need it.
+        window.setAutoRequestFocus(false);
+        window.setFocusableWindowState(false);
         window.setLocationByPlatform(true);
         window.setVisible(true);
+        window.toBack();
         commands = new Timer(50, event -> pollCommands());
         commands.start();
         write("ready", Long.toString(ProcessHandle.current().pid()));
@@ -338,6 +344,9 @@ public final class FrameworkFixture {
         });
     }
 
+    private Point windowPlace;
+    private Point dialogPlace;
+
     private void showModal() {
         if (modal != null) {
             return;
@@ -358,6 +367,9 @@ public final class FrameworkFixture {
         }
         dialog.addWindowListener(new WindowAdapter() {
             @Override public void windowOpened(WindowEvent event) {
+                window.toBack();
+                window.setLocation(windowPlace);
+                dialog.setLocation(dialogPlace);
                 trace("modalOpened", 0);
                 write("modal.txt", "open");
             }
@@ -365,6 +377,14 @@ public final class FrameworkFixture {
         });
         dialog.pack();
         dialog.setLocationRelativeTo(window);
+        dialog.setAutoRequestFocus(false);
+        dialog.setFocusableWindowState(false);
+        // Showing a modal dialog puts it and its owner on top of the other windows. Both wait off screen until
+        // the dialog is open and the owner, with the dialog, is sent behind the other windows.
+        dialogPlace = dialog.getLocation();
+        windowPlace = window.getLocation();
+        window.setLocation(-32000, -32000);
+        dialog.setLocation(-32000, -32000);
         dialog.setVisible(true);
         trace("modalShowReturned", 0);
     }

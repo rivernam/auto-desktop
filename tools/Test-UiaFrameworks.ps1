@@ -204,7 +204,7 @@ public static class FrameworkInputDesktop {
         return window;
     }
     public static void SetMinimized(long handle, uint pid, bool minimized) {
-        if (!ShowWindowAsync(OwnedWindow(handle, pid), minimized ? 6 : 9))
+        if (!ShowWindowAsync(OwnedWindow(handle, pid), minimized ? 7 : 4))  // SW_SHOWMINNOACTIVE / SW_SHOWNOACTIVATE: no focus change for the PC's user
             throw new InvalidOperationException("The fixture did not receive a window visibility request.");
     }
     public static bool Minimized(long handle, uint pid) { return IsIconic(OwnedWindow(handle, pid)); }

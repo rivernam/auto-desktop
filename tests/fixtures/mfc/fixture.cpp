@@ -19,6 +19,14 @@ constexpr Control kMfcControls[]{
     {Kind::Button, kOpenProperties, L"Open property sheet", kInput, 442, 472, 224, 28},
 };
 
+// ActivateFrame and the dialog manager (SW_SHOWNORMAL for a hidden dialog) activate the window. The fixture
+// windows are shown here without activation and never focus a control, so a test run does not take the focus
+// of whoever is using the PC.
+void ShowQuietly(CWnd& window) {
+    window.ShowWindow(SW_SHOWNOACTIVATE);
+    window.SetWindowPos(&CWnd::wndBottom, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+}
+
 template <typename Frame>
 class OwnedFrame : public Frame {
 private:
@@ -29,7 +37,7 @@ class SdiFrame final : public OwnedFrame<CFrameWnd> {
 public:
     bool Open(const std::wstring& title) {
         if (!GetSafeHwnd()) {
-            if (!Create(nullptr, title.c_str(), WS_OVERLAPPEDWINDOW, CRect(120, 120, 580, 370))) return false;
+            if (!Create(nullptr, title.c_str(), WS_OVERLAPPEDWINDOW, CRect(120, 120, 580, 370), nullptr, nullptr, WS_EX_NOACTIVATE)) return false;
             if (!edit_.Create(kInput | WS_BORDER | ES_AUTOHSCROLL, CRect(16, 16, 405, 46), this, 2100)) {
                 DestroyWindow();
                 return false;
@@ -37,7 +45,7 @@ public:
             edit_.SetWindowText(L"Fixture SDI document");
             SetControlFont(edit_.GetSafeHwnd());
         }
-        ActivateFrame();
+        ShowQuietly(*this);
         return true;
     }
 
@@ -66,14 +74,14 @@ class MdiFrame final : public OwnedFrame<CMDIFrameWnd> {
 public:
     bool Open(const std::wstring& title) {
         if (!GetSafeHwnd()) {
-            if (!Create(nullptr, title.c_str(), WS_OVERLAPPEDWINDOW, CRect(140, 140, 770, 510))) return false;
+            if (!Create(nullptr, title.c_str(), WS_OVERLAPPEDWINDOW, CRect(140, 140, 770, 510), nullptr, nullptr, WS_EX_NOACTIVATE)) return false;
             if (!first_.Open(this, L"Fixture document one", CRect(10, 15, 285, 162)) ||
                 !second_.Open(this, L"Fixture document two", CRect(292, 25, 567, 172))) {
                 DestroyWindow();
                 return false;
             }
         }
-        ActivateFrame();
+        ShowQuietly(*this);
         return true;
     }
 
@@ -94,8 +102,10 @@ public:
 private:
     BOOL OnInitDialog() override {
         CDialog::OnInitDialog();
+        ModifyStyleEx(0, WS_EX_NOACTIVATE);  // never takes the focus of whoever is using the PC
         SetWindowText(title_.c_str());
-        return TRUE;
+        ShowWindow(SW_SHOWNOACTIVATE);
+        return FALSE;
     }
 
     std::wstring title_;
@@ -117,6 +127,19 @@ private:
     const wchar_t* label_;
 };
 
+class QuietSheet final : public CPropertySheet {
+public:
+    QuietSheet(const wchar_t* title, CWnd* parent) : CPropertySheet(title, parent) {}
+
+private:
+    BOOL OnInitDialog() override {
+        const auto result = CPropertySheet::OnInitDialog();
+        ModifyStyleEx(0, WS_EX_NOACTIVATE);  // never takes the focus of whoever is using the PC
+        ShowWindow(SW_SHOWNOACTIVATE);
+        return result;
+    }
+};
+
 class FixtureDialog final : public CDialog {
 public:
     explicit FixtureDialog(const Arguments& arguments)
@@ -127,6 +150,7 @@ public:
 private:
     BOOL OnInitDialog() override {
         CDialog::OnInitDialog();
+        ModifyStyleEx(0, WS_EX_NOACTIVATE);  // never takes the focus of whoever is using the PC
         SetWindowText(title_.c_str());
         RECT bounds{0, 0, kClientWidth, kClientHeight};
         ::AdjustWindowRectEx(&bounds, GetStyle(), FALSE, GetExStyle());
@@ -151,7 +175,8 @@ private:
         version.Format(L"MFC 0x%04X", static_cast<unsigned>(_MFC_VER));
         controls_.Initialize(GetSafeHwnd(), static_cast<const wchar_t*>(version));
         if (!controls_.state.Healthy() || !SetTimer(kStateTimer, 25, nullptr)) EndDialog(IDCANCEL);
-        return TRUE;
+        ShowQuietly(*this);
+        return FALSE;
     }
 
     template <typename ControlType>
@@ -272,7 +297,7 @@ private:
         const auto title = title_ + L" properties";
         FixturePage general(IDD_FIXTURE_GENERAL, controls_.state, L"General");
         FixturePage advanced(IDD_FIXTURE_ADVANCED, controls_.state, L"Advanced");
-        CPropertySheet sheet(title.c_str(), this);
+        QuietSheet sheet(title.c_str(), this);
         sheet.AddPage(&general);
         sheet.AddPage(&advanced);
         RunPopup(sheet, L"properties.txt");
@@ -319,7 +344,8 @@ class FixtureApp final : public CWinApp {
 private:
     BOOL InitInstance() override {
         const auto arguments = ReadArguments();
-        if (!arguments || !InitializeCommonControls() || !CWinApp::InitInstance()) return FALSE;
+        if (!arguments || !InitializeCommonControls() || !CWinApp::InitInstance() || !RefuseActivationInThisThread()) return FALSE;
+        KeepFullSpeedWhenCovered();
         FixtureDialog dialog(*arguments);
         m_pMainWnd = &dialog;
         dialog.DoModal();

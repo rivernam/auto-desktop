@@ -7,6 +7,131 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 
+// A fixture inherits the right to take the foreground from the process chain that started it, and ShowDialog
+// or a focused control activates a window even when it is shown without activation. A thread-local CBT hook
+// refuses every activation that is not a mouse click on the fixture, so a test run never takes the PC user's focus.
+internal static class ActivationGuard
+{
+    private const int WhCbt = 5;
+    private const int HcbtActivate = 5;
+    private delegate IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam);
+    private static readonly HookProc Refuse = RefuseActivation;
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetWindowsHookEx(int hook, HookProc procedure, IntPtr module, uint thread);
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr wParam, IntPtr lParam);
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool SetProcessInformation(IntPtr process, int informationClass, ref PowerThrottling state, int size);
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PowerThrottling { public uint Version, ControlMask, StateMask; }
+
+    // The fixture stays behind the user's windows. Windows 11 throttles a process whose windows are all covered
+    // (EcoQoS, coarse timers), which slows the 25 ms command timer: keep full speed.
+    public static void KeepFullSpeedWhenCovered()
+    {
+        // ProcessPowerThrottling = 4; EXECUTION_SPEED | IGNORE_TIMER_RESOLUTION, both off.
+        var state = new PowerThrottling { Version = 1, ControlMask = 0x1 | 0x4, StateMask = 0 };
+        SetProcessInformation(GetCurrentProcess(), 4, ref state, Marshal.SizeOf(typeof(PowerThrottling)));
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WindowPos { public IntPtr Window, InsertAfter; public int X, Y, Width, Height; public uint Flags; }
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+
+    // Showing without activation still draws a window on top of the others. Every z-order change of a fixture
+    // window goes to the bottom instead, unless the user is working in the fixture itself.
+    public static void KeepBehind(ref Message message)
+    {
+        if (message.Msg != 0x0046) return; // WM_WINDOWPOSCHANGING
+        var position = (WindowPos)Marshal.PtrToStructure(message.LParam, typeof(WindowPos));
+        // A new window is created at the top, and its first show keeps that place (SWP_NOZORDER): a show moves
+        // the window to the bottom too.
+        if ((position.Flags & 0x0004) != 0 && (position.Flags & 0x0040) == 0) return; // SWP_NOZORDER, no SWP_SHOWWINDOW
+        uint owner;
+        GetWindowThreadProcessId(GetForegroundWindow(), out owner);
+        using (var self = Process.GetCurrentProcess()) { if (owner == (uint)self.Id) return; }
+        position.InsertAfter = new IntPtr(1); // HWND_BOTTOM
+        position.Flags &= ~0x0004u;
+        Marshal.StructureToPtr(position, message.LParam, false);
+    }
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetWindow(IntPtr window, uint command);
+    [DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
+    private static bool pushing;
+
+    // Windows can still place the window on top after a rewritten request (WinForms sends its own z-order change
+    // right after the first show). Check where the window ended up: above the user's foreground window means
+    // it goes to the bottom at once.
+    public static void PushDownIfAbove(ref Message message)
+    {
+        if (message.Msg == 0x0047) PushDownIfAbove(message.HWnd); // WM_WINDOWPOSCHANGED
+    }
+
+    public static void PushDownIfAbove(IntPtr window)
+    {
+        if (pushing) return;
+        var foreground = GetForegroundWindow();
+        uint owner;
+        GetWindowThreadProcessId(foreground, out owner);
+        using (var self = Process.GetCurrentProcess()) { if (foreground == IntPtr.Zero || owner == (uint)self.Id) return; }
+        for (var below = GetWindow(window, 2); below != IntPtr.Zero; below = GetWindow(below, 2)) // GW_HWNDNEXT
+        {
+            if (below != foreground) continue;
+            pushing = true;
+            try { SetWindowPos(window, new IntPtr(1), 0, 0, 0, 0, 0x0013); } // HWND_BOTTOM, NOSIZE|NOMOVE|NOACTIVATE
+            finally { pushing = false; }
+            return;
+        }
+    }
+
+    public static void InstallForThisThread()
+    {
+        if (SetWindowsHookEx(WhCbt, Refuse, IntPtr.Zero, GetCurrentThreadId()) == IntPtr.Zero)
+            throw new System.ComponentModel.Win32Exception();
+    }
+
+    private static IntPtr RefuseActivation(int code, IntPtr wParam, IntPtr lParam)
+    {
+        // CBTACTIVATESTRUCT.fMouse is its first field.
+        if (code == HcbtActivate && Marshal.ReadInt32(lParam) == 0) return new IntPtr(1);
+        return CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
+    }
+}
+
+internal sealed class QuietForm : Form
+{
+    protected override bool ShowWithoutActivation { get { return true; } }
+
+    protected override void WndProc(ref Message message)
+    {
+        ActivationGuard.KeepBehind(ref message);
+        base.WndProc(ref message);
+        ActivationGuard.PushDownIfAbove(ref message);
+    }
+
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            var create = base.CreateParams;
+            create.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE
+            return create;
+        }
+    }
+}
+
 internal sealed class WinFormsFixture : Form
 {
     private readonly string stateDirectory;
@@ -34,11 +159,36 @@ internal sealed class WinFormsFixture : Form
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
+        ActivationGuard.InstallForThisThread();
+        ActivationGuard.KeepFullSpeedWhenCovered();
         using (var form = new WinFormsFixture(args[0], args[1]))
         {
             Application.Run(form);
         }
         return 0;
+    }
+
+    // The fixture must not take the focus from whoever is using the PC while a test runs. The window is
+    // non-activating for its whole life, so neither Application.Run nor an automation action can activate it.
+    private const int WsExNoActivate = 0x08000000;
+
+    protected override void WndProc(ref Message message)
+    {
+        ActivationGuard.KeepBehind(ref message);
+        base.WndProc(ref message);
+        ActivationGuard.PushDownIfAbove(ref message);
+    }
+
+    protected override bool ShowWithoutActivation { get { return true; } }
+
+    protected override CreateParams CreateParams
+    {
+        get
+        {
+            var create = base.CreateParams;
+            create.ExStyle |= WsExNoActivate;
+            return create;
+        }
     }
 
     private WinFormsFixture(string directory, string title)
@@ -71,6 +221,7 @@ internal sealed class WinFormsFixture : Form
         timer.Tick += PollCommands;
         Shown += delegate
         {
+            SendToBack();
             WriteState("page.txt", tabs.SelectedIndex.ToString(CultureInfo.InvariantCulture));
             using (var process = Process.GetCurrentProcess())
             {
@@ -272,7 +423,7 @@ internal sealed class WinFormsFixture : Form
     {
         if (modal != null) return;
 
-        using (var dialog = new Form { Text = Text + " modal", StartPosition = FormStartPosition.CenterParent,
+        using (var dialog = new QuietForm { Text = Text + " modal", StartPosition = FormStartPosition.CenterParent,
             ClientSize = new Size(280, 100), FormBorderStyle = FormBorderStyle.FixedDialog, ShowInTaskbar = false })
         {
             var close = ButtonFor("fixtureCloseModal", "Close fixture modal");
@@ -291,6 +442,9 @@ internal sealed class WinFormsFixture : Form
 
     private void PollCommands(object sender, EventArgs e)
     {
+        // Backstop for z-order changes that WM_WINDOWPOSCHANGED did not catch.
+        ActivationGuard.PushDownIfAbove(Handle);
+        if (modal != null && modal.IsHandleCreated) ActivationGuard.PushDownIfAbove(modal.Handle);
         if (File.Exists(Path.Combine(stateDirectory, "close-fixture")))
         {
             if (modal != null) modal.Close();
@@ -351,7 +505,10 @@ internal sealed class WinFormsFixture : Form
     {
         string path = Path.Combine(stateDirectory, fileName);
         if (!File.Exists(path)) return false;
-        File.Delete(path);
+        // The test may still be writing the command file: it is consumed on a later tick then.
+        try { File.Delete(path); }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
         return true;
     }
 

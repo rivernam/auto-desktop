@@ -7,6 +7,17 @@ using namespace fixture;
 
 constexpr wchar_t kWindowClass[] = L"AutoDesktopWin32Fixture";
 
+int QuietShow(int show) {
+    switch (show) {
+    case SW_HIDE: return SW_HIDE;
+    case SW_MINIMIZE:
+    case SW_SHOWMINIMIZED:
+    case SW_SHOWMINNOACTIVE:
+    case SW_FORCEMINIMIZE: return SW_SHOWMINNOACTIVE;
+    default: return SW_SHOWNOACTIVATE;
+    }
+}
+
 const wchar_t* ClassName(Kind kind) {
     switch (kind) {
     case Kind::Label: return WC_STATICW;
@@ -28,6 +39,8 @@ public:
 
     int Run(int show) {
         if (!controls_.state.Healthy()) return 2;
+        if (!RefuseActivationInThisThread()) return 2;
+        KeepFullSpeedWhenCovered();
 
         WNDCLASSW type{};
         type.lpfnWndProc = Dispatch;
@@ -37,13 +50,19 @@ public:
         type.lpszClassName = kWindowClass;
         if (!RegisterClassW(&type)) return 3;
 
+        constexpr DWORD exStyle = WS_EX_CONTROLPARENT | WS_EX_NOACTIVATE;  // never takes the focus of the PC's user
         constexpr auto style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
         RECT bounds{0, 0, kClientWidth, kClientHeight};
-        AdjustWindowRectEx(&bounds, style, FALSE, WS_EX_CONTROLPARENT);
-        if (!CreateWindowExW(WS_EX_CONTROLPARENT, kWindowClass, title_.c_str(), style, CW_USEDEFAULT, CW_USEDEFAULT,
+        AdjustWindowRectEx(&bounds, style, FALSE, exStyle);
+        if (!CreateWindowExW(exStyle, kWindowClass, title_.c_str(), style, CW_USEDEFAULT, CW_USEDEFAULT,
                 bounds.right - bounds.left, bounds.bottom - bounds.top, nullptr, nullptr, instance_, this)) return 4;
 
-        ShowWindow(window_, show);
+        // Shown without activation and sent behind other windows, so a test run never steals the focus
+        // of whoever is using the PC. Automation reads the window the same way when it is covered.
+        // A process started without STARTF_USESHOWWINDOW gets SW_SHOWDEFAULT, which activates: every visible
+        // request is shown without activation instead.
+        ShowWindow(window_, QuietShow(show));
+        SetWindowPos(window_, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         UpdateWindow(window_);
         controls_.state.Write(L"ready", std::to_wstring(GetCurrentProcessId()));
 
@@ -159,9 +178,13 @@ private:
         if (message == WM_INITDIALOG) {
             const auto self = reinterpret_cast<FixtureWindow*>(lParam);
             self->modal_ = window;
+            SetWindowLongPtrW(window, GWL_EXSTYLE, GetWindowLongPtrW(window, GWL_EXSTYLE) | WS_EX_NOACTIVATE);
             SetWindowTextW(window, (self->title_ + L" modal").c_str());
+            // The dialog manager shows a hidden dialog with SW_SHOWNORMAL, which activates it, and focusing the
+            // first control would activate it too: show it here without activation and keep the focus unset.
+            ShowWindow(window, SW_SHOWNOACTIVATE);
             PostMessageW(window, kReadyMessage, reinterpret_cast<WPARAM>(self), 0);
-            return TRUE;
+            return FALSE;
         }
         if (message == kReadyMessage) {
             const auto self = reinterpret_cast<FixtureWindow*>(wParam);

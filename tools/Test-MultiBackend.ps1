@@ -416,6 +416,8 @@ function Read-MbProviderEdit([long]$window, [int]$processId, [string]$automation
 
 function Test-UiaContexts([string]$implementation) {
     $row = New-MbScenario 'UiaContexts' $implementation 'real' 'Read the same AWT provider in foreground, background, minimized and restored states.'
+    # The only test step that takes the focus on purpose: it cannot test the foreground state otherwise.
+    Write-Warning 'UiaContexts brings fixture windows to the foreground. Run it while nobody is using the PC.'
     $run = $null
     try {
         $awt = Start-MbTarget 'Awt'

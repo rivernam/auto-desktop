@@ -216,9 +216,12 @@ int wmain(int argc, wchar_t** argv) {
     wc.lpfnWndProc = windowProc;
     wc.lpszClassName = L"MsaaIdentityFixture";
     RegisterClassW(&wc);
-    rootWindow = CreateWindowW(wc.lpszClassName, argv[2], WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+    rootWindow = CreateWindowW(wc.lpszClassName, argv[2], WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, 320, 160, nullptr, nullptr, wc.hInstance, nullptr);
     if (!rootWindow) { CoUninitialize(); return 1; }
+    // Shown behind the other windows without taking the focus of whoever is using the PC.
+    ShowWindow(rootWindow, SW_SHOWNOACTIVATE);
+    SetWindowPos(rootWindow, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     targetWindow = rootWindow;
     if (argc == 5 && std::wstring(argv[4]) == L"child") {
         targetWindow = CreateWindowW(wc.lpszClassName, L"", WS_CHILD | WS_VISIBLE, 0, 0, 160, 72,

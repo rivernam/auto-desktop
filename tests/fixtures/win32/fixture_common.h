@@ -49,6 +49,29 @@ inline bool InitializeCommonControls() {
     return InitCommonControlsEx(&controls) != FALSE;
 }
 
+// A fixture inherits the right to take the foreground from the process chain that started it (usually the
+// terminal the user works in). Showing without activation is not enough: a button that an automation client
+// clicks sets the focus, and the dialog manager activates dialogs. A thread-local CBT hook refuses every
+// activation that is not a mouse click on the fixture, so a test run never takes the focus of the PC's user.
+inline LRESULT CALLBACK RefuseActivation(int code, WPARAM wParam, LPARAM lParam) {
+    if (code == HCBT_ACTIVATE && !reinterpret_cast<const CBTACTIVATESTRUCT*>(lParam)->fMouse) return 1;
+    return CallNextHookEx(nullptr, code, wParam, lParam);
+}
+
+inline bool RefuseActivationInThisThread() {
+    return SetWindowsHookExW(WH_CBT, RefuseActivation, nullptr, GetCurrentThreadId()) != nullptr;
+}
+
+// The fixture stays behind the user's windows. Windows 11 throttles a process whose windows are all covered
+// (EcoQoS, coarse timers), which made the 25 ms state timer and large captures time out: keep full speed.
+inline void KeepFullSpeedWhenCovered() {
+    PROCESS_POWER_THROTTLING_STATE state{};
+    state.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+    state.ControlMask = PROCESS_POWER_THROTTLING_EXECUTION_SPEED | PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+    state.StateMask = 0;
+    SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &state, sizeof(state));
+}
+
 inline std::wstring WindowText(HWND window) {
     std::wstring text(static_cast<size_t>(GetWindowTextLengthW(window)) + 1, L'\0');
     text.resize(GetWindowTextW(window, text.data(), static_cast<int>(text.size())));

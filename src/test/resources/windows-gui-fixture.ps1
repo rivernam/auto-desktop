@@ -16,6 +16,83 @@ public static class FixtureCursor {
     private struct Point { public int X, Y; }
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool GetPhysicalCursorPos(out Point point);
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
+    private static extern int GetWindowLong(IntPtr window, int index);
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongW")]
+    private static extern int SetWindowLong(IntPtr window, int index, int value);
+    // WS_EX_NOACTIVATE for the whole life of the window: neither the first show nor an automation action
+    // (SetValue, Invoke) may take the focus from whoever is using the PC.
+    public static void NeverActivate(IntPtr window) { SetWindowLong(window, -20, GetWindowLong(window, -20) | 0x08000000); }
+    // The fixture inherits the right to take the foreground from the process chain that started it, and
+    // ShowDialog activates a window even with ShowActivated = false. A thread-local CBT hook refuses every
+    // activation that is not a mouse click on the fixture.
+    private delegate IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam);
+    private static readonly HookProc refuse = RefuseActivation;
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetWindowsHookEx(int hook, HookProc procedure, IntPtr module, uint thread);
+    [DllImport("user32.dll")]
+    private static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr wParam, IntPtr lParam);
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+    public static void RefuseActivationInThisThread() {
+        if (SetWindowsHookEx(5, refuse, IntPtr.Zero, GetCurrentThreadId()) == IntPtr.Zero) throw new Win32Exception();
+    }
+    private static IntPtr RefuseActivation(int code, IntPtr wParam, IntPtr lParam) {
+        // WH_CBT HCBT_ACTIVATE; CBTACTIVATESTRUCT.fMouse is its first field.
+        if (code == 5 && Marshal.ReadInt32(lParam) == 0) return new IntPtr(1);
+        return CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
+    }
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
+    private static extern IntPtr SetWindowLongPtr(IntPtr window, int index, IntPtr value);
+    // GWLP_HWNDPARENT of a top-level window is its owner. WPF would take the thread's active window as the
+    // popup's owner, and the fixture window is never active, so the owner is set here instead.
+    public static void SetOwner(IntPtr window, IntPtr owner) { SetWindowLongPtr(window, -8, owner); }
+    // Showing without activation still draws a window on top of the others. Every z-order change of a fixture
+    // window goes to the bottom instead, unless the user is working in the fixture itself.
+    [StructLayout(LayoutKind.Sequential)]
+    private struct WindowPos { public IntPtr Window, InsertAfter; public int X, Y, Width, Height; public uint Flags; }
+    private delegate IntPtr SubclassProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam, UIntPtr id, UIntPtr data);
+    private static readonly SubclassProc keepBehind = KeepBehindProc;
+    [DllImport("comctl32.dll")]
+    private static extern bool SetWindowSubclass(IntPtr window, SubclassProc procedure, UIntPtr id, UIntPtr data);
+    [DllImport("comctl32.dll")]
+    private static extern IntPtr DefSubclassProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentProcessId();
+    public static void KeepBehind(IntPtr window) {
+        if (!SetWindowSubclass(window, keepBehind, new UIntPtr(1), UIntPtr.Zero)) throw new Win32Exception();
+    }
+    private static IntPtr KeepBehindProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam, UIntPtr id, UIntPtr data) {
+        if (message == 0x0046) { // WM_WINDOWPOSCHANGING
+            var position = (WindowPos)Marshal.PtrToStructure(lParam, typeof(WindowPos));
+            uint owner;
+            GetWindowThreadProcessId(GetForegroundWindow(), out owner);
+            // A new window is created at the top and its first show keeps that place (SWP_NOZORDER), so a show
+            // (SWP_SHOWWINDOW) moves the window to the bottom too.
+            var reorders = (position.Flags & 0x0004) == 0 || (position.Flags & 0x0040) != 0;
+            if (reorders && owner != GetCurrentProcessId()) {
+                position.InsertAfter = new IntPtr(1); // HWND_BOTTOM
+                position.Flags &= ~0x0004u;
+                Marshal.StructureToPtr(position, lParam, false);
+            }
+        }
+        return DefSubclassProc(window, message, wParam, lParam);
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PowerThrottling { public uint Version, ControlMask, StateMask; }
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+    [DllImport("kernel32.dll")]
+    private static extern bool SetProcessInformation(IntPtr process, int informationClass, ref PowerThrottling state, int size);
+    // Windows 11 throttles a process whose windows are all covered (EcoQoS, coarse timers): keep full speed.
+    public static void KeepFullSpeedWhenCovered() {
+        var state = new PowerThrottling { Version = 1, ControlMask = 0x1 | 0x4, StateMask = 0 };
+        SetProcessInformation(GetCurrentProcess(), 4, ref state, Marshal.SizeOf(typeof(PowerThrottling)));
+    }
     public static string Position() {
         Point point;
         if (!GetPhysicalCursorPos(out point)) throw new Win32Exception();
@@ -187,7 +264,7 @@ namespace DesktopFixture {
     <Button Name="Toggle" AutomationProperties.AutomationId="fixtureToggle" Content="Toggle fixture state" Margin="0,0,4,0" />
     <Button Name="Modal" AutomationProperties.AutomationId="fixtureModal" Content="Open fixture modal" Margin="0,0,4,0" />
     <Button Name="PopupButton" AutomationProperties.AutomationId="fixturePopup" Content="Open fixture popup" Margin="0,0,4,0" />
-    <Popup Name="FixturePopup" Placement="Bottom" StaysOpen="False" PlacementTarget="{Binding ElementName=PopupButton}">
+    <Popup Name="FixturePopup" Placement="Bottom" StaysOpen="True" PlacementTarget="{Binding ElementName=PopupButton}">
       <Border Background="White" BorderBrush="Gray" BorderThickness="1" Padding="8">
         <Button Name="PopupAction" AutomationProperties.AutomationId="fixturePopupAction" Content="Fixture popup action" />
       </Border>
@@ -308,8 +385,14 @@ namespace DesktopFixture {
     $script:fixturePopup = $popup
     $popupButton = $extendedPanel.FindName('PopupButton')
     $popupButton.Tag = $popup
+    # WPF gives a popup the thread's active window as its owner. The fixture window is never active, so the
+    # popup gets its owner explicitly once its HWND exists.
     $popupButton.Add_Click({ param($sender, $eventArgs) $sender.Tag.IsOpen = $true })
-    $popup.Add_Opened({ Write-State 'popup.txt' 'open' })
+    $popup.Add_Opened({ param($sender, $eventArgs)
+        $source = [Windows.PresentationSource]::FromVisual($sender.Child)
+        [FixtureCursor]::SetOwner($source.Handle, (New-Object Windows.Interop.WindowInteropHelper $window).Handle)
+        Write-State 'popup.txt' 'open'
+    })
     $popup.Add_Closed({ Write-State 'popup.txt' 'closed' })
     $popupAction = $extendedPanel.FindName('PopupAction')
     $popupAction.Tag = $popup
@@ -351,6 +434,10 @@ function Show-FixtureModal {
     $script:modalWindow.Owner = $window
     $script:modalWindow.WindowStartupLocation = [Windows.WindowStartupLocation]::CenterOwner
     $script:modalWindow.ShowInTaskbar = $false
+    $script:modalWindow.ShowActivated = $false
+    $script:modalWindow.Add_SourceInitialized({ param($sender, $eventArgs)
+        [FixtureCursor]::KeepBehind((New-Object Windows.Interop.WindowInteropHelper $sender).Handle)
+    })
     $close = New-Object Windows.Controls.Button
     $close.Content = 'Close fixture modal'
     $close.IsCancel = $true
@@ -362,8 +449,17 @@ function Show-FixtureModal {
     finally { $script:modalWindow = $null; Write-State 'modal.txt' 'closed' }
 }
 
+[FixtureCursor]::RefuseActivationInThisThread()
+[FixtureCursor]::KeepFullSpeedWhenCovered()
 $window = New-Object Windows.Window
 $window.Title = $WindowTitle
+# A test run must not take the focus from whoever is using the PC.
+$window.ShowActivated = $false
+$window.Add_SourceInitialized({
+    $handle = (New-Object Windows.Interop.WindowInteropHelper $window).Handle
+    [FixtureCursor]::NeverActivate($handle)
+    [FixtureCursor]::KeepBehind($handle)
+})
 if ($Borderless) { $window.WindowStyle = [Windows.WindowStyle]::None }
 $window.Width = 350
 $window.SizeToContent = [Windows.SizeToContent]::Height
