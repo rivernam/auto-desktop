@@ -118,8 +118,8 @@ public final class WindowsAdapter implements DesktopAdapter {
         try {
             return exchange.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof AgentException reported) {
-                throw reported;
+            if (e.getCause() instanceof AgentException) {
+                throw (AgentException) e.getCause();
             }
             discardWorker();
             throw lost(operation, false);

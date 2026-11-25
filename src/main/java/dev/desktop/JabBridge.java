@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -90,10 +91,112 @@ final class JabBridge extends JabApi {
         Silent() { super("A JVM connected to Java Access Bridge is not answering.", null, false, false); }
     }
 
-    record ContextInfo(String name, String role, String states, int indexInParent, int children,
-                       int x, int y, int width, int height, boolean action, boolean text) {}
+    static final class ContextInfo {
+        private final String name;
+        private final String role;
+        private final String states;
+        private final int indexInParent;
+        private final int children;
+        private final int x;
+        private final int y;
+        private final int width;
+        private final int height;
+        private final boolean action;
+        private final boolean text;
 
-    record Root(int vm, long context) {}
+        ContextInfo(String name,
+                    String role,
+                    String states,
+                    int indexInParent,
+                    int children,
+                    int x,
+                    int y,
+                    int width,
+                    int height,
+                    boolean action,
+                    boolean text) {
+            this.name = name;
+            this.role = role;
+            this.states = states;
+            this.indexInParent = indexInParent;
+            this.children = children;
+            this.x = x;
+            this.y = y;
+            this.width = width;
+            this.height = height;
+            this.action = action;
+            this.text = text;
+        }
+
+        public String name() { return name; }
+        public String role() { return role; }
+        public String states() { return states; }
+        public int indexInParent() { return indexInParent; }
+        public int children() { return children; }
+        public int x() { return x; }
+        public int y() { return y; }
+        public int width() { return width; }
+        public int height() { return height; }
+        public boolean action() { return action; }
+        public boolean text() { return text; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof ContextInfo)) return false;
+            ContextInfo that = (ContextInfo) other;
+            return Objects.equals(name, that.name)
+                    && Objects.equals(role, that.role)
+                    && Objects.equals(states, that.states)
+                    && indexInParent == that.indexInParent
+                    && children == that.children
+                    && x == that.x
+                    && y == that.y
+                    && width == that.width
+                    && height == that.height
+                    && action == that.action
+                    && text == that.text;
+        }
+        @Override public int hashCode() { return Objects.hash(name, role, states, indexInParent, children, x, y, width, height, action, text); }
+        @Override public String toString() {
+            return "ContextInfo[" + "name=" + name
+                    + ", role=" + role
+                    + ", states=" + states
+                    + ", indexInParent=" + indexInParent
+                    + ", children=" + children
+                    + ", x=" + x
+                    + ", y=" + y
+                    + ", width=" + width
+                    + ", height=" + height
+                    + ", action=" + action
+                    + ", text=" + text + "]";
+        }
+    }
+
+    static final class Root {
+        private final int vm;
+        private final long context;
+
+        Root(int vm, long context) {
+            this.vm = vm;
+            this.context = context;
+        }
+
+        public int vm() { return vm; }
+        public long context() { return context; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Root)) return false;
+            Root that = (Root) other;
+            return vm == that.vm
+                    && context == that.context;
+        }
+        @Override public int hashCode() { return Objects.hash(vm, context); }
+        @Override public String toString() {
+            return "Root[" + "vm=" + vm
+                    + ", context=" + context + "]";
+        }
+    }
 
     private final Thread owner = Thread.currentThread();
     // The Windows identifier of the owner thread, for waking it out of a message wait.

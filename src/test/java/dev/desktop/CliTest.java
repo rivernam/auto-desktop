@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.nio.file.Path;
 import java.nio.file.Files;
 import org.junit.jupiter.api.io.TempDir;
@@ -20,7 +21,7 @@ class CliTest {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         assertEquals(0, Cli.run(new String[0], new ByteArrayInputStream(
                 input.getBytes(StandardCharsets.UTF_8)), output));
-        List<String> lines = output.toString(StandardCharsets.UTF_8).lines().toList();
+        List<String> lines = output.toString(StandardCharsets.UTF_8).lines().collect(Collectors.toUnmodifiableList());
         assertEquals(5, lines.size());
         ObjectMapper mapper = new ObjectMapper();
         for (int i = 0; i < 4; i++) {
@@ -109,7 +110,7 @@ class CliTest {
                     .getBytes(StandardCharsets.UTF_8));
             assertEquals(0, Cli.run(new String[]{"--backend", "multi", "--jab-dll", library}, input, output));
             ObjectMapper mapper = new ObjectMapper();
-            List<String> lines = output.toString(StandardCharsets.UTF_8).lines().toList();
+            List<String> lines = output.toString(StandardCharsets.UTF_8).lines().collect(Collectors.toUnmodifiableList());
             assertEquals(3, lines.size());
             JsonNode capabilities = mapper.readTree(lines.get(0)).get("result");
             assertEquals("multi", capabilities.path("backend").asText());

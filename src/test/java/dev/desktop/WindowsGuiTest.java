@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +29,61 @@ class WindowsGuiTest {
     @TempDir Path directory;
     private FixtureOutput fixtureOutput;
 
-    private record TreeNode(String role, String automationId, String name) {}
-    private record TreeShape(Map<List<TreeNode>, Integer> content, Map<List<TreeNode>, Integer> chrome) {}
+    private static final class TreeNode {
+        private final String role;
+        private final String automationId;
+        private final String name;
+
+        private TreeNode(String role, String automationId, String name) {
+            this.role = role;
+            this.automationId = automationId;
+            this.name = name;
+        }
+
+        public String role() { return role; }
+        public String automationId() { return automationId; }
+        public String name() { return name; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof TreeNode)) return false;
+            TreeNode that = (TreeNode) other;
+            return Objects.equals(role, that.role)
+                    && Objects.equals(automationId, that.automationId)
+                    && Objects.equals(name, that.name);
+        }
+        @Override public int hashCode() { return Objects.hash(role, automationId, name); }
+        @Override public String toString() {
+            return "TreeNode[" + "role=" + role
+                    + ", automationId=" + automationId
+                    + ", name=" + name + "]";
+        }
+    }
+    private static final class TreeShape {
+        private final Map<List<TreeNode>, Integer> content;
+        private final Map<List<TreeNode>, Integer> chrome;
+
+        private TreeShape(Map<List<TreeNode>, Integer> content, Map<List<TreeNode>, Integer> chrome) {
+            this.content = content;
+            this.chrome = chrome;
+        }
+
+        public Map<List<TreeNode>, Integer> content() { return content; }
+        public Map<List<TreeNode>, Integer> chrome() { return chrome; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof TreeShape)) return false;
+            TreeShape that = (TreeShape) other;
+            return Objects.equals(content, that.content)
+                    && Objects.equals(chrome, that.chrome);
+        }
+        @Override public int hashCode() { return Objects.hash(content, chrome); }
+        @Override public String toString() {
+            return "TreeShape[" + "content=" + content
+                    + ", chrome=" + chrome + "]";
+        }
+    }
 
     @Test
     @EnabledIfSystemProperty(named = "desktop.windowsIT", matches = "true")

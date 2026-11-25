@@ -16,8 +16,9 @@ final class ElementLocator {
     }
 
     static ElementLocator parse(JsonNode input) {
-        if (!(input instanceof ObjectNode object) || object.isEmpty())
+        if (!(input instanceof ObjectNode) || ((ObjectNode) input).isEmpty())
             throw new AgentException("INVALID_REQUEST", "Provide one or more locator fields.");
+        ObjectNode object = (ObjectNode) input;
         Map<String, String> conditions = new HashMap<>();
         for (var field : object.properties()) {
             if (!FIELDS.contains(field.getKey()))

@@ -19,19 +19,28 @@ public interface TypedDesktopAdapter extends DesktopAdapter {
     @Override
     default JsonNode call(ObjectNode request) {
         if (request == null) throw new AgentException("INVALID_REQUEST", "Expected a request object.");
-        return switch (text(request, "op", false)) {
-            case "getCapabilities" -> capabilities();
-            case "listWindows" -> listWindows();
-            case "snapshot" -> snapshot(text(request, "windowId", false),
-                    number(request, "maxDepth", 0, 32), number(request, "maxElements", 1, 2000));
-            case "getElementInfo" -> elementInfo(text(request, "key", false), processId(request));
-            case "invoke" -> perform(DesktopAction.INVOKE, text(request, "key", false), processId(request), null);
-            case "defaultAction" -> perform(DesktopAction.DEFAULT_ACTION, text(request, "key", false), processId(request), null);
-            case "select" -> perform(DesktopAction.SELECT, text(request, "key", false), processId(request), null);
-            case "setValue" -> perform(DesktopAction.SET_VALUE, text(request, "key", false), processId(request),
-                    text(request, "value", true));
-            default -> throw new AgentException("UNKNOWN_OPERATION", "Unknown desktop operation.");
-        };
+        switch (text(request, "op", false)) {
+            case "getCapabilities":
+                return capabilities();
+            case "listWindows":
+                return listWindows();
+            case "snapshot":
+                return snapshot(text(request, "windowId", false),
+                        number(request, "maxDepth", 0, 32), number(request, "maxElements", 1, 2000));
+            case "getElementInfo":
+                return elementInfo(text(request, "key", false), processId(request));
+            case "invoke":
+                return perform(DesktopAction.INVOKE, text(request, "key", false), processId(request), null);
+            case "defaultAction":
+                return perform(DesktopAction.DEFAULT_ACTION, text(request, "key", false), processId(request), null);
+            case "select":
+                return perform(DesktopAction.SELECT, text(request, "key", false), processId(request), null);
+            case "setValue":
+                return perform(DesktopAction.SET_VALUE, text(request, "key", false), processId(request),
+                        text(request, "value", true));
+            default:
+                throw new AgentException("UNKNOWN_OPERATION", "Unknown desktop operation.");
+        }
     }
 
     private static String text(ObjectNode request, String field, boolean allowBlank) {

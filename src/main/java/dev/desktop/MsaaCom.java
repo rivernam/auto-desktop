@@ -11,6 +11,7 @@ import com.sun.jna.ptr.PointerByReference;
 import com.sun.jna.win32.StdCallLibrary;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /** IAccessible ABI from oleacc.h. All objects and buffers belong to one MTA owner thread. */
 final class MsaaCom implements AutoCloseable {
@@ -54,18 +55,100 @@ final class MsaaCom implements AutoCloseable {
         }
     }
 
-    record Node(Ref ref, int child, int enumeratedId) implements AutoCloseable {
+    static final class Node implements AutoCloseable {
+        private final Ref ref;
+        private final int child;
+        private final int enumeratedId;
+
+        Node(Ref ref, int child, int enumeratedId) {
+            this.ref = ref;
+            this.child = child;
+            this.enumeratedId = enumeratedId;
+        }
+
+        public Ref ref() { return ref; }
+        public int child() { return child; }
+        public int enumeratedId() { return enumeratedId; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Node)) return false;
+            Node that = (Node) other;
+            return Objects.equals(ref, that.ref)
+                    && child == that.child
+                    && enumeratedId == that.enumeratedId;
+        }
+        @Override public int hashCode() { return Objects.hash(ref, child, enumeratedId); }
+        @Override public String toString() {
+            return "Node[" + "ref=" + ref
+                    + ", child=" + child
+                    + ", enumeratedId=" + enumeratedId + "]";
+        }
+
         Node copy() { return new Node(ref.copy(), child, enumeratedId); }
         @Override public void close() { ref.close(); }
     }
 
-    record Children(List<Node> nodes, boolean incomplete, int obtained) implements AutoCloseable {
+    static final class Children implements AutoCloseable {
+        private final List<Node> nodes;
+        private final boolean incomplete;
+        private final int obtained;
+
+        Children(List<Node> nodes, boolean incomplete, int obtained) {
+            this.nodes = nodes;
+            this.incomplete = incomplete;
+            this.obtained = obtained;
+        }
+
+        public List<Node> nodes() { return nodes; }
+        public boolean incomplete() { return incomplete; }
+        public int obtained() { return obtained; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Children)) return false;
+            Children that = (Children) other;
+            return Objects.equals(nodes, that.nodes)
+                    && incomplete == that.incomplete
+                    && obtained == that.obtained;
+        }
+        @Override public int hashCode() { return Objects.hash(nodes, incomplete, obtained); }
+        @Override public String toString() {
+            return "Children[" + "nodes=" + nodes
+                    + ", incomplete=" + incomplete
+                    + ", obtained=" + obtained + "]";
+        }
+
         @Override public void close() {
             for (Node node : nodes) if (node != null) node.close();
         }
     }
 
-    record Name(String text, boolean clipped) {}
+    static final class Name {
+        private final String text;
+        private final boolean clipped;
+
+        Name(String text, boolean clipped) {
+            this.text = text;
+            this.clipped = clipped;
+        }
+
+        public String text() { return text; }
+        public boolean clipped() { return clipped; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Name)) return false;
+            Name that = (Name) other;
+            return Objects.equals(text, that.text)
+                    && clipped == that.clipped;
+        }
+        @Override public int hashCode() { return Objects.hash(text, clipped); }
+        @Override public String toString() {
+            return "Name[" + "text=" + text
+                    + ", clipped=" + clipped + "]";
+        }
+    }
 
     private final VARIANT.ByValue childArg = new VARIANT.ByValue();
     private final int variantSize = childArg.size();
@@ -281,12 +364,16 @@ final class MsaaCom implements AutoCloseable {
 
     int mutate(Node original, DesktopAction action, Text text) {
         Pointer object = original.ref.pointer;
-        return switch (action) {
-            case DEFAULT_ACTION -> UiaCom.vcall(object, 25, arg(0));
-            case SELECT -> UiaCom.vcall(object, 21, 2, arg(0)); // SELFLAG_TAKESELECTION
-            case SET_VALUE -> UiaCom.vcall(object, 27, arg(0), text.bstr);
-            default -> throw new IllegalArgumentException("Expected an MSAA action.");
-        };
+        switch (action) {
+            case DEFAULT_ACTION:
+                return UiaCom.vcall(object, 25, arg(0));
+            case SELECT:
+                return UiaCom.vcall(object, 21, 2, arg(0)); // SELFLAG_TAKESELECTION
+            case SET_VALUE:
+                return UiaCom.vcall(object, 27, arg(0), text.bstr);
+            default:
+                throw new IllegalArgumentException("Expected an MSAA action.");
+        }
     }
 
     @Override public void close() {

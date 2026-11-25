@@ -65,38 +65,45 @@ public final class Cli {
                 if (i + 1 >= args.length) throw new IllegalArgumentException();
                 String value = args[i + 1];
                 switch (args[i]) {
-                    case "--backend" -> {
+                    case "--backend": {
                         if (backend != null || !Set.of("jna", "jab", "msaa", "powershell", Agent.MULTI).contains(value))
                             throw new IllegalArgumentException("Unknown or repeated backend.");
                         backend = value;
+                        break;
                     }
-                    case "--jab-dll" -> {
+                    case "--jab-dll": {
                         if (jabLibrary != null || !Path.of(value).isAbsolute())
                             throw new IllegalArgumentException("Specify one absolute Java Access Bridge library.");
                         jabLibrary = value;
+                        break;
                     }
-                    case "--csharp-worker" -> {
+                    case "--csharp-worker": {
                         if (worker != null) throw new IllegalArgumentException("Specify one C# worker.");
                         worker = Path.of(value);
+                        break;
                     }
-                    case "--allow-pid" -> {
+                    case "--allow-pid": {
                         int pid = Integer.parseInt(value);
                         if (pid <= 0) throw new IllegalArgumentException();
                         Instant started = ProcessHandle.of(pid).flatMap(handle -> handle.info().startInstant())
                                 .orElseThrow(() -> new IllegalArgumentException("Cannot identify allowed PID."));
                         allowedPids.put(pid, started);
+                        break;
                     }
-                    case "--trust-msaa-identity" -> {
+                    case "--trust-msaa-identity": {
                         int pid = Integer.parseInt(value);
                         if (pid <= 0) throw new IllegalArgumentException();
                         trustedMsaaPids.add(pid);
+                        break;
                     }
-                    case "--allow-action" -> {
+                    case "--allow-action": {
                         if (!Set.of("invoke", "setValue", "defaultAction", "select").contains(value))
                             throw new IllegalArgumentException();
                         allowedActions.add(value);
+                        break;
                     }
-                    default -> throw new IllegalArgumentException();
+                    default:
+                        throw new IllegalArgumentException();
                 }
             }
             if (!trustedMsaaPids.isEmpty() && ((!"msaa".equals(backend) && !Agent.MULTI.equals(backend))
@@ -150,7 +157,8 @@ public final class Cli {
         ObjectNode reply = invalidRequest();
         try {
             JsonNode node = JSON.readTree(frame);
-            if (node instanceof ObjectNode request) {
+            if (node instanceof ObjectNode) {
+                ObjectNode request = (ObjectNode) node;
                 String requested = request.path("op").asText();
                 if (OPERATIONS.contains(requested)) op = requested;
                 reply = agent.handle(request);

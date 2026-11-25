@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntPredicate;
 
@@ -35,26 +36,394 @@ final class MsaaSession implements NativeSession {
 
     MsaaSession(IntPredicate trustedProvider) { this.trustedProvider = trustedProvider; }
 
-    private record Identity(int role, String name, boolean clipped, String className) {}
-    private record Inspection(Identity identity, long window, long reported, int state,
-                              boolean masked, int[] bounds, boolean defaultAction, boolean writable, boolean select) {
+    private static final class Identity {
+        private final int role;
+        private final String name;
+        private final boolean clipped;
+        private final String className;
+
+        private Identity(int role, String name, boolean clipped, String className) {
+            this.role = role;
+            this.name = name;
+            this.clipped = clipped;
+            this.className = className;
+        }
+
+        public int role() { return role; }
+        public String name() { return name; }
+        public boolean clipped() { return clipped; }
+        public String className() { return className; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Identity)) return false;
+            Identity that = (Identity) other;
+            return role == that.role
+                    && Objects.equals(name, that.name)
+                    && clipped == that.clipped
+                    && Objects.equals(className, that.className);
+        }
+        @Override public int hashCode() { return Objects.hash(role, name, clipped, className); }
+        @Override public String toString() {
+            return "Identity[" + "role=" + role
+                    + ", name=" + name
+                    + ", clipped=" + clipped
+                    + ", className=" + className + "]";
+        }
+    }
+    private static final class Inspection {
+        private final Identity identity;
+        private final long window;
+        private final long reported;
+        private final int state;
+        private final boolean masked;
+        private final int[] bounds;
+        private final boolean defaultAction;
+        private final boolean writable;
+        private final boolean select;
+
+        private Inspection(Identity identity,
+                           long window,
+                           long reported,
+                           int state,
+                           boolean masked,
+                           int[] bounds,
+                           boolean defaultAction,
+                           boolean writable,
+                           boolean select) {
+            this.identity = identity;
+            this.window = window;
+            this.reported = reported;
+            this.state = state;
+            this.masked = masked;
+            this.bounds = bounds;
+            this.defaultAction = defaultAction;
+            this.writable = writable;
+            this.select = select;
+        }
+
+        public Identity identity() { return identity; }
+        public long window() { return window; }
+        public long reported() { return reported; }
+        public int state() { return state; }
+        public boolean masked() { return masked; }
+        public int[] bounds() { return bounds; }
+        public boolean defaultAction() { return defaultAction; }
+        public boolean writable() { return writable; }
+        public boolean select() { return select; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Inspection)) return false;
+            Inspection that = (Inspection) other;
+            return Objects.equals(identity, that.identity)
+                    && window == that.window
+                    && reported == that.reported
+                    && state == that.state
+                    && masked == that.masked
+                    && Objects.equals(bounds, that.bounds)
+                    && defaultAction == that.defaultAction
+                    && writable == that.writable
+                    && select == that.select;
+        }
+        @Override public int hashCode() { return Objects.hash(identity, window, reported, state, masked, bounds, defaultAction, writable, select); }
+        @Override public String toString() {
+            return "Inspection[" + "identity=" + identity
+                    + ", window=" + window
+                    + ", reported=" + reported
+                    + ", state=" + state
+                    + ", masked=" + masked
+                    + ", bounds=" + bounds
+                    + ", defaultAction=" + defaultAction
+                    + ", writable=" + writable
+                    + ", select=" + select + "]";
+        }
+
         boolean enabled() { return state >= 0 && (state & UNAVAILABLE) == 0; }
         boolean offscreen() { return state >= 0 && (state & INVISIBLE_OR_OFFSCREEN) != 0; }
     }
-    private record Strong(MsaaCom.Node original, byte[] identity, long window)
-            implements AutoCloseable {
+    private static final class Strong implements AutoCloseable {
+        private final MsaaCom.Node original;
+        private final byte[] identity;
+        private final long window;
+
+        private Strong(MsaaCom.Node original, byte[] identity, long window) {
+            this.original = original;
+            this.identity = identity;
+            this.window = window;
+        }
+
+        public MsaaCom.Node original() { return original; }
+        public byte[] identity() { return identity; }
+        public long window() { return window; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Strong)) return false;
+            Strong that = (Strong) other;
+            return Objects.equals(original, that.original)
+                    && Objects.equals(identity, that.identity)
+                    && window == that.window;
+        }
+        @Override public int hashCode() { return Objects.hash(original, identity, window); }
+        @Override public String toString() {
+            return "Strong[" + "original=" + original
+                    + ", identity=" + identity
+                    + ", window=" + window + "]";
+        }
+
         @Override public void close() { original.close(); }
     }
-    private record Page(int start, int count, int obtained) {}
-    private record Step(Step parent, int ordinal, int siblings, Page page, int child, int enumeratedId, long window, Identity identity,
-                        Strong strong) {}
-    private record Entry(Step step, String parentKey) {}
-    private sealed interface Work permits Pending, Expand { MsaaCom.Node node(); }
-    private record Pending(MsaaCom.Node node, Step path, ObjectNode parentRow, int ordinal, int siblings, Page page, int depth)
-            implements Work {}
-    private record Expand(MsaaCom.Node node, Step path, ObjectNode row, int start, int count, int depth)
-            implements Work {}
-    private record Live(MsaaCom.Node node, Inspection info) implements AutoCloseable {
+    private static final class Page {
+        private final int start;
+        private final int count;
+        private final int obtained;
+
+        private Page(int start, int count, int obtained) {
+            this.start = start;
+            this.count = count;
+            this.obtained = obtained;
+        }
+
+        public int start() { return start; }
+        public int count() { return count; }
+        public int obtained() { return obtained; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Page)) return false;
+            Page that = (Page) other;
+            return start == that.start
+                    && count == that.count
+                    && obtained == that.obtained;
+        }
+        @Override public int hashCode() { return Objects.hash(start, count, obtained); }
+        @Override public String toString() {
+            return "Page[" + "start=" + start
+                    + ", count=" + count
+                    + ", obtained=" + obtained + "]";
+        }
+    }
+    private static final class Step {
+        private final Step parent;
+        private final int ordinal;
+        private final int siblings;
+        private final Page page;
+        private final int child;
+        private final int enumeratedId;
+        private final long window;
+        private final Identity identity;
+        private final Strong strong;
+
+        private Step(Step parent,
+                     int ordinal,
+                     int siblings,
+                     Page page,
+                     int child,
+                     int enumeratedId,
+                     long window,
+                     Identity identity,
+                     Strong strong) {
+            this.parent = parent;
+            this.ordinal = ordinal;
+            this.siblings = siblings;
+            this.page = page;
+            this.child = child;
+            this.enumeratedId = enumeratedId;
+            this.window = window;
+            this.identity = identity;
+            this.strong = strong;
+        }
+
+        public Step parent() { return parent; }
+        public int ordinal() { return ordinal; }
+        public int siblings() { return siblings; }
+        public Page page() { return page; }
+        public int child() { return child; }
+        public int enumeratedId() { return enumeratedId; }
+        public long window() { return window; }
+        public Identity identity() { return identity; }
+        public Strong strong() { return strong; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Step)) return false;
+            Step that = (Step) other;
+            return Objects.equals(parent, that.parent)
+                    && ordinal == that.ordinal
+                    && siblings == that.siblings
+                    && Objects.equals(page, that.page)
+                    && child == that.child
+                    && enumeratedId == that.enumeratedId
+                    && window == that.window
+                    && Objects.equals(identity, that.identity)
+                    && Objects.equals(strong, that.strong);
+        }
+        @Override public int hashCode() { return Objects.hash(parent, ordinal, siblings, page, child, enumeratedId, window, identity, strong); }
+        @Override public String toString() {
+            return "Step[" + "parent=" + parent
+                    + ", ordinal=" + ordinal
+                    + ", siblings=" + siblings
+                    + ", page=" + page
+                    + ", child=" + child
+                    + ", enumeratedId=" + enumeratedId
+                    + ", window=" + window
+                    + ", identity=" + identity
+                    + ", strong=" + strong + "]";
+        }
+    }
+    private static final class Entry {
+        private final Step step;
+        private final String parentKey;
+
+        private Entry(Step step, String parentKey) {
+            this.step = step;
+            this.parentKey = parentKey;
+        }
+
+        public Step step() { return step; }
+        public String parentKey() { return parentKey; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Entry)) return false;
+            Entry that = (Entry) other;
+            return Objects.equals(step, that.step)
+                    && Objects.equals(parentKey, that.parentKey);
+        }
+        @Override public int hashCode() { return Objects.hash(step, parentKey); }
+        @Override public String toString() {
+            return "Entry[" + "step=" + step
+                    + ", parentKey=" + parentKey + "]";
+        }
+    }
+    private interface Work { MsaaCom.Node node(); }
+    private static final class Pending implements Work {
+        private final MsaaCom.Node node;
+        private final Step path;
+        private final ObjectNode parentRow;
+        private final int ordinal;
+        private final int siblings;
+        private final Page page;
+        private final int depth;
+
+        private Pending(MsaaCom.Node node,
+                        Step path,
+                        ObjectNode parentRow,
+                        int ordinal,
+                        int siblings,
+                        Page page,
+                        int depth) {
+            this.node = node;
+            this.path = path;
+            this.parentRow = parentRow;
+            this.ordinal = ordinal;
+            this.siblings = siblings;
+            this.page = page;
+            this.depth = depth;
+        }
+
+        public MsaaCom.Node node() { return node; }
+        public Step path() { return path; }
+        public ObjectNode parentRow() { return parentRow; }
+        public int ordinal() { return ordinal; }
+        public int siblings() { return siblings; }
+        public Page page() { return page; }
+        public int depth() { return depth; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Pending)) return false;
+            Pending that = (Pending) other;
+            return Objects.equals(node, that.node)
+                    && Objects.equals(path, that.path)
+                    && Objects.equals(parentRow, that.parentRow)
+                    && ordinal == that.ordinal
+                    && siblings == that.siblings
+                    && Objects.equals(page, that.page)
+                    && depth == that.depth;
+        }
+        @Override public int hashCode() { return Objects.hash(node, path, parentRow, ordinal, siblings, page, depth); }
+        @Override public String toString() {
+            return "Pending[" + "node=" + node
+                    + ", path=" + path
+                    + ", parentRow=" + parentRow
+                    + ", ordinal=" + ordinal
+                    + ", siblings=" + siblings
+                    + ", page=" + page
+                    + ", depth=" + depth + "]";
+        }
+    }
+    private static final class Expand implements Work {
+        private final MsaaCom.Node node;
+        private final Step path;
+        private final ObjectNode row;
+        private final int start;
+        private final int count;
+        private final int depth;
+
+        private Expand(MsaaCom.Node node, Step path, ObjectNode row, int start, int count, int depth) {
+            this.node = node;
+            this.path = path;
+            this.row = row;
+            this.start = start;
+            this.count = count;
+            this.depth = depth;
+        }
+
+        public MsaaCom.Node node() { return node; }
+        public Step path() { return path; }
+        public ObjectNode row() { return row; }
+        public int start() { return start; }
+        public int count() { return count; }
+        public int depth() { return depth; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Expand)) return false;
+            Expand that = (Expand) other;
+            return Objects.equals(node, that.node)
+                    && Objects.equals(path, that.path)
+                    && Objects.equals(row, that.row)
+                    && start == that.start
+                    && count == that.count
+                    && depth == that.depth;
+        }
+        @Override public int hashCode() { return Objects.hash(node, path, row, start, count, depth); }
+        @Override public String toString() {
+            return "Expand[" + "node=" + node
+                    + ", path=" + path
+                    + ", row=" + row
+                    + ", start=" + start
+                    + ", count=" + count
+                    + ", depth=" + depth + "]";
+        }
+    }
+    private static final class Live implements AutoCloseable {
+        private final MsaaCom.Node node;
+        private final Inspection info;
+
+        private Live(MsaaCom.Node node, Inspection info) {
+            this.node = node;
+            this.info = info;
+        }
+
+        public MsaaCom.Node node() { return node; }
+        public Inspection info() { return info; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Live)) return false;
+            Live that = (Live) other;
+            return Objects.equals(node, that.node)
+                    && Objects.equals(info, that.info);
+        }
+        @Override public int hashCode() { return Objects.hash(node, info); }
+        @Override public String toString() {
+            return "Live[" + "node=" + node
+                    + ", info=" + info + "]";
+        }
+
         @Override public void close() { node.close(); }
     }
 
@@ -172,41 +541,41 @@ final class MsaaSession implements NativeSession {
     }
 
     private static String role(int role) {
-        return switch (role) {
-            case 9, 18 -> "Window";
-            case 10, 16, 38 -> "Pane";
-            case 33 -> "List";
-            case 34 -> "ListItem";
-            case 60 -> "Tab";
-            case 37 -> "TabItem";
-            case 24 -> "Table";
-            case 28 -> "Row";
-            case 29 -> "Cell";
-            case 25, 26 -> "HeaderItem";
-            case 35 -> "Tree";
-            case 36 -> "TreeItem";
-            case TEXT -> "Edit";
-            case 41 -> "Text";
-            case 43 -> "Button";
-            case 44 -> "CheckBox";
-            case 45 -> "RadioButton";
-            case 46 -> "ComboBox";
-            case 20 -> "Group";
-            case 30 -> "Hyperlink";
-            case 2 -> "MenuBar";
-            case 11 -> "Menu";
-            case 12 -> "MenuItem";
-            case 51 -> "Slider";
-            case 3 -> "ScrollBar";
-            case 48 -> "ProgressBar";
-            case 52 -> "Spinner";
-            case 21 -> "Separator";
-            case 22 -> "ToolBar";
-            case 13 -> "ToolTip";
-            case 23 -> "StatusBar";
-            case 40 -> "Image";
-            default -> "Custom";
-        };
+        switch (role) {
+            case 9: case 18: return "Window";
+            case 10: case 16: case 38: return "Pane";
+            case 33: return "List";
+            case 34: return "ListItem";
+            case 60: return "Tab";
+            case 37: return "TabItem";
+            case 24: return "Table";
+            case 28: return "Row";
+            case 29: return "Cell";
+            case 25: case 26: return "HeaderItem";
+            case 35: return "Tree";
+            case 36: return "TreeItem";
+            case TEXT: return "Edit";
+            case 41: return "Text";
+            case 43: return "Button";
+            case 44: return "CheckBox";
+            case 45: return "RadioButton";
+            case 46: return "ComboBox";
+            case 20: return "Group";
+            case 30: return "Hyperlink";
+            case 2: return "MenuBar";
+            case 11: return "Menu";
+            case 12: return "MenuItem";
+            case 51: return "Slider";
+            case 3: return "ScrollBar";
+            case 48: return "ProgressBar";
+            case 52: return "Spinner";
+            case 21: return "Separator";
+            case 22: return "ToolBar";
+            case 13: return "ToolTip";
+            case 23: return "StatusBar";
+            case 40: return "Image";
+            default: return "Custom";
+        }
     }
 
     private boolean belongs(long window, long root, int pid) {
@@ -397,7 +766,8 @@ final class MsaaSession implements NativeSession {
                 }
                 while (!queue.isEmpty()) {
                     var work = queue.removeFirst();
-                    if (work instanceof Expand branch) {
+                    if (work instanceof Expand) {
+                        Expand branch = (Expand) work;
                         boolean transferred = false;
                         try {
                             int requested = Math.min(MsaaCom.PAGE_SIZE, Math.min(limit - scheduled,

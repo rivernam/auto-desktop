@@ -30,10 +30,153 @@ final class JnaUiaSession implements NativeSession {
     private Capture active;
     private boolean closed;
 
-    private record Entry(UiaCom.Ref node, String key, Entry parent, int pid, int[] runtime, Identity identity) {}
-    private record Identity(String name, String role, String automationId, String className, boolean clipped) {}
-    private record Info(Identity identity, boolean protect, boolean enabled, boolean offscreen,
-                        boolean invoke, boolean writable, int[] bounds, int pid) {}
+    private static final class Entry {
+        private final UiaCom.Ref node;
+        private final String key;
+        private final Entry parent;
+        private final int pid;
+        private final int[] runtime;
+        private final Identity identity;
+
+        private Entry(UiaCom.Ref node, String key, Entry parent, int pid, int[] runtime, Identity identity) {
+            this.node = node;
+            this.key = key;
+            this.parent = parent;
+            this.pid = pid;
+            this.runtime = runtime;
+            this.identity = identity;
+        }
+
+        public UiaCom.Ref node() { return node; }
+        public String key() { return key; }
+        public Entry parent() { return parent; }
+        public int pid() { return pid; }
+        public int[] runtime() { return runtime; }
+        public Identity identity() { return identity; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Entry)) return false;
+            Entry that = (Entry) other;
+            return Objects.equals(node, that.node)
+                    && Objects.equals(key, that.key)
+                    && Objects.equals(parent, that.parent)
+                    && pid == that.pid
+                    && Objects.equals(runtime, that.runtime)
+                    && Objects.equals(identity, that.identity);
+        }
+        @Override public int hashCode() { return Objects.hash(node, key, parent, pid, runtime, identity); }
+        @Override public String toString() {
+            return "Entry[" + "node=" + node
+                    + ", key=" + key
+                    + ", parent=" + parent
+                    + ", pid=" + pid
+                    + ", runtime=" + runtime
+                    + ", identity=" + identity + "]";
+        }
+    }
+    private static final class Identity {
+        private final String name;
+        private final String role;
+        private final String automationId;
+        private final String className;
+        private final boolean clipped;
+
+        private Identity(String name, String role, String automationId, String className, boolean clipped) {
+            this.name = name;
+            this.role = role;
+            this.automationId = automationId;
+            this.className = className;
+            this.clipped = clipped;
+        }
+
+        public String name() { return name; }
+        public String role() { return role; }
+        public String automationId() { return automationId; }
+        public String className() { return className; }
+        public boolean clipped() { return clipped; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Identity)) return false;
+            Identity that = (Identity) other;
+            return Objects.equals(name, that.name)
+                    && Objects.equals(role, that.role)
+                    && Objects.equals(automationId, that.automationId)
+                    && Objects.equals(className, that.className)
+                    && clipped == that.clipped;
+        }
+        @Override public int hashCode() { return Objects.hash(name, role, automationId, className, clipped); }
+        @Override public String toString() {
+            return "Identity[" + "name=" + name
+                    + ", role=" + role
+                    + ", automationId=" + automationId
+                    + ", className=" + className
+                    + ", clipped=" + clipped + "]";
+        }
+    }
+    private static final class Info {
+        private final Identity identity;
+        private final boolean protect;
+        private final boolean enabled;
+        private final boolean offscreen;
+        private final boolean invoke;
+        private final boolean writable;
+        private final int[] bounds;
+        private final int pid;
+
+        private Info(Identity identity,
+                     boolean protect,
+                     boolean enabled,
+                     boolean offscreen,
+                     boolean invoke,
+                     boolean writable,
+                     int[] bounds,
+                     int pid) {
+            this.identity = identity;
+            this.protect = protect;
+            this.enabled = enabled;
+            this.offscreen = offscreen;
+            this.invoke = invoke;
+            this.writable = writable;
+            this.bounds = bounds;
+            this.pid = pid;
+        }
+
+        public Identity identity() { return identity; }
+        public boolean protect() { return protect; }
+        public boolean enabled() { return enabled; }
+        public boolean offscreen() { return offscreen; }
+        public boolean invoke() { return invoke; }
+        public boolean writable() { return writable; }
+        public int[] bounds() { return bounds; }
+        public int pid() { return pid; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Info)) return false;
+            Info that = (Info) other;
+            return Objects.equals(identity, that.identity)
+                    && protect == that.protect
+                    && enabled == that.enabled
+                    && offscreen == that.offscreen
+                    && invoke == that.invoke
+                    && writable == that.writable
+                    && Objects.equals(bounds, that.bounds)
+                    && pid == that.pid;
+        }
+        @Override public int hashCode() { return Objects.hash(identity, protect, enabled, offscreen, invoke, writable, bounds, pid); }
+        @Override public String toString() {
+            return "Info[" + "identity=" + identity
+                    + ", protect=" + protect
+                    + ", enabled=" + enabled
+                    + ", offscreen=" + offscreen
+                    + ", invoke=" + invoke
+                    + ", writable=" + writable
+                    + ", bounds=" + bounds
+                    + ", pid=" + pid + "]";
+        }
+    }
 
     private static final class Capture implements AutoCloseable {
         final String windowId;
@@ -431,11 +574,14 @@ final class JnaUiaSession implements NativeSession {
     }
 
     private static void propagateTimeout(RuntimeException failure) {
-        if (failure instanceof AgentException agent && "TIMEOUT".equals(agent.code())) throw agent;
-        if (failure instanceof UiaCom.ComFailure comFailure
-                && (comFailure.hresult == UIA_TIMEOUT || comFailure.hresult == RPC_TIMEOUT
-                    || comFailure.hresult == WIN32_TIMEOUT))
-            throw new AgentException("TIMEOUT", "The Windows UI Automation provider timed out.");
+        if (failure instanceof AgentException && "TIMEOUT".equals(((AgentException) failure).code()))
+            throw (AgentException) failure;
+        if (failure instanceof UiaCom.ComFailure) {
+            UiaCom.ComFailure comFailure = (UiaCom.ComFailure) failure;
+            if (comFailure.hresult == UIA_TIMEOUT || comFailure.hresult == RPC_TIMEOUT
+                    || comFailure.hresult == WIN32_TIMEOUT)
+                throw new AgentException("TIMEOUT", "The Windows UI Automation provider timed out.");
+        }
     }
 
     private static AgentException precondition() {

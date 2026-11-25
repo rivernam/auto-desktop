@@ -50,10 +50,138 @@ final class JabSession implements NativeSession {
     private Capture active;
     private boolean closed;
 
-    private record Entry(long node, String key, Entry parent, Identity identity) {}
-    private record Identity(String name, String role, String nativeRole, boolean clipped) {}
-    private record Info(Identity identity, boolean protect, boolean enabled, boolean offscreen, String invoke,
-                        boolean writable, int[] bounds, int children) {}
+    private static final class Entry {
+        private final long node;
+        private final String key;
+        private final Entry parent;
+        private final Identity identity;
+
+        private Entry(long node, String key, Entry parent, Identity identity) {
+            this.node = node;
+            this.key = key;
+            this.parent = parent;
+            this.identity = identity;
+        }
+
+        public long node() { return node; }
+        public String key() { return key; }
+        public Entry parent() { return parent; }
+        public Identity identity() { return identity; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Entry)) return false;
+            Entry that = (Entry) other;
+            return node == that.node
+                    && Objects.equals(key, that.key)
+                    && Objects.equals(parent, that.parent)
+                    && Objects.equals(identity, that.identity);
+        }
+        @Override public int hashCode() { return Objects.hash(node, key, parent, identity); }
+        @Override public String toString() {
+            return "Entry[" + "node=" + node
+                    + ", key=" + key
+                    + ", parent=" + parent
+                    + ", identity=" + identity + "]";
+        }
+    }
+    private static final class Identity {
+        private final String name;
+        private final String role;
+        private final String nativeRole;
+        private final boolean clipped;
+
+        private Identity(String name, String role, String nativeRole, boolean clipped) {
+            this.name = name;
+            this.role = role;
+            this.nativeRole = nativeRole;
+            this.clipped = clipped;
+        }
+
+        public String name() { return name; }
+        public String role() { return role; }
+        public String nativeRole() { return nativeRole; }
+        public boolean clipped() { return clipped; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Identity)) return false;
+            Identity that = (Identity) other;
+            return Objects.equals(name, that.name)
+                    && Objects.equals(role, that.role)
+                    && Objects.equals(nativeRole, that.nativeRole)
+                    && clipped == that.clipped;
+        }
+        @Override public int hashCode() { return Objects.hash(name, role, nativeRole, clipped); }
+        @Override public String toString() {
+            return "Identity[" + "name=" + name
+                    + ", role=" + role
+                    + ", nativeRole=" + nativeRole
+                    + ", clipped=" + clipped + "]";
+        }
+    }
+    private static final class Info {
+        private final Identity identity;
+        private final boolean protect;
+        private final boolean enabled;
+        private final boolean offscreen;
+        private final String invoke;
+        private final boolean writable;
+        private final int[] bounds;
+        private final int children;
+
+        private Info(Identity identity,
+                     boolean protect,
+                     boolean enabled,
+                     boolean offscreen,
+                     String invoke,
+                     boolean writable,
+                     int[] bounds,
+                     int children) {
+            this.identity = identity;
+            this.protect = protect;
+            this.enabled = enabled;
+            this.offscreen = offscreen;
+            this.invoke = invoke;
+            this.writable = writable;
+            this.bounds = bounds;
+            this.children = children;
+        }
+
+        public Identity identity() { return identity; }
+        public boolean protect() { return protect; }
+        public boolean enabled() { return enabled; }
+        public boolean offscreen() { return offscreen; }
+        public String invoke() { return invoke; }
+        public boolean writable() { return writable; }
+        public int[] bounds() { return bounds; }
+        public int children() { return children; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Info)) return false;
+            Info that = (Info) other;
+            return Objects.equals(identity, that.identity)
+                    && protect == that.protect
+                    && enabled == that.enabled
+                    && offscreen == that.offscreen
+                    && Objects.equals(invoke, that.invoke)
+                    && writable == that.writable
+                    && Objects.equals(bounds, that.bounds)
+                    && children == that.children;
+        }
+        @Override public int hashCode() { return Objects.hash(identity, protect, enabled, offscreen, invoke, writable, bounds, children); }
+        @Override public String toString() {
+            return "Info[" + "identity=" + identity
+                    + ", protect=" + protect
+                    + ", enabled=" + enabled
+                    + ", offscreen=" + offscreen
+                    + ", invoke=" + invoke
+                    + ", writable=" + writable
+                    + ", bounds=" + bounds
+                    + ", children=" + children + "]";
+        }
+    }
 
     private final class Capture implements AutoCloseable {
         final String windowId;

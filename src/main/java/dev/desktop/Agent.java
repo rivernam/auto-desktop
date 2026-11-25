@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -41,7 +42,31 @@ public final class Agent implements AutoCloseable {
     }
 
     /** How a multi-backend session opens one backend. */
-    record BackendSource(Supplier<? extends DesktopAdapter> factory, boolean restartable) {}
+    static final class BackendSource {
+        private final Supplier<? extends DesktopAdapter> factory;
+        private final boolean restartable;
+
+        BackendSource(Supplier<? extends DesktopAdapter> factory, boolean restartable) {
+            this.factory = factory;
+            this.restartable = restartable;
+        }
+
+        public Supplier<? extends DesktopAdapter> factory() { return factory; }
+        public boolean restartable() { return restartable; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof BackendSource)) return false;
+            BackendSource that = (BackendSource) other;
+            return Objects.equals(factory, that.factory)
+                    && restartable == that.restartable;
+        }
+        @Override public int hashCode() { return Objects.hash(factory, restartable); }
+        @Override public String toString() {
+            return "BackendSource[" + "factory=" + factory
+                    + ", restartable=" + restartable + "]";
+        }
+    }
 
     private final List<Backend> backends = new ArrayList<>();
     private final boolean multi;
@@ -110,18 +135,38 @@ public final class Agent implements AutoCloseable {
             String id = string(request, "id", 128);
             response.put("id", id);
             String op = string(request, "op", 32);
-            JsonNode result = switch (op) {
-                case "getCapabilities" -> multi ? capabilities() : backends.get(0).adapter.capabilities();
-                case "listWindows" -> multi ? windows(response) : backends.get(0).adapter.listWindows();
-                case "snapshot" -> capture(request);
-                case "findElement" -> find(request);
-                case "getElementInfo" -> info(request);
-                case "invoke" -> perform(request, id, DesktopAction.INVOKE);
-                case "setValue" -> perform(request, id, DesktopAction.SET_VALUE);
-                case "defaultAction" -> perform(request, id, DesktopAction.DEFAULT_ACTION);
-                case "select" -> perform(request, id, DesktopAction.SELECT);
-                default -> throw new AgentException("UNKNOWN_OPERATION", "Unknown operation.");
-            };
+            JsonNode result;
+            switch (op) {
+                case "getCapabilities":
+                    result = multi ? capabilities() : backends.get(0).adapter.capabilities();
+                    break;
+                case "listWindows":
+                    result = multi ? windows(response) : backends.get(0).adapter.listWindows();
+                    break;
+                case "snapshot":
+                    result = capture(request);
+                    break;
+                case "findElement":
+                    result = find(request);
+                    break;
+                case "getElementInfo":
+                    result = info(request);
+                    break;
+                case "invoke":
+                    result = perform(request, id, DesktopAction.INVOKE);
+                    break;
+                case "setValue":
+                    result = perform(request, id, DesktopAction.SET_VALUE);
+                    break;
+                case "defaultAction":
+                    result = perform(request, id, DesktopAction.DEFAULT_ACTION);
+                    break;
+                case "select":
+                    result = perform(request, id, DesktopAction.SELECT);
+                    break;
+                default:
+                    throw new AgentException("UNKNOWN_OPERATION", "Unknown operation.");
+            }
             response.put("ok", true).set("result", result);
         } catch (AgentException ex) {
             response.put("ok", false).putObject("error").put("code", ex.code()).put("message", ex.getMessage());
@@ -244,8 +289,9 @@ public final class Agent implements AutoCloseable {
                 if (!listed.isArray()) throw new AgentException("WORKER_PROTOCOL", "Invalid window list.");
                 List<ObjectNode> added = new ArrayList<>();
                 for (JsonNode row : listed) {
-                    if (!(row instanceof ObjectNode window) || !row.path("windowId").isTextual())
+                    if (!(row instanceof ObjectNode) || !row.path("windowId").isTextual())
                         throw new AgentException("WORKER_PROTOCOL", "Invalid window list.");
+                    ObjectNode window = (ObjectNode) row;
                     added.add(window);
                 }
                 for (ObjectNode window : added) {
@@ -384,7 +430,8 @@ public final class Agent implements AutoCloseable {
             attend(backend, false);
         }
         // The provider accepted the call. Only the application can show that it had an effect.
-        if (result instanceof ObjectNode reply && !reply.has("effectVerified")) {
+        if (result instanceof ObjectNode && !((ObjectNode) result).has("effectVerified")) {
+            ObjectNode reply = (ObjectNode) result;
             return reply.deepCopy().put("effectVerified", false);
         }
         return result;

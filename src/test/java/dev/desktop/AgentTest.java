@@ -66,15 +66,17 @@ class AgentTest {
             assertEquals(42, processId);
             assertEquals("private-key", key);
             switch (action) {
-                case INVOKE -> {
+                case INVOKE:
                     assertNull(text);
                     invokes++;
-                }
-                case SET_VALUE -> {
+                    break;
+                case SET_VALUE:
                     value = text;
                     writes++;
                     if (timeout) throw new AgentException("TIMEOUT", "Worker timed out.");
-                }
+                    break;
+                default:
+                    break;
             }
             return object().put("performed", true);
         }

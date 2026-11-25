@@ -8,8 +8,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /** The tree and reference store for one bounded observation of a window. */
@@ -25,14 +27,54 @@ final class DesktopSnapshot {
     private final Map<String, String> refByKey = new HashMap<>();
     private final Map<String, List<Element>> childrenByKey = new HashMap<>();
 
-    record Element(String ref, String key, String parentKey, int processId, ObjectNode properties) {
+    static final class Element {
+        private final String ref;
+        private final String key;
+        private final String parentKey;
+        private final int processId;
+        private final ObjectNode properties;
+
+        Element(String ref, String key, String parentKey, int processId, ObjectNode properties) {
+            this.ref = ref;
+            this.key = key;
+            this.parentKey = parentKey;
+            this.processId = processId;
+            this.properties = properties;
+        }
+
+        public String ref() { return ref; }
+        public String key() { return key; }
+        public String parentKey() { return parentKey; }
+        public int processId() { return processId; }
+        public ObjectNode properties() { return properties; }
+
+        @Override public boolean equals(Object other) {
+            if (this == other) return true;
+            if (!(other instanceof Element)) return false;
+            Element that = (Element) other;
+            return Objects.equals(ref, that.ref)
+                    && Objects.equals(key, that.key)
+                    && Objects.equals(parentKey, that.parentKey)
+                    && processId == that.processId
+                    && Objects.equals(properties, that.properties);
+        }
+        @Override public int hashCode() { return Objects.hash(ref, key, parentKey, processId, properties); }
+        @Override public String toString() {
+            return "Element[" + "ref=" + ref
+                    + ", key=" + key
+                    + ", parentKey=" + parentKey
+                    + ", processId=" + processId
+                    + ", properties=" + properties + "]";
+        }
+
         static Element read(String ref, JsonNode row) {
-            if (!(row instanceof ObjectNode object) || !row.path("key").isTextual()
+            if (!(row instanceof ObjectNode) || !row.path("key").isTextual()
                     || row.get("key").textValue().isBlank() || !row.has("parentKey")
                     || !(row.get("parentKey").isNull() || row.get("parentKey").isTextual())
                     || !row.path("processId").isIntegralNumber() || !row.get("processId").canConvertToInt()
                     || row.get("processId").intValue() <= 0 || !row.path("enabled").isBoolean()
                     || !row.path("actions").isArray()) throw malformed();
+            ObjectNode object = (ObjectNode) row;
             // Metadata is an explicit projection. An adapter may carry additional private fields.
             ObjectNode properties = object.objectNode();
             for (String field : ElementLocator.FIELDS) {
@@ -146,7 +188,7 @@ final class DesktopSnapshot {
         if (!id.equals(snapshotId)) throw stale();
         ElementLocator locator = ElementLocator.parse(query);
         Stream<Element> candidates = scopeRef == null ? byRef.values().stream() : subtree(resolve(scopeRef));
-        List<Element> matches = candidates.filter(element -> locator.matches(element.properties())).limit(2).toList();
+        List<Element> matches = candidates.filter(element -> locator.matches(element.properties())).limit(2).collect(Collectors.toUnmodifiableList());
         if (matches.size() == 2) throw new AgentException("AMBIGUOUS_ELEMENT", "More than one element matches.");
         // A cut elsewhere in the tree hides no match inside a scope whose every row is whole.
         boolean complete = !truncated || (scopeRef != null && partialMarked

@@ -126,7 +126,9 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
     }
 
     private void runIdle() {
-        if (!(session instanceof NativeSession idle)) return;
+        TypedDesktopAdapter current = session;
+        if (!(current instanceof NativeSession)) return;
+        NativeSession idle = (NativeSession) current;
         synchronized (this) {
             if (retired) return;
             runningIdle = true;
@@ -149,8 +151,11 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
             if (retired) return;
             if (on) {
                 apartment.submit(() -> {
-                    if (session instanceof NativeSession serving)
+                    TypedDesktopAdapter current = session;
+                    if (current instanceof NativeSession) {
+                        NativeSession serving = (NativeSession) current;
                         serving.serve(() -> !attending || !apartment.getQueue().isEmpty());
+                    }
                 });
                 return;
             }
@@ -211,7 +216,8 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
                 validate.run();
                 beforeMutation.run();
             };
-            if (nativeSession instanceof NativeSession aware) {
+            if (nativeSession instanceof NativeSession) {
+                NativeSession aware = (NativeSession) nativeSession;
                 return aware.perform(action, key, processId, value, validatedDispatch);
             }
             validatedDispatch.run();
@@ -252,7 +258,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
                         retire();
                         throw unavailable(reason);
                     }
-                    if (session instanceof NativeSession created) waker = created;
+                    if (session instanceof NativeSession) waker = (NativeSession) session;
                 }
                 // Initialization or an earlier native call may have consumed the budget.
                 checkReady(deadline, request);
@@ -293,7 +299,7 @@ public final class JnaDesktopAdapter implements TypedDesktopAdapter {
             throw unavailable("The JNA desktop session closed before dispatch.");
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof AgentException reported) throw reported;
+            if (cause instanceof AgentException) throw (AgentException) cause;
             retire();
             throw lost(request.dispatched, false);
         }
