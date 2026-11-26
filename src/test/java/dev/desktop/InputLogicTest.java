@@ -120,6 +120,15 @@ class InputLogicTest {
                 () -> InputGeometry.point(new InputGeometry.Bounds(5, 5, 0.4, 10), 0.5, 0.5)).code());
     }
 
+    @Test void physicalBoundsToleranceIncludesBothOnePercentLimits() {
+        var root = new InputGeometry.Bounds(100, 200, 1000, 1000);
+        for (int size : List.of(989, 990, 1010, 1011)) {
+            var window = new InputGeometry.Rect(100, 200, 100 + size, 200 + size);
+            assertEquals(size == 990 || size == 1010 ? "physical" : "scaled",
+                    InputGeometry.mapping(window, root).kind, "window size " + size);
+        }
+    }
+
     @Test void halfPixelsRoundUpOnBothSides() {
         assertEquals(-2, InputGeometry.round(-2.5));
         assertEquals(3, InputGeometry.round(2.5));

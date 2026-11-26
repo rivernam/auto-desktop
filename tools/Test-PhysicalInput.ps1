@@ -59,7 +59,7 @@ $descriptions = [ordered]@{
     WinFormsListBox = 'WinForms ListBox: a bounds click selects an item; an MSAA weak reference is refused without consent, then clicked with acceptWeakReference.'
     WinFormsTab = 'WinForms TabControl: a bounds click on a TabItem selects the page.'
     DataGridView = 'DataGridView (no UIA rows or cells): click the grid, select row and cell with keys, edit with F2, typing and Enter.'
-    CanvasMouse = 'Owner-drawn canvas without accessible children: click, double, right and middle click, drag and both wheels in screen, window and client coordinates.'
+    CanvasMouse = 'Owner-drawn canvas without accessible children: move, click, double, right and middle click, drag and both wheels in screen, window and client coordinates.'
     CanvasKeyboard = 'Canvas keyboard: Unicode text with Tab, Enter and a surrogate pair, Ctrl+Shift+K, key down and up, refusals.'
     MultiMonitor = 'Other monitors and negative coordinates: move the fixture to every other monitor and click there. NOT_RUN with one monitor.'
     FocusChange = 'Another window takes the foreground: keyboard and pointer input to the target are refused without input; activateWindow is tried once.'
@@ -105,6 +105,7 @@ public static class PiProbe {
     [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT point);
     [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr window, ref POINT point);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window, out RECT rect);
+    [DllImport("user32.dll")] static extern uint GetDpiForWindow(IntPtr window);
     [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT point);
     [DllImport("user32.dll")] static extern short GetAsyncKeyState(int key);
     [DllImport("user32.dll")] static extern bool GetLastInputInfo(ref LASTINPUTINFO info);
@@ -131,6 +132,9 @@ public static class PiProbe {
     }
 
     public static long Foreground() { return GetForegroundWindow().ToInt64(); }
+    public static uint WindowDpi(long window) {
+        try { return GetDpiForWindow(new IntPtr(window)); } catch (EntryPointNotFoundException) { return 0; }
+    }
     public static uint ProcessOf(long window) { uint p; GetWindowThreadProcessId(new IntPtr(window), out p); return p; }
     public static int FocusedControlId(long window) {
         uint process, focusProcess;
@@ -243,7 +247,8 @@ function New-PiReport {
     $environment.monitors = @(foreach ($m in [PiProbe]::Monitors()) { [ordered]@{ left = $m[0]; top = $m[1]; right = $m[2]; bottom = $m[3]; primary = [bool]$m[4] } })
     $environment.userIdleMsAtStart = [PiProbe]::IdleMs()
     try { $environment.gitCommit = [string](& git rev-parse HEAD 2>$null) } catch {}
-    foreach ($item in @(@('jarSha256', $Jar), @('cppAgentSha256', $CppAgent), @('winFormsFixtureSha256', $winFormsExe))) {
+    foreach ($item in @(@('jarSha256', $Jar), @('cppAgentSha256', $CppAgent), @('winFormsFixtureSha256', $winFormsExe),
+            @('swingAwtFixtureClassSha256', (Join-Path $classes 'FrameworkFixture.class')), @('runnerSha256', $PSCommandPath))) {
         if (Test-Path -LiteralPath $item[1]) { $environment[$item[0]] = (Get-FileHash -LiteralPath $item[1]).Hash }
     }
     try {
@@ -251,6 +256,10 @@ function New-PiReport {
         $environment.javaAgentRuntime = $java
         # java -version writes to stderr, which Stop would turn into an exception.
         $environment.javaAgentVersion = (& { $ErrorActionPreference = 'Continue'; & $java -version 2>&1 } | ForEach-Object { "$_" }) -join ' | '
+    } catch {}
+    try {
+        $java = (Get-Command $FixtureJava -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $environment.fixtureJavaVersion = (& { $ErrorActionPreference = 'Continue'; & $java -version 2>&1 } | ForEach-Object { "$_" }) -join ' | '
     } catch {}
     return [ordered]@{
         schema = $schema; tool = 'Test-PhysicalInput.ps1'; startedUtc = [DateTime]::UtcNow.ToString('o')
@@ -681,6 +690,12 @@ function Case-CanvasMouse([string]$impl) {
     try {
         $t = $c.target
         $r = $c.run
+        $movePoint = Get-PiPoint $c.canvas.bounds 0.3 0.4
+        [void](Send-Pi $r ($c.keys + @{ op = 'pointerMove'; point = @{ x = $movePoint[0]; y = $movePoint[1]; space = 'screen' } }))
+        $moved = [PiProbe]::Cursor()
+        $script:currentCase.evidence.pointerMoveExpected = @($movePoint)
+        $script:currentCase.evidence.pointerMoveObserved = @($moved)
+        Require-Pi ($moved[0] -eq $movePoint[0] -and $moved[1] -eq $movePoint[1]) 'The cursor did not reach the canvas point.'
         [void](Send-Pi $r @{ op = 'clickElement'; ref = $c.canvas.ref; position = @{ x = 0.25; y = 0.5 } })
         Require-Pi (Test-LastNear $t 'canvas-clicks.txt' 'left single' @(0.25, 0.5)) 'No left click at 0.25,0.5.'
         Start-Sleep -Milliseconds 600
@@ -706,6 +721,11 @@ function Case-CanvasMouse([string]$impl) {
         $cursor = [PiProbe]::Cursor()
         $script:currentCase.evidence.cursorAfterClientScroll = "$($cursor[0]),$($cursor[1])"
         $script:currentCase.evidence.canvasCenter = "$($center[0]),$($center[1])"
+        $script:currentCase.evidence.fixtureClicks = @(Get-Lines (Read-Pi $t 'canvas-clicks.txt'))
+        $script:currentCase.evidence.fixtureDrags = @(Get-Lines (Read-Pi $t 'canvas-drag.txt'))
+        $script:currentCase.evidence.fixtureWheels = @(Get-Lines (Read-Pi $t 'canvas-wheel.txt'))
+        $dpi = [PiProbe]::WindowDpi([long]$c.window)
+        if ($dpi) { $script:currentCase.evidence.fixtureWindowDpi = $dpi }
         Require-Pi ($cursor[0] -eq $center[0] -and $cursor[1] -eq $center[1]) 'The client coordinates did not resolve to the canvas center.'
         Require-Pi (!([PiProbe]::Down(1) -or [PiProbe]::Down(2) -or [PiProbe]::Down(4))) 'A mouse button is still down.'
         Require-Pi ((Last-Line $t 'canvas-buttons.txt').StartsWith('up ')) 'The last button event is not a release.'

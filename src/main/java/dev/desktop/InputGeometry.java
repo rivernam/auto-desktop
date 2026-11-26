@@ -99,9 +99,10 @@ final class InputGeometry {
     }
 
     static boolean physicalMatch(Rect rect, Bounds root) {
-        return rect != null && root != null && root.width > 0 && root.height > 0
-                && Math.abs(rect.width() / root.width - 1) <= 0.01
-                && Math.abs(rect.height() / root.height - 1) <= 0.01
+        return rect != null && root != null && rect.width() > 0 && rect.height() > 0
+                && root.width > 0 && root.height > 0
+                && Math.abs(rect.width() - root.width) <= root.width * 0.01
+                && Math.abs(rect.height() - root.height) <= root.height * 0.01
                 && Math.abs(root.x - rect.left) <= 2 && Math.abs(root.y - rect.top) <= 2;
     }
 

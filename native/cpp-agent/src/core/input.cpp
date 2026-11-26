@@ -367,8 +367,8 @@ const char* mappingName(BoundsMapping mapping) {
 
 bool physicalBoundsMatch(const Bounds& physical, const Bounds& backend) {
     return physical.width > 0 && physical.height > 0 && backend.width > 0 && backend.height > 0
-        && std::abs(static_cast<double>(backend.width) / static_cast<double>(physical.width) - 1.0) <= 0.01
-        && std::abs(static_cast<double>(backend.height) / static_cast<double>(physical.height) - 1.0) <= 0.01
+        && std::abs(static_cast<double>(physical.width) - static_cast<double>(backend.width)) <= static_cast<double>(backend.width) * 0.01
+        && std::abs(static_cast<double>(physical.height) - static_cast<double>(backend.height)) <= static_cast<double>(backend.height) * 0.01
         && std::abs(backend.x - physical.x) <= 2 && std::abs(backend.y - physical.y) <= 2;
 }
 

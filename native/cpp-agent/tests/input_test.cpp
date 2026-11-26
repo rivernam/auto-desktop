@@ -262,6 +262,11 @@ void mapping() {
           && at(elementPoint(window, window, element, false, "UIA", 1, 1), 249, 269), "corners stay inside");
     check(elementPoint(window, Bounds{102, 198, 403, 298}, element, false, "JAB", .5, .5).mapping
           == BoundsMapping::physical, "physical tolerance");
+    for (const auto size : {989, 990, 1010, 1011}) {
+        const auto expected = size == 990 || size == 1010 ? BoundsMapping::physical : BoundsMapping::scaled;
+        check(elementPoint(Bounds{100, 200, size, size}, Bounds{100, 200, 1000, 1000}, element, false, "UIA",
+                           .5, .5).mapping == expected, "physical tolerance at window size " + std::to_string(size));
+    }
     // A JAB window of a HiDPI Java app at 125 %.
     mapped = elementPoint(Bounds{100, 200, 500, 375}, Bounds{80, 160, 400, 300}, Bounds{120, 200, 80, 16}, false, "JAB",
                           .5, .5);
