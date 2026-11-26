@@ -65,6 +65,7 @@ Agent의 입력 스레드는 Per-Monitor v2 DPI 인식으로 동작한다(Window
 백엔드가 보고한 좌표계는 창의 실제 `GetWindowRect`와 스냅샷 루트 bounds를 비교해 정한다.
 
 - 크기 비율이 1(±1%)이고 원점 차이가 2픽셀 이내면 `boundsMapping: "physical"`로 그대로 쓴다(UIA, MSAA, DPI 인식 Java 앱의 JAB).
+- MSAA 루트가 클라이언트 영역을 보고하는 경우 실제 클라이언트 영역의 화면 좌표와 같은 기준으로 비교한다. 일치하면 요소 좌표는 그대로 쓴다.
 - 가로·세로 비율이 서로 2% 안에서 같고 0.5~4 범위면 `boundsMapping: "scaled"`로 창 원점 기준으로 환산한다. HiDPI Java 앱의 JAB 좌표가 이 경우다.
 - 그 밖이면 `BOUNDS_UNVERIFIED`다. `scopeRef`로 받은 부분 스냅샷은 루트가 창이 아니므로 UIA·MSAA는 물리 좌표로 간주하고(`boundsMapping: "assumedPhysical"`) JAB는 `BOUNDS_UNVERIFIED`로 거부한다.
 
@@ -161,7 +162,7 @@ $jdk17 = 'C:\Program Files\Java\jdk-17\bin\java.exe'
 | 옵션 | 뜻 |
 |---|---|
 | `-Agent Java\|Cpp\|Both` | 시험할 Agent. 기본 `Both`(Java 다음 C++) |
-| `-Case A,B` | 일부 케이스만 실행 |
+| `-Case A,B` | 일부 케이스만 실행. `AwtUnicodePackets`는 명시적으로 선택해 AWT의 물리 유니코드 입력 호환성을 확인 |
 | `-IncludeElevated` | `PermissionMismatch`를 실행한다. 관리자 권한 픽스처를 UAC로 띄우므로 사람이 승인해야 한다. 없으면 `NOT_RUN` |
 | `-PerformanceIterations N` | 성능 측정 반복 수(기본 60) |
 | `-Interactive` 없이 | 입력과 창 없이 모든 케이스를 `NOT_RUN`으로 기록한 계획 파일만 만든다 |
@@ -173,10 +174,10 @@ $jdk17 = 'C:\Program Files\Java\jdk-17\bin\java.exe'
 | 케이스 | 확인하는 것 |
 |---|---|
 | AwtButtonClick | AWT 버튼의 UIA invoke는 응답만 받고 카운터가 그대로인 기존 실패를 기록한 뒤, 같은 UIA 요소의 bounds 클릭으로 카운터가 정확히 1 증가 |
-| AwtTextInput | AWT TextField(UIA Edit) bounds 클릭, End, 한글이 섞인 문자열 입력 → `value.txt` |
+| AwtTextInput | AWT TextField의 UIA bounds를 물리 클릭해 포커스를 확인하고, End·Backspace로 마지막 문자를 지운다. UIA `setValue`로 한글이 섞인 전체 문자열을 설정한다. 두 단계의 결과는 각각 `value.txt`로 확인한다. |
 | SwingModal | Swing 동기 모달을 JAB bounds 클릭으로 열고(JAB invoke는 약 8초 대기), 모달 안의 닫기 버튼 클릭으로 닫음 |
-| WinFormsListBox | UIA ListItem 클릭으로 선택. MSAA weak 참조는 동의 없이 거부되고 `acceptWeakReference`로 선택 |
-| WinFormsTab | TabItem 클릭으로 세 페이지 전환 |
+| WinFormsListBox | UIA 또는 MSAA ListItem 클릭으로 선택. MSAA weak 참조는 동의 없이 거부되고 `acceptWeakReference`로 선택 |
+| WinFormsTab | UIA 또는 MSAA TabItem 클릭으로 세 페이지 전환 |
 | DataGridView | UIA에 행·셀이 없는 그리드를 클릭한 뒤 Ctrl+Home, Down, Right로 셀 선택, F2·입력·Enter로 편집 확정 |
 | CanvasMouse | 접근성 자식이 없는 직접 그린 캔버스에 클릭, 더블 클릭, 오른쪽·가운데 클릭, 드래그, 세로·가로 휠. 화면·창·클라이언트 좌표를 모두 사용 |
 | CanvasKeyboard | 한글·이모지(서로게이트 쌍)·Tab·Enter 입력, Ctrl+Shift+K, keyDown/keyUp, 거부(보유하지 않은 키의 keyUp, Alt+Tab, Win+R) |
@@ -218,12 +219,13 @@ $r.cases | Where-Object case -eq 'Performance' | ForEach-Object { $_.agent; $_.e
 |---|---|
 | 요청 형식, 키 이름, 정규화, bounds 대응, 정책, 명령 ID, 오류 필드 | Java 단위 테스트와 C++ CTest로 확인 |
 | capability, 거부 경로(창 없음, PID 불일치, 정책, 중복 ID, 셸 단축키), DPI·무결성·입력 데스크톱 조회 | Windows 11 x64에서 Java 11(Temurin 11.0.33)과 C++ x64로 실행해 확인. C++ x86은 빌드와 상태 조회만 |
-| 실제 SendInput 전송, 훅 감시, 커서 도달, 해제, `activateWindow` | 구현함. Interactive 시험 미실행(`NOT_RUN`) |
+| 실제 SendInput 전송, 훅 감시, 커서 도달, 해제, `activateWindow` | Windows 11 x64 Interactive 시험에서 검증. 다중 모니터와 관리자 권한 대상은 미실행이다. 전경 전환 요청의 결과는 기록만 하고 합격 조건으로 삼지 않는다. |
 | 다중 모니터·음수 좌표·모니터별 배율 | 정규화 계산은 단위 시험. 실제 다중 모니터는 미실행 |
 | Windows 7, Windows 10, x86 실행, RDP | 미검증. 지원 완료가 아니다. Windows 7에서 없는 API는 실행 중에 찾도록 작성했다 |
 
 ## 미해결 문제와 제약
 
+- **AWT 텍스트 입력.** Java 11·21 AWT 픽스처의 편집 필드는 일반 `keyPress` 입력에 반응했지만 `typeText`의 유니코드 이벤트를 픽스처 값에 반영하지 않았다. 두 Agent에서 포커스와 훅 관측을 확인했다. 이 경로는 `-Case AwtUnicodePackets`로 별도 검증할 수 있다. AWT 편집 필드의 Unicode 값 변경에는 UIA 참조로 `setValue`를 호출한다. 호출자는 `setValue` 권한을 부여하고 변경 뒤 앱 상태를 확인한다.
 - **전경 전환.** `activateWindow`는 `SetForegroundWindow`를 한 번만 부른다. Windows의 전경 잠금 규칙 때문에 거부될 수 있고, 우회 기법은 쓰지 않는다. 그때는 사용자가 창을 앞으로 가져와야 한다.
 - **외부 입력의 범위.** 세션 태그가 없는 입력은 모두 사용자 입력으로 본다. 다른 자동화 도구, 원격 제어, 펜·터치 드라이버의 합성 입력도 `USER_INPUT_CONFLICT`를 일으킨다.
 - **훅이 사라지는 경우.** Windows는 응답이 늦은 저수준 훅을 알리지 않고 제거한다. 이때 `inputObserved`가 false가 되고 다음 요청에서 훅을 다시 설치하지만, 그 사이의 외부 입력은 놓칠 수 있다.

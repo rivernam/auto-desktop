@@ -19,6 +19,8 @@ import java.awt.TextArea;
 import java.awt.TextField;
 import java.awt.Window;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -261,6 +263,13 @@ public final class FrameworkFixture {
         frame.add(counterRow(), BorderLayout.NORTH);
         var fields = new Panel(new GridLayout(0, 2, 5, 5));
         awtEdit = named(new TextField(INITIAL_VALUE, 22), "fixtureEdit", "Fixture edit");
+        if (interactive) {
+            write("edit-focus.txt", "false");
+            awtEdit.addFocusListener(new FocusAdapter() {
+                @Override public void focusGained(FocusEvent event) { write("edit-focus.txt", "true"); }
+                @Override public void focusLost(FocusEvent event) { write("edit-focus.txt", "false"); }
+            });
+        }
         awtReadOnly = named(new TextField(FIXED_VALUE, 22), "fixtureReadOnly", "Fixture read-only edit");
         awtReadOnly.setEditable(false);
         awtEdit.addTextListener(event -> syncAwtTextFiles());

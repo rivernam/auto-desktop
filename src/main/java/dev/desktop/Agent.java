@@ -327,7 +327,13 @@ public final class Agent implements AutoCloseable {
         }
         InputGeometry.Rect frame = driver.windowRect(window, target.processId());
         InputGeometry.Mapping mapping;
-        if (liveRoot != null) mapping = InputGeometry.mapping(frame, InputGeometry.Bounds.read(liveRoot.get("bounds")));
+        if (liveRoot != null) {
+            InputGeometry.Bounds rootBounds = InputGeometry.Bounds.read(liveRoot.get("bounds"));
+            if ("MSAA".equals(name) && !InputGeometry.physicalMatch(frame, rootBounds)
+                    && InputGeometry.physicalMatch(driver.clientRect(window, target.processId()), rootBounds))
+                mapping = InputGeometry.Mapping.identity("physical");
+            else mapping = InputGeometry.mapping(frame, rootBounds);
+        }
         else if ("JAB".equals(name)) throw InputGeometry.unverified();
         else mapping = InputGeometry.Mapping.identity("assumedPhysical");
         int[] point = InputGeometry.point(mapping.apply(bounds), fx, fy);

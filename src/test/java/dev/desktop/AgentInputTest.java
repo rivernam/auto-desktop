@@ -91,6 +91,7 @@ class AgentInputTest {
         RuntimeException failure;
         boolean closed;
         InputGeometry.Rect window = new InputGeometry.Rect(100, 50, 900, 650);
+        InputGeometry.Rect client;
 
         @Override public ObjectNode describe() {
             ObjectNode row = object().put("available", available).put("dpiAwareness", "perMonitorV2");
@@ -102,6 +103,8 @@ class AgentInputTest {
             assertEquals(4242L, handle);
             return window;
         }
+
+        @Override public InputGeometry.Rect clientRect(long handle, int processId) { return client; }
 
         @Override public ObjectNode execute(InputRequest request, Runnable gate, long deadline) {
             requests.add(request);
@@ -258,6 +261,23 @@ class AgentInputTest {
             ObjectNode outside = op("clickElement").put("ref", ref);
             outside.putObject("position").put("x", 1.5);
             error("INVALID_REQUEST", send(agent, outside));
+        }
+    }
+
+    @Test void msaaCanMatchClientBoundsWithoutScalingTheClick() {
+        provider.backend = "MSAA";
+        device.window = new InputGeometry.Rect(92, 19, 908, 658);
+        device.client = new InputGeometry.Rect(100, 50, 900, 650);
+        try (Agent agent = session("pointer")) {
+            String ref = buttonRef(snapshot(agent));
+            JsonNode response = send(agent, op("clickElement").put("ref", ref));
+            assertEquals("physical", response.at("/result/boundsMapping").asText(), response::toString);
+            assertEquals(360, device.requests.get(0).point.x);
+            assertEquals(270, device.requests.get(0).point.y);
+
+            device.client = new InputGeometry.Rect(100, 54, 900, 654);
+            error("BOUNDS_UNVERIFIED", send(agent, op("clickElement").put("ref", ref)));
+            assertEquals(1, device.requests.size());
         }
     }
 

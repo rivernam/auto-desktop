@@ -117,6 +117,8 @@ struct ElementPoint {
     BoundsMapping mapping;
 };
 
+bool physicalBoundsMatch(const Bounds& physical, const Bounds& backend);
+
 // Maps a backend's element bounds to a physical screen point. window is the live GetWindowRect, root the
 // live bounds of the snapshot root (absent for a scoped snapshot). Throws BOUNDS_UNVERIFIED.
 ElementPoint elementPoint(const Bounds& window, const std::optional<Bounds>& root, const Bounds& element,
@@ -151,6 +153,8 @@ public:
     virtual InputStatus status() = 0;
     // Live GetWindowRect of a window owned by pid. Throws WINDOW_NOT_FOUND.
     virtual Bounds windowRect(std::uint32_t window, int pid) = 0;
+    // Live client rectangle in screen pixels, when available.
+    virtual std::optional<Bounds> clientRect(std::uint32_t, int) { return std::nullopt; }
     // Keys this session holds through keyDown.
     virtual std::vector<std::uint16_t> held() = 0;
     virtual InputOutcome perform(const InputCommand& command, const InputGate& gate) = 0;

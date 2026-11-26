@@ -365,6 +365,13 @@ const char* mappingName(BoundsMapping mapping) {
     return "physical";
 }
 
+bool physicalBoundsMatch(const Bounds& physical, const Bounds& backend) {
+    return physical.width > 0 && physical.height > 0 && backend.width > 0 && backend.height > 0
+        && std::abs(static_cast<double>(backend.width) / static_cast<double>(physical.width) - 1.0) <= 0.01
+        && std::abs(static_cast<double>(backend.height) / static_cast<double>(physical.height) - 1.0) <= 0.01
+        && std::abs(backend.x - physical.x) <= 2 && std::abs(backend.y - physical.y) <= 2;
+}
+
 ElementPoint elementPoint(const Bounds& window, const std::optional<Bounds>& root, const Bounds& element,
                           bool scoped, std::string_view backend, double fx, double fy) {
     const Error unverified{"BOUNDS_UNVERIFIED", "The element bounds could not be matched to the window."};
@@ -380,10 +387,7 @@ ElementPoint elementPoint(const Bounds& window, const std::optional<Bounds>& roo
         return inside(element, BoundsMapping::assumedPhysical);
     }
     if (!root || window.width <= 0 || window.height <= 0 || root->width <= 0 || root->height <= 0) throw unverified;
-    const double rx = static_cast<double>(root->width) / static_cast<double>(window.width);
-    const double ry = static_cast<double>(root->height) / static_cast<double>(window.height);
-    if (std::abs(rx - 1.0) <= 0.01 && std::abs(ry - 1.0) <= 0.01 && std::abs(root->x - window.x) <= 2
-        && std::abs(root->y - window.y) <= 2)
+    if (physicalBoundsMatch(window, *root))
         return inside(element, BoundsMapping::physical);
     const double sx = static_cast<double>(window.width) / static_cast<double>(root->width);
     const double sy = static_cast<double>(window.height) / static_cast<double>(root->height);

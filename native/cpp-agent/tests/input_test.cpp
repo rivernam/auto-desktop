@@ -36,6 +36,7 @@ class FakeDriver final : public InputDriver {
 public:
     InputStatus state;
     Bounds rect{100, 200, 400, 300};
+    std::optional<Bounds> client;
     std::vector<std::uint16_t> keys;
     std::vector<InputCommand> commands;
     std::function<void(const InputCommand&, const InputGate&)> script;
@@ -55,6 +56,7 @@ public:
         if (window != 42 || pid != 123) throw Error("WINDOW_NOT_FOUND", "Missing window.");
         return rect;
     }
+    std::optional<Bounds> clientRect(std::uint32_t, int) override { return client; }
     std::vector<std::uint16_t> held() override { return keys; }
     InputOutcome perform(const InputCommand& command, const InputGate& gate) override {
         ++performs;
@@ -443,6 +445,20 @@ void elements() {
     scoped = send(java, "snapshot", {{"windowId", "42"}, {"scopeRef", snap.at("elements")[1].at("ref")}}, "s2");
     error(send(java, "clickElement", {{"ref", scoped.at("result").at("elements")[0].at("ref")}}, "j1"),
           "BOUNDS_UNVERIFIED");
+    Surface msaa("MSAA");
+    Agent accessibility(msaa, "a", [](int pid) { return pid == 123; }, {Action::pointer}, Clock::now, nullptr, {&driver, true});
+    const auto savedWindow = driver.rect;
+    driver.rect = {92, 169, 416, 339};
+    driver.client = msaa.root;
+    snap = send(accessibility, "snapshot", {{"windowId", "42"}}, "s1").at("result");
+    ref = snap.at("elements")[1].at("ref");
+    const auto msaaClick = send(accessibility, "clickElement", {{"ref", ref}}, "m1");
+    check(msaaClick.at("result").at("boundsMapping") == "physical"
+          && msaaClick.at("result").at("point") == Json{{"x", 200}, {"y", 260}}, "MSAA client bounds " + msaaClick.dump());
+    driver.client->y += 4;
+    error(send(accessibility, "clickElement", {{"ref", ref}}, "m2"), "BOUNDS_UNVERIFIED");
+    driver.rect = savedWindow;
+    driver.client.reset();
     Agent denied(surface, "d", [](int) { return false; }, {Action::pointer}, Clock::now, nullptr, {&driver, true});
     snap = send(denied, "snapshot", {{"windowId", "42"}}, "s1").at("result");
     error(send(denied, "clickElement", {{"ref", snap.at("elements")[1].at("ref")}}, "x"), "PERMISSION_DENIED");

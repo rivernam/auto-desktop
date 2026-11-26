@@ -91,12 +91,18 @@ final class InputGeometry {
             throw unverified();
         double sx = window.width() / root.width;
         double sy = window.height() / root.height;
-        if (Math.abs(sx - 1) <= 0.01 && Math.abs(sy - 1) <= 0.01
-                && Math.abs(root.x - window.left) <= 2 && Math.abs(root.y - window.top) <= 2)
+        if (physicalMatch(window, root))
             return Mapping.identity("physical");
         if (sx >= 0.5 && sx <= 4 && sy >= 0.5 && sy <= 4 && Math.abs(sx / sy - 1) <= 0.02)
             return new Mapping("scaled", sx, sy, root.x, root.y, window.left, window.top);
         throw unverified();
+    }
+
+    static boolean physicalMatch(Rect rect, Bounds root) {
+        return rect != null && root != null && root.width > 0 && root.height > 0
+                && Math.abs(rect.width() / root.width - 1) <= 0.01
+                && Math.abs(rect.height() / root.height - 1) <= 0.01
+                && Math.abs(root.x - rect.left) <= 2 && Math.abs(root.y - rect.top) <= 2;
     }
 
     /** The pixel at the given fractions of the bounds. A fraction of 1 is the last pixel inside. */

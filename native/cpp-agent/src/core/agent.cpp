@@ -399,8 +399,13 @@ Json Agent::physical(const Json& request, const std::string& id, InputOp op, Req
             if (window.pid != snapshot.capture.elements[0].pid) throw stale();
             root = window.bounds;
         }
-        const auto rect = driver->windowRect(command.window, command.processId);
-        const auto mapped = elementPoint(rect, root, *live.bounds, snapshot.scoped, adapter_.backend(),
+        auto rect = driver->windowRect(command.window, command.processId);
+        const std::string_view backend = adapter_.backend();
+        if (backend == "MSAA" && root && !physicalBoundsMatch(rect, *root)) {
+            const auto client = driver->clientRect(command.window, command.processId);
+            if (client && physicalBoundsMatch(*client, *root)) rect = *client;
+        }
+        const auto mapped = elementPoint(rect, root, *live.bounds, snapshot.scoped, backend,
                                          command.fx, command.fy);
         command.op = InputOp::pointerClick;
         command.point = {mapped.point.x, mapped.point.y, Space::screen};

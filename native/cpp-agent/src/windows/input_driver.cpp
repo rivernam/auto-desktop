@@ -308,7 +308,10 @@ class Driver final : public InputDriver {
 public:
     Driver() : hooks_(counters_) {
         std::random_device random;
-        while (!tag_) tag_ = static_cast<ULONG_PTR>((static_cast<std::uint64_t>(random()) << 32) | random());
+        // The low-level hook can receive only the low 32 bits of dwExtraInfo.
+        // Use the same positive range as Java and avoid pen/touch signatures.
+        std::uniform_int_distribution<std::uint32_t> distribution(0x10000u, 0x7ffeffffu);
+        tag_ = distribution(random);
         counters_.tag = tag_;
     }
 
@@ -345,6 +348,19 @@ public:
             throw refusal("WINDOW_NOT_FOUND", "The window no longer exists or belongs to another process.");
         return {rect.left, rect.top, static_cast<long long>(rect.right) - rect.left,
                 static_cast<long long>(rect.bottom) - rect.top};
+    }
+
+    std::optional<Bounds> clientRect(std::uint32_t window, int pid) override {
+        const ScopedDpi dpi(api_);
+        const auto handle = reinterpret_cast<HWND>(static_cast<std::uintptr_t>(window));
+        if (!window || !IsWindow(handle) || processOf(handle) != static_cast<DWORD>(pid))
+            throw refusal("WINDOW_NOT_FOUND", "The window no longer exists or belongs to another process.");
+        RECT rect{};
+        if (!GetClientRect(handle, &rect)) return std::nullopt;
+        POINT from{rect.left, rect.top};
+        POINT to{rect.right, rect.bottom};
+        if (!ClientToScreen(handle, &from) || !ClientToScreen(handle, &to)) return std::nullopt;
+        return Bounds{from.x, from.y, static_cast<long long>(to.x) - from.x, static_cast<long long>(to.y) - from.y};
     }
 
     std::vector<std::uint16_t> held() override {

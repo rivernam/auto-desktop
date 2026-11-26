@@ -16,6 +16,9 @@ interface InputDriver extends AutoCloseable {
     /** The window rectangle in physical pixels. Fails with WINDOW_NOT_FOUND unless the process owns the window. */
     InputGeometry.Rect windowRect(long window, int processId);
 
+    /** The client rectangle in screen pixels, when available. */
+    default InputGeometry.Rect clientRect(long window, int processId) { return null; }
+
     /**
      * Validates and sends one request within the deadline (System.nanoTime). gate runs right before
      * the first event and rechecks the session policy. Throws {@link InputException} with the

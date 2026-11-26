@@ -143,6 +143,7 @@ internal sealed class WinFormsFixture : Form
     private readonly string stateDirectory;
     private readonly FlowLayoutPanel actions = new FlowLayoutPanel();
     private readonly Timer timer = new Timer { Interval = 25 };
+    private readonly FixtureCanvas canvas;
     private readonly TabControl tabs;
     private ListBox fixtureList;
     private readonly TextBox edit = new TextBox { Text = "initial fixture value" };
@@ -223,7 +224,8 @@ internal sealed class WinFormsFixture : Form
         root.Controls.Add(BuildActions(), 0, 0);
         tabs = BuildTabs();
         root.Controls.Add(tabs, 0, 1);
-        root.Controls.Add(new FixtureCanvas(WriteState, AppendState) { Dock = DockStyle.Fill }, 0, 2);
+        canvas = new FixtureCanvas(WriteState, AppendState) { Dock = DockStyle.Fill };
+        root.Controls.Add(canvas, 0, 2);
 
         WriteState("fixture-mode.txt", ActivationGuard.Background ? "background" : "interactive");
         WriteState("count.txt", "0");
@@ -487,6 +489,7 @@ internal sealed class WinFormsFixture : Form
 
     private void PollCommands(object sender, EventArgs e)
     {
+        canvas.PublishText();
         // Backstop for z-order changes that WM_WINDOWPOSCHANGED did not catch.
         ActivationGuard.PushDownIfAbove(Handle);
         if (modal != null && modal.IsHandleCreated) ActivationGuard.PushDownIfAbove(modal.Handle);
@@ -603,6 +606,7 @@ internal sealed class FixtureCanvas : Control
     private readonly Action<string, string> write;
     private readonly Action<string, string> append;
     private readonly StringBuilder typed = new StringBuilder();
+    private int publishedTextLength;
     private MouseButtons pressed = MouseButtons.None;
     private Point pressedAt;
 
@@ -697,8 +701,15 @@ internal sealed class FixtureCanvas : Control
         // Backspace, Escape and Ctrl+letter characters are not text.
         if (typedChar < ' ' && typedChar != '\n' && typedChar != '\t') return;
         typed.Append(typedChar);
-        write("canvas-text.txt", typed.ToString());
         e.Handled = true;
+    }
+
+    public void PublishText()
+    {
+        if (publishedTextLength == typed.Length) return;
+        // Keep synchronous disk I/O outside the keyboard event handler.
+        write("canvas-text.txt", typed.ToString());
+        publishedTextLength = typed.Length;
     }
 
     protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }

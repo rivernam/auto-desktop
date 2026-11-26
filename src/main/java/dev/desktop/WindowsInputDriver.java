@@ -141,6 +141,19 @@ final class WindowsInputDriver implements InputDriver {
         });
     }
 
+    @Override public InputGeometry.Rect clientRect(long window, int processId) {
+        return call(() -> {
+            HWND handle = owned(window, processId);
+            RECT rect = new RECT();
+            if (!User32.INSTANCE.GetClientRect(handle, rect)) return null;
+            POINT from = new POINT(rect.left, rect.top);
+            POINT to = new POINT(rect.right, rect.bottom);
+            if (!Natives.INSTANCE.ClientToScreen(handle, from) || !Natives.INSTANCE.ClientToScreen(handle, to))
+                return null;
+            return new InputGeometry.Rect(from.x, from.y, to.x, to.y);
+        });
+    }
+
     @Override public ObjectNode execute(InputRequest request, Runnable gate, long deadline) {
         if (closed) throw InputException.refused("INPUT_UNAVAILABLE", "The input session has ended.");
         Job job = new Job();

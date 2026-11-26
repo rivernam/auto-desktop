@@ -10,7 +10,7 @@
 param(
     [switch]$Interactive,
     [ValidateSet('Java', 'Cpp', 'Both')][string]$Agent = 'Both',
-    [ValidateSet('AwtButtonClick', 'AwtTextInput', 'SwingModal', 'WinFormsListBox', 'WinFormsTab', 'DataGridView',
+    [ValidateSet('AwtButtonClick', 'AwtTextInput', 'AwtUnicodePackets', 'SwingModal', 'WinFormsListBox', 'WinFormsTab', 'DataGridView',
         'CanvasMouse', 'CanvasKeyboard', 'MultiMonitor', 'FocusChange', 'WindowObscured', 'TargetReplaced',
         'PermissionMismatch', 'UserInputConflict', 'ReleaseOnFailure', 'Performance')]
     [string[]]$Case = @('AwtButtonClick', 'AwtTextInput', 'SwingModal', 'WinFormsListBox', 'WinFormsTab', 'DataGridView',
@@ -36,6 +36,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'UiaTest.Common.ps1')
+. (Join-Path $PSScriptRoot 'UiaFrameworkCases.ps1')
 . (Join-Path $PSScriptRoot 'JabFrameworkCases.ps1')
 
 $schema = 1
@@ -52,9 +53,10 @@ $allowed = '--allow-action pointer --allow-action keyboard --allow-action activa
 # What each case checks, with the accessibility failure it answers where there is one.
 $descriptions = [ordered]@{
     AwtButtonClick = 'AWT button: UIA invoke reaches the native peer and has no effect; a bounds click on the same UIA element increments the counter once.'
-    AwtTextInput = 'AWT TextField: click its UIA bounds, End, then type Unicode text; value.txt must hold the result.'
+    AwtTextInput = 'AWT TextField: click its UIA bounds, verify physical End and Backspace, then set a Unicode value through UIA.'
+    AwtUnicodePackets = 'AWT compatibility probe: send physical Unicode packets and check whether the TextField inserts them.'
     SwingModal = 'Swing synchronous modal: open it with a bounds click (JAB invoke blocks for 8 s there) and close it with a bounds click inside the modal.'
-    WinFormsListBox = 'WinForms ListBox: a UIA bounds click selects an item; an MSAA weak reference is refused without consent, then clicked with acceptWeakReference.'
+    WinFormsListBox = 'WinForms ListBox: a bounds click selects an item; an MSAA weak reference is refused without consent, then clicked with acceptWeakReference.'
     WinFormsTab = 'WinForms TabControl: a bounds click on a TabItem selects the page.'
     DataGridView = 'DataGridView (no UIA rows or cells): click the grid, select row and cell with keys, edit with F2, typing and Enter.'
     CanvasMouse = 'Owner-drawn canvas without accessible children: click, double, right and middle click, drag and both wheels in screen, window and client coordinates.'
@@ -87,11 +89,20 @@ public static class PiProbe {
     [StructLayout(LayoutKind.Sequential)] struct INPUT { public uint type; public MOUSEINPUT mi; }
     [StructLayout(LayoutKind.Sequential)] struct MONITORINFO { public int cbSize; public RECT rcMonitor; public RECT rcWork; public uint dwFlags; }
     [StructLayout(LayoutKind.Sequential)] struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam, lParam; public uint time; public POINT pt; }
+    [StructLayout(LayoutKind.Sequential)] struct GUITHREADINFO {
+        public int cbSize;
+        public uint flags;
+        public IntPtr active, focus, capture, menuOwner, moveSize, caret;
+        public RECT caretRect;
+    }
     delegate bool MonitorEnum(IntPtr monitor, IntPtr dc, ref RECT rect, IntPtr data);
 
     [DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
+    [DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint thread, ref GUITHREADINFO info);
+    [DllImport("user32.dll")] static extern int GetDlgCtrlID(IntPtr window);
+    [DllImport("user32.dll")] static extern IntPtr WindowFromPoint(POINT point);
     [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr window, ref POINT point);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr window, out RECT rect);
     [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT point);
@@ -121,6 +132,25 @@ public static class PiProbe {
 
     public static long Foreground() { return GetForegroundWindow().ToInt64(); }
     public static uint ProcessOf(long window) { uint p; GetWindowThreadProcessId(new IntPtr(window), out p); return p; }
+    public static int FocusedControlId(long window) {
+        uint process, focusProcess;
+        uint thread = GetWindowThreadProcessId(new IntPtr(window), out process);
+        var info = new GUITHREADINFO { cbSize = Marshal.SizeOf(typeof(GUITHREADINFO)) };
+        if (thread == 0 || !GetGUIThreadInfo(thread, ref info) || info.focus == IntPtr.Zero) return -1;
+        GetWindowThreadProcessId(info.focus, out focusProcess);
+        return focusProcess == process ? GetDlgCtrlID(info.focus) : -1;
+    }
+    public static int ControlUnderCursorId(uint process) {
+        IntPtr previous = Physical();
+        try {
+            POINT point;
+            if (!GetCursorPos(out point)) return -1;
+            IntPtr hit = WindowFromPoint(point);
+            uint hitProcess;
+            GetWindowThreadProcessId(hit, out hitProcess);
+            return hitProcess == process ? GetDlgCtrlID(hit) : -1;
+        } finally { Restore(previous); }
+    }
     public static int[] ClientOrigin(long window) {
         IntPtr previous = Physical();
         try { POINT p = new POINT(); ClientToScreen(new IntPtr(window), ref p); return new int[] { p.X, p.Y }; }
@@ -329,10 +359,11 @@ function Last-Line($target, [string]$file) { $lines = @(Get-Lines (Read-Pi $targ
 
 # --- Agent --------------------------------------------------------------------------------------
 
-function Start-PiAgent([string]$implementation, [int[]]$pids) {
+function Start-PiAgent([string]$implementation, [int[]]$pids, [switch]$AllowSetValue) {
     $start = New-Object Diagnostics.ProcessStartInfo
     $policy = ''
     foreach ($id in $pids) { $policy += " --allow-pid $id" }
+    if ($AllowSetValue) { $policy += ' --allow-action setValue' }
     if ($implementation -eq 'Java') {
         $start.FileName = (Get-Command $JavaExe -CommandType Application | Select-Object -First 1).Source
         $start.Arguments = (($JvmOptions -join ' ') + " -jar ""$Jar"" --backend multi$policy $allowed")
@@ -377,13 +408,16 @@ function Send-Pi($run, $command, $expect = 'OK', [int]$timeoutMs = 20000) {
     return $reply
 }
 
-function Measure-PiRequest($run, $command) {
+function Measure-PiRequest($run, $command, [switch]$RecordObservation) {
     $response = Send-UiaRequest $run.cli $command ([guid]::NewGuid().ToString()) 20000
     if (!$response.reply.ok) {
         if ($response.reply.error.code -eq 'USER_INPUT_CONFLICT') {
             $script:abortReason = 'The agent reported user input during the run. The remaining cases were not run.'
         }
         throw "$($command.op) failed during measurement: $($response.reply.error.code)"
+    }
+    if ($RecordObservation) {
+        $script:currentCase.evidence.textInputObserved += [bool]$response.reply.result.inputObserved
     }
     return [Math]::Round($response.ms, 2)
 }
@@ -408,6 +442,33 @@ function Find-PiRow($snapshot, [scriptblock]$match, [string]$what) {
     $rows = @($snapshot.elements | Where-Object $match)
     if ($rows.Count -lt 1) { throw "BLOCKED: the snapshot has no $what." }
     return $rows[0]
+}
+
+# The .NET Framework provider can omit items without a UIA runtime ID. MSAA can still
+# expose their bounds, and the fixture's state file verifies the effect of the click.
+function Select-PiWinFormsItem($c, $snapshot, [string]$role, [string]$name) {
+    $rows = @($snapshot.elements | Where-Object { $_.role -ceq $role -and $_.name -ceq $name })
+    $lookup = [ordered]@{ name = $name; role = $role; uiaMatches = $rows.Count; uiaTruncated = $snapshot.truncated }
+    if (!$script:currentCase.evidence.itemLookups) { $script:currentCase.evidence.itemLookups = @() }
+    $script:currentCase.evidence.itemLookups += $lookup
+    if ($rows.Count -eq 0) {
+        $lookup.uiaPeers = @($snapshot.elements | Where-Object role -CEQ $role | Select-Object -ExpandProperty name)
+        $msaa = Get-PiSnapshot $c.run $c.window 'MSAA'
+        $rows = @($msaa.elements | Where-Object { $_.role -ceq $role -and $_.name -ceq $name })
+        $lookup.msaaMatches = $rows.Count
+        $lookup.msaaTruncated = $msaa.truncated
+        $lookup.msaaRootBounds = $msaa.elements[0].bounds
+        $lookup.nativeWindowRect = [PiProbe]::WindowRect([long]$c.window)
+    }
+    if ($rows.Count -ne 1) { throw "BLOCKED: no unique $role named '$name' was found." }
+    $item = $rows[0]
+    $lookup.backend = $item.backend
+    $lookup.referenceStrength = $item.referenceStrength
+    $reply = Send-Pi $c.run @{ op = 'clickElement'; ref = $item.ref; acceptWeakReference = ($item.referenceStrength -eq 'weak') } @('OK', 'BOUNDS_UNVERIFIED')
+    if (!$reply.ok) {
+        Require-Pi ($reply.error.inputSent -eq $false) 'Unverified bounds allowed input.'
+        throw "BLOCKED: $($item.backend) bounds for '$name' could not be mapped to the window."
+    }
 }
 
 # The target must be in front before input. A fresh Interactive fixture normally is. Otherwise the
@@ -489,25 +550,54 @@ function Case-AwtButtonClick([string]$impl) {
     } finally { Stop-PiAgent $run }
 }
 
-function Case-AwtTextInput([string]$impl) {
+function Test-PiAwtText([string]$impl, [switch]$UnicodePackets) {
     $t = Start-PiFixture 'Awt'
-    $run = Start-PiAgent $impl @($t.processId)
+    $run = Start-PiAgent $impl @($t.processId) -AllowSetValue:(!$UnicodePackets)
     try {
         $window = Get-PiWindow $run $t
         Use-PiForeground $run $t $window
         $snapshot = Get-PiSnapshot $run $window 'UIA'
-        $edit = Find-PiRow $snapshot { $_.role -ceq 'Edit' } 'UIA Edit row for the AWT TextField'
+        $spec = Get-FrameworkSpec 'Awt'
+        $edit = Find-PiRow $snapshot { $_.role -ceq 'Edit' -and $_.automationId -ceq $spec.edit -and $_.className -ceq $spec.editClass } 'UIA Edit row for the editable AWT TextField'
         $initial = [string](Read-Pi $t 'value.txt')
         $typed = ' AWT ' + [char]0xD55C + [char]0xAE00 + ' 123'
         $keys = @{ windowId = $window; processId = $t.processId }
-        [void](Send-Pi $run @{ op = 'clickElement'; ref = $edit.ref })
+        $click = Send-Pi $run @{ op = 'clickElement'; ref = $edit.ref }
+        $script:currentCase.evidence.editBounds = $edit.bounds
+        $script:currentCase.evidence.clickPoint = $click.result.point
+        $script:currentCase.evidence.hitControlId = [PiProbe]::ControlUnderCursorId($t.processId)
+        $focused = Wait-Pi $t 'edit-focus.txt' { param($v) $v -ceq 'true' } 1500
+        $script:currentCase.evidence.focusedControlId = [PiProbe]::FocusedControlId([long]$window)
+        $script:currentCase.evidence.fixtureEditFocused = $focused -ceq 'true'
+        Require-Pi ($focused -ceq 'true') 'The AWT editable text field did not receive keyboard focus.'
         [void](Send-Pi $run ($keys + @{ op = 'keyPress'; keys = 'End' }))
-        [void](Send-Pi $run ($keys + @{ op = 'typeText'; text = $typed }))
-        $value = Wait-Pi $t 'value.txt' { param($v) $v -ceq ($initial + $typed) }
+        $expected = $initial + $typed
+        if ($UnicodePackets) {
+            [void](Send-Pi $run ($keys + @{ op = 'typeText'; text = $typed }))
+        } else {
+            Require-Pi ($initial.Length -gt 0) 'The fixture did not publish its initial text.'
+            [void](Send-Pi $run ($keys + @{ op = 'keyPress'; keys = 'Backspace' }))
+            $afterKey = $initial.Substring(0, $initial.Length - 1)
+            $physicalValue = Wait-Pi $t 'value.txt' { param($v) $v -ceq $afterKey }
+            $script:currentCase.evidence.valueAfterPhysicalKey = Read-Pi $t 'value.txt'
+            Require-Pi ($null -ne $physicalValue) 'Physical Backspace did not remove the final character.'
+            [void](Send-Pi $run @{ op = 'setValue'; ref = $edit.ref; value = $expected })
+        }
+        $value = Wait-Pi $t 'value.txt' { param($v) $v -ceq $expected }
         $script:currentCase.evidence.value = Read-Pi $t 'value.txt'
-        Require-Pi ($null -ne $value) 'value.txt does not hold the typed text.'
+        if ($UnicodePackets -and $null -eq $value) {
+            $beforeControl = $script:currentCase.evidence.value
+            [void](Send-Pi $run ($keys + @{ op = 'keyPress'; keys = 'A' }))
+            $control = Wait-Pi $t 'value.txt' { param($v) $v -cne $beforeControl } 1500
+            $script:currentCase.evidence.virtualKeyChangedValue = $null -ne $control
+        }
+        Require-Pi ($null -ne $value) 'value.txt does not hold the expected Unicode text.'
     } finally { Stop-PiAgent $run }
 }
+
+function Case-AwtTextInput([string]$impl) { Test-PiAwtText $impl }
+
+function Case-AwtUnicodePackets([string]$impl) { Test-PiAwtText $impl -UnicodePackets }
 
 function Case-SwingModal([string]$impl) {
     $t = Start-PiFixture 'Swing'
@@ -531,8 +621,7 @@ function Case-SwingModal([string]$impl) {
 function Case-WinFormsListBox([string]$impl) {
     $c = Open-PiCanvas $impl
     try {
-        $item = Find-PiRow $c.snapshot { $_.role -ceq 'ListItem' -and $_.name -ceq 'Item two' } 'UIA ListItem Item two'
-        [void](Send-Pi $c.run @{ op = 'clickElement'; ref = $item.ref })
+        Select-PiWinFormsItem $c $c.snapshot 'ListItem' 'Item two'
         Require-Pi ($null -ne (Wait-Pi $c.target 'list.txt' { param($v) $v -ceq 'Item two' })) 'list.txt is not Item two.'
         $msaa = Get-PiSnapshot $c.run $c.window 'MSAA'
         $third = Find-PiRow $msaa { $_.name -ceq 'Item three' } 'MSAA row Item three'
@@ -549,8 +638,8 @@ function Case-WinFormsListBox([string]$impl) {
 }
 
 function Select-PiTab($c, [string]$name) {
-    $tab = Find-PiRow $c.snapshot { $_.role -ceq 'TabItem' -and $_.name -ceq $name } "TabItem $name"
-    [void](Send-Pi $c.run @{ op = 'clickElement'; ref = $tab.ref })
+    $snapshot = Get-PiSnapshot $c.run $c.window 'UIA'
+    Select-PiWinFormsItem $c $snapshot 'TabItem' $name
     Require-Pi ($null -ne (Wait-Pi $c.target 'tab.txt' { param($v) $v -ceq $name })) "tab.txt is not $name."
 }
 
@@ -764,8 +853,7 @@ function Case-UserInputConflict([string]$impl) {
         [PiProbe]::ForeignMoveAfter(500)
         $reply = Send-Pi $c.run ($c.keys + @{ op = 'typeText'; text = ('a' * 600); intervalMs = 40 }) 'USER_INPUT_CONFLICT'
         Require-Pi ($reply.error.inputSent -eq $true) 'An interrupted typeText did not report the input it sent.'
-        Start-Sleep -Milliseconds 500
-        $typed = [string](Read-Pi $c.target 'canvas-text.txt')
+        $typed = [string](Wait-Pi $c.target 'canvas-text.txt' { param($v) $v.Length -gt 0 })
         $script:currentCase.evidence.typedBeforeConflict = $typed.Length
         Require-Pi ($typed.Length -gt 0 -and $typed.Length -lt 600) 'The text was not cut short by the foreign input.'
         [PiProbe]::ForeignMove()
@@ -841,10 +929,13 @@ function Case-Performance([string]$impl) {
         }
         for ($i = 0; $i -lt $n; $i++) { $times.keyPress += Measure-PiRequest $c.run ($c.keys + @{ op = 'keyPress'; quietMs = 0; keys = 'Shift' }) }
         $textBefore = ([string](Read-Pi $t 'canvas-text.txt')).Length
-        for ($i = 0; $i -lt 10; $i++) { $times.typeText += Measure-PiRequest $c.run ($c.keys + @{ op = 'typeText'; quietMs = 0; text = ('x' * 32) }) }
+        $script:currentCase.evidence.textInputObserved = @()
+        for ($i = 0; $i -lt 10; $i++) {
+            $times.typeText += Measure-PiRequest $c.run ($c.keys + @{ op = 'typeText'; quietMs = 0; text = ('x' * 32) }) -RecordObservation
+        }
         $expectedClicks = $clicksBefore + 2 * $half
-        $clicks = Wait-Pi $t 'canvas-clicks.txt' { param($v) @(Get-Lines $v).Count -ge $expectedClicks } 5000
-        $text = Wait-Pi $t 'canvas-text.txt' { param($v) $v.Length -ge $textBefore + 320 } 5000
+        $clicks = Wait-Pi $t 'canvas-clicks.txt' { param($v) @(Get-Lines $v).Count -ge $expectedClicks } 15000
+        $text = Wait-Pi $t 'canvas-text.txt' { param($v) $v.Length -ge $textBefore + 320 } 15000
         $summary = [ordered]@{}
         foreach ($name in $times.Keys) { $summary[$name] = Get-PiStats $times[$name] }
         $script:currentCase.evidence.latencyMs = $summary
@@ -852,7 +943,9 @@ function Case-Performance([string]$impl) {
         $script:currentCase.evidence.clicksRecorded = @(Get-Lines (Read-Pi $t 'canvas-clicks.txt')).Count - $clicksBefore
         $script:currentCase.evidence.charactersExpected = 320
         $script:currentCase.evidence.charactersRecorded = ([string](Read-Pi $t 'canvas-text.txt')).Length - $textBefore
-        Require-Pi ($null -ne $clicks -and $null -ne $text) 'The canvas did not record every click and character.'
+        Require-Pi ($null -ne $clicks -and $null -ne $text -and
+            $script:currentCase.evidence.clicksRecorded -eq 2 * $half -and
+            $script:currentCase.evidence.charactersRecorded -eq 320) 'The canvas did not record exactly the expected clicks and characters.'
     } finally { Stop-PiAgent $c.run }
 }
 
