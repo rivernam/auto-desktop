@@ -1,0 +1,187 @@
+{
+    "schema":  1,
+    "tool":  "Test-PhysicalInput.ps1",
+    "startedUtc":  "2026-11-26T12:40:38.3356475Z",
+    "mode":  "interactive",
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.9818",
+                        "processorCount":  20,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-12700",
+                        "cpuNominalMhz":  2112,
+                        "monitors":  [
+                                         {
+                                             "left":  0,
+                                             "top":  0,
+                                             "right":  1920,
+                                             "bottom":  1032,
+                                             "primary":  true
+                                         }
+                                     ],
+                        "userIdleMsAtStart":  64765,
+                        "gitCommit":  "224f0d769e4c3a42b6217be23a4dcae644d8d7f9",
+                        "jarSha256":  "B890356686B456FA607F53BE4F896ABFBBE7F707F96562A218BD1C8F2FDA3002",
+                        "cppAgentSha256":  "4EE85AFCDB51D17ECAEE9003E711EFA3A5804A1AD3683C3918B8D347F5F5C276",
+                        "winFormsFixtureSha256":  "BB6C833141D11C330BF615D933A8EE2E5097113ACD24C7DBF3396702636CEC90",
+                        "javaAgentRuntime":  "C:\\Program Files\\Java\\jdk-11.0.15\\bin\\java.exe",
+                        "javaAgentVersion":  "java version \"11.0.15\" 2022-04-19 LTS | Java(TM) SE Runtime Environment 18.9 (build 11.0.15+8-LTS-149) | Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.15+8-LTS-149, mixed mode)"
+                    },
+    "agents":  [
+                   "Java",
+                   "Cpp"
+               ],
+    "cases":  [
+                  {
+                      "agent":  "Java",
+                      "case":  "AwtTextInput",
+                      "description":  "AWT TextField: click its UIA bounds, verify physical End and Backspace, then set a Unicode value through UIA.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T12:40:38.3576470Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  75.1
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  52.7,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  6.1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  3.4,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "setValue",
+                                        "code":  "OK",
+                                        "ms":  16.6
+                                    }
+                                ],
+                      "evidence":  {
+                                       "editBounds":  {
+                                                          "x":  321,
+                                                          "y":  148,
+                                                          "width":  230,
+                                                          "height":  34
+                                                      },
+                                       "clickPoint":  {
+                                                          "x":  436,
+                                                          "y":  165
+                                                      },
+                                       "hitControlId":  1,
+                                       "focusedControlId":  0,
+                                       "fixtureEditFocused":  true,
+                                       "valueAfterPhysicalKey":  "initial fixture valu",
+                                       "value":  "initial fixture value AWT 한글 123"
+                                   },
+                      "durationMs":  4440,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "AwtTextInput",
+                      "description":  "AWT TextField: click its UIA bounds, verify physical End and Backspace, then set a Unicode value through UIA.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T12:40:42.8369377Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  54.6
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  28.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  0.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "setValue",
+                                        "code":  "OK",
+                                        "ms":  13.3
+                                    }
+                                ],
+                      "evidence":  {
+                                       "editBounds":  {
+                                                          "height":  34,
+                                                          "width":  230,
+                                                          "x":  347,
+                                                          "y":  174
+                                                      },
+                                       "clickPoint":  {
+                                                          "x":  462,
+                                                          "y":  191
+                                                      },
+                                       "hitControlId":  1,
+                                       "focusedControlId":  0,
+                                       "fixtureEditFocused":  true,
+                                       "valueAfterPhysicalKey":  "initial fixture valu",
+                                       "value":  "initial fixture value AWT 한글 123"
+                                   },
+                      "durationMs":  3783,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  }
+              ],
+    "summary":  {
+                    "PASS":  2,
+                    "FAIL":  0,
+                    "BLOCKED":  0,
+                    "NOT_RUN":  0
+                },
+    "parity":  [
+                   {
+                       "case":  "AwtTextInput",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   }
+               ],
+    "finishedUtc":  "2026-11-26T12:40:46.6624549Z"
+}

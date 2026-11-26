@@ -1,6 +1,58 @@
 # 빌드 및 시험 기록
 
-## 2026-11-26 물리 입력(SendInput)과 Java 11
+## 2026-11-26 물리 입력 최종 검증
+
+원격 `main`의 `e942f0f`에서 시작했다. Windows 11 Pro 25H2(26200.9974), Core i7-12700, 모니터 1대에서 Oracle Java 11.0.15 x64와 MSVC 19.44 Release를 사용했다. x64 전체 Interactive 원본은 `e942f0f` 커밋 직전 작업 트리에서 생성됐다. 원본의 `gitCommit`에는 실행 당시 HEAD인 `224f0d7`이 기록돼 있으며, JAR·x64 EXE·WinForms 픽스처 SHA-256을 해당 빌드와 대조했다. 이후 좌표 변환 경계 수정(`cc93de3`)은 관련 케이스만 다시 검증했다. [x64 전체 기준선 JSON](test-results/2026-11-26-physical-input-baseline-x64.json)
+
+### Interactive 결과
+
+| 실행 | Agent | PASS | FAIL | BLOCKED | NOT_RUN | 원본 |
+|---|---|---:|---:|---:|---:|---|
+| x64 전체 기준선 | Java x64 | 14 | 0 | 0 | 2 | [JSON](test-results/2026-11-26-physical-input-baseline-x64.json) |
+| x64 전체 기준선 | C++ x64 | 14 | 0 | 0 | 2 | [JSON](test-results/2026-11-26-physical-input-baseline-x64.json) |
+| 최종 빌드 좌표 중심 회귀 | Java x64 | 6 | 0 | 0 | 0 | [JSON](test-results/2026-11-26-physical-input-final-x64.json) |
+| 최종 빌드 좌표 중심 회귀 | C++ x64 | 6 | 0 | 0 | 0 | [JSON](test-results/2026-11-26-physical-input-final-x64.json) |
+| 최종 빌드 핵심 입력 회귀(WOW64) | C++ x86 | 5 | 0 | 0 | 0 | [JSON](test-results/2026-11-26-physical-input-final-x86.json) |
+| Java 11 대상 AWT 입력 | Java x64, C++ x64 각각 | 1 | 0 | 0 | 0 | [JSON](test-results/2026-11-26-physical-input-baseline-awt-workflow-jdk11.json) |
+| AWT 물리 유니코드 진단, Java 11·21 대상 | 대상별 Java x64, C++ x64 각각 | 0 | 1 | 0 | 0 | [Java 11 대상 JSON](test-results/2026-11-26-physical-input-baseline-awt-unicode-jdk11.json) · [Java 21 대상 JSON](test-results/2026-11-26-physical-input-baseline-awt-unicode-jdk21.json) |
+
+전체 기준선에서 두 Agent의 케이스 상태와 응답 코드 순서는 일치했다. 캔버스 클릭·더블 클릭·드래그·휠은 픽스처가 기록한 좌표와 델타, 키보드·단축키는 유니코드 문자열과 키 이벤트·카운터로 확인했다. Swing 모달은 열림·닫힘, AWT 버튼은 카운터의 정확히 1 증가를 확인했다. AWT 텍스트는 물리 Backspace 뒤 값과 UIA `setValue` 뒤 한글 문자열을 각각 대조했다. WinForms는 선택한 항목, 탭 제목, 커밋한 셀 값을 확인했다. MSAA weak 참조의 명시적 허용 전에는 값이 유지됐고 허용 후에는 선택이 바뀌었다. 전경 불일치, 가림, 대상 교체, 외부 입력 충돌, 드래그 중단과 정상 종료 후 해제도 확인했다. [픽스처 판정 및 결과 형식](PHYSICAL-INPUT.md#interactive-시험)
+
+### 좌표 경계 수정과 자동 회귀
+
+물리 창과 백엔드 루트의 크기를 비교할 때 Java와 C++가 서로 다른 분모를 사용했다. 1,000픽셀 기준으로 창 크기 990픽셀을 준 회귀가 양쪽에서 `scaled`로 떨어졌다. 양쪽 모두 백엔드 루트 크기의 ±1%를 포함해 물리 일치를 판정한다. 990·1,010픽셀은 물리 일치, 989·1,011픽셀은 확대·축소로 확인했다. 기존 테스트에서도 음수 원점 정규화, 좌표 반올림, MSAA 클라이언트 영역 일치 및 불일치 거부를 확인했다. Java 11 Maven 130개 통과·4개 GUI 옵션 미실행, C++ CTest x64·x86 각각 3/3 통과했다. 패키지의 읽기 전용 NDJSON 계약은 Java와 C++ x64·x86에서 각각 9/9 통과했다. [Java 경계 회귀](../src/test/java/dev/desktop/InputLogicTest.java) · [C++ 경계 회귀](../native/cpp-agent/tests/input_test.cpp)
+
+최종 x64 회귀는 CanvasMouse·WinForms ListBox·TabItem·DataGridView·Swing 모달·성능을 포함했다. 6개 케이스의 상태와 응답 코드 순서가 양쪽에서 같았다. 96 DPI 캔버스에서 실제 포인터 위치 `(813, 783)`과 클라이언트 기준 스크롤 후 위치 `(960, 802)`가 예상값과 일치했다. 픽스처가 기록한 버튼·드래그 좌표, 세로 240 및 가로 -120 휠 델타도 일치했다. [최종 x64 JSON](test-results/2026-11-26-physical-input-final-x64.json)
+
+C++ x86 실행 파일(PE Machine `0x014c`)은 같은 PC의 WOW64에서 캔버스 마우스·키보드, WinForms ListBox/MSAA, 외부 입력 충돌, 실패 후 해제를 통과했다. 두 최종 JSON은 `cc93de3`과 실행기·픽스처·Agent 해시를 담고 있다. Java x86과 네이티브 x86 OS의 실제 입력은 미실행이다. [최종 x86 JSON](test-results/2026-11-26-physical-input-final-x86.json)
+
+### 최종 x64 단기 성능
+
+같은 PC의 단일 실행에서 측정한 요청 왕복 지연이다. 두 Agent 모두 클릭 60/60건과 문자 320/320자를 픽스처에서 확인했다. 화면 위치 이동은 Agent 응답과 별도로 캔버스 회귀에서 실제 커서 위치를 확인했다. 장시간 부하와 환경 간 성능 차이는 이 측정 범위에 포함하지 않았다. [측정 원본](test-results/2026-11-26-physical-input-final-x64.json)
+
+| 명령 | 표본 수(Agent당) | Java p50 / p95 / 최대(ms) | C++ p50 / p95 / 최대(ms) |
+|---|---:|---:|---:|
+| `pointerMove` | 60 | 2.04 / 2.45 / 25.07 | 0.39 / 0.49 / 3.32 |
+| `pointerClick` | 30 | 2.58 / 16.62 / 18.10 | 0.54 / 16.96 / 17.17 |
+| `clickElement` | 30 | 26.70 / 39.02 / 298.13 | 25.92 / 65.89 / 303.85 |
+| `keyPress` | 60 | 2.15 / 3.33 / 5.46 | 0.73 / 1.45 / 2.39 |
+| `typeText`(32자) | 10 | 12.91 / 15.42 / 15.42 | 8.52 / 10.33 / 10.33 |
+
+### 미해결 및 환경별 미실행
+
+| 항목 | 판정과 다음 검증 |
+|---|---|
+| AWT `KEYEVENTF_UNICODE` | 두 Agent와 두 대상 JDK에서 훅은 입력을 관측했지만 AWT 필드 값은 바뀌지 않았다. 일반 키와 UIA 값 설정은 동작했다. 대상의 문자 처리 경로에서 발생하는 호환성 제약으로 분류했다. AWT 내부의 정확한 차단 지점은 미확정이다. [Windows Unicode 키 이벤트](https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-keybdinput) |
+| 저수준 훅 제거 | Windows는 시간 초과로 훅을 제거해도 알리지 않는다. 앱의 훅 제거를 강제로 재현하는 시험은 미실행이다. 양쪽 코드는 관측이 0건이면 다음 요청에서 재설치를 시도하며, 일부 관측 이후의 누락 및 재설치까지의 외부 입력은 보장할 수 없다. 다음 단계에서 훅 손실 주입과 관측 누락 시 중단 정책을 별도로 검증한다. [Windows 저수준 훅](https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelkeyboardproc) |
+| Agent 강제 종료 | 이번 시험에서 강제 종료는 미실행이다. 강제 종료된 프로세스는 키·버튼을 해제하는 코드를 실행할 기회가 없다. 감시 프로세스가 필요한 구조적 제약이다. 요청 중단과 표준 입력을 닫은 정상 종료에서의 해제는 PASS다. [Windows 프로세스 종료](https://learn.microsoft.com/en-us/windows/win32/procthread/terminating-a-process) |
+| 다중 모니터·혼합 DPI | 모니터 1대로 미실행. 음수 원점 계산은 단위 시험에서 검증했다. |
+| 관리자 권한 대상 | UAC 승인이 필요한 `-IncludeElevated`를 사용하지 않아 미실행. |
+| 나머지 x86 조합 | C++ x86은 WOW64에서 지정한 5건을 실행했다. 나머지 Interactive 케이스와 Java x86 런타임·네이티브 x86 OS는 해당 구성으로 실행하지 않았다. |
+| Windows 7·10, RDP | 해당 OS 이미지와 RDP 시험 세션을 사용하지 않아 미실행. |
+
+일반 권한의 Windows 11 대화형 세션을 대상으로 개발을 이어갈 수 있다. AWT 직접 유니코드 입력 또는 훅 손실·강제 종료 중 입력 안전성이 필수인 운영에는 별도 검증이 필요하다. 두 Agent는 독립 빌드와 공통 실행기로 검증했으며 PID·권한·전경 검증과 자동 Fallback 금지 정책을 유지했다.
+
+## 2026-11-26 물리 입력 초기 빌드 및 Background 회귀
 
 Windows 11 Pro 25H2(빌드 26200.7840), Core i7-1255U, 125 % 배율 모니터 1개. Java Agent는 Temurin 11.0.33 x64, C++ Agent는 MSVC 19.44 x64·x86 Release. Swing/AWT 픽스처는 이전 기준선과 같은 JDK 17.0.10. 사용자가 PC로 업무를 보는 중이었으므로 실제 입력이 발생하는 시험은 실행하지 않았다. 아래 GUI 시험은 모두 포커스를 가져가지 않는 Background 모드 픽스처로 했고, `tools/Watch-Foreground.ps1`을 함께 실행했다. [물리 입력 계약과 시험 방법](PHYSICAL-INPUT.md)
 
@@ -19,7 +71,7 @@ Windows 11 Pro 25H2(빌드 26200.7840), Core i7-1255U, 125 % 배율 모니터 1�
 | 포커스 감시 | 첫 회귀에서 Swing 픽스처의 옵션 창(JOptionPane)이 Background 모드에서도 전경을 두 번 가져갔다. 이번 변경 전부터 있던 코드였고, 모달과 같은 방식으로 고친 뒤 JAB 회귀를 다시 실행해 0회. 표시 직후 20~30 ms 동안 픽스처 창이 위에 그려진 기록이 실행마다 1~2건 있다(포커스는 이동하지 않음, 이전 빌드와 같음) | 로컬 보고서 |
 | 물리 입력 Interactive 시험 | NOT_RUN. 계획 파일만 생성(32건 모두 NOT_RUN) | [JSON](test-results/2026-11-26-physical-input-plan.json) |
 
-미실행: 실제 SendInput 전송과 훅 감시, 해제, 전경 전환을 포함한 Interactive 기능 시험과 Java·C++ 성능 비교, 다중 모니터, 관리자 권한 대상, Windows 7·10, x86 Agent의 GUI 시험, RDP, Java 11 대상 JVM(픽스처), 화면 캡처·이미지 매칭·OCR·장시간 시험(이번 범위 밖). 포커스 감시 원본에는 사용자의 창 제목이 들어 있어 저장소에 넣지 않았다.
+이 초기 실행에서는 실제 SendInput 전송 및 성능 비교, 다중 모니터, 관리자 권한 대상, Windows 7·10, x86 Agent의 GUI, RDP, Java 11 대상 JVM 시험이 미실행이었다. 이후 실측 범위는 위 최종 검증을 참조한다. 화면 캡처·이미지 매칭·OCR·장시간 시험은 범위 밖이었다. 포커스 감시 원본에는 사용자의 창 제목이 들어 있어 저장소에 넣지 않았다.
 
 ## 2026-11-25 MSAA Adapter
 

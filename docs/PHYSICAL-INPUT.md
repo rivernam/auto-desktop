@@ -64,7 +64,7 @@ Agent의 입력 스레드는 Per-Monitor v2 DPI 인식으로 동작한다(Window
 
 백엔드가 보고한 좌표계는 창의 실제 `GetWindowRect`와 스냅샷 루트 bounds를 비교해 정한다.
 
-- 크기 비율이 1(±1%)이고 원점 차이가 2픽셀 이내면 `boundsMapping: "physical"`로 그대로 쓴다(UIA, MSAA, DPI 인식 Java 앱의 JAB).
+- 실제 크기와 백엔드 루트 크기의 차이가 각 축에서 루트 크기의 1% 이내이고 원점 차이가 2픽셀 이내면 `boundsMapping: "physical"`로 그대로 쓴다(UIA, MSAA, DPI 인식 Java 앱의 JAB).
 - MSAA 루트가 클라이언트 영역을 보고하는 경우 실제 클라이언트 영역의 화면 좌표와 같은 기준으로 비교한다. 일치하면 요소 좌표는 그대로 쓴다.
 - 가로·세로 비율이 서로 2% 안에서 같고 0.5~4 범위면 `boundsMapping: "scaled"`로 창 원점 기준으로 환산한다. HiDPI Java 앱의 JAB 좌표가 이 경우다.
 - 그 밖이면 `BOUNDS_UNVERIFIED`다. `scopeRef`로 받은 부분 스냅샷은 루트가 창이 아니므로 UIA·MSAA는 물리 좌표로 간주하고(`boundsMapping: "assumedPhysical"`) JAB는 `BOUNDS_UNVERIFIED`로 거부한다.
@@ -211,24 +211,24 @@ $r.cases | Where-Object case -eq 'Performance' | ForEach-Object { $_.agent; $_.e
 | BLOCKED | 환경 때문에 시험할 수 없었다. 예: Windows가 전경 전환을 거부, 픽스처가 뜨지 않음, JAB 요소 없음 |
 | NOT_RUN | 실행하지 않았다. 계획 모드, 모니터 하나, `-IncludeElevated` 없음, 사용자 입력으로 중단 |
 
-`parity`는 두 Agent가 모두 실행한 케이스마다 상태와 응답 코드 순서가 같은지 보인다. `environment`에는 OS, 모니터, 시작 시 유휴 시간, JAR·C++·픽스처 해시, Java 버전이 있다.
+`parity`는 두 Agent가 모두 실행한 케이스마다 상태와 응답 코드 순서가 같은지 보인다. `environment`에는 OS, 모니터, 보고서 생성 시 유휴 시간, 소스 커밋, 실행기·JAR·C++·픽스처 해시, Agent 및 픽스처의 Java 버전이 있다. CanvasMouse는 픽스처 창의 DPI와 포인터 이동의 예상·실측 좌표를 함께 기록한다. [최종 검증과 원본](TEST-RESULTS.md#2026-11-26-물리-입력-최종-검증)
 
 ## 지원 범위
 
 | 항목 | 상태 |
 |---|---|
 | 요청 형식, 키 이름, 정규화, bounds 대응, 정책, 명령 ID, 오류 필드 | Java 단위 테스트와 C++ CTest로 확인 |
-| capability, 거부 경로(창 없음, PID 불일치, 정책, 중복 ID, 셸 단축키), DPI·무결성·입력 데스크톱 조회 | Windows 11 x64에서 Java 11(Temurin 11.0.33)과 C++ x64로 실행해 확인. C++ x86은 빌드와 상태 조회만 |
-| 실제 SendInput 전송, 훅 감시, 커서 도달, 해제, `activateWindow` | Windows 11 x64 Interactive 시험에서 검증. 다중 모니터와 관리자 권한 대상은 미실행이다. 전경 전환 요청의 결과는 기록만 하고 합격 조건으로 삼지 않는다. |
+| capability, 거부 경로(창 없음, PID 불일치, 정책, 중복 ID, 셸 단축키), DPI·무결성·입력 데스크톱 조회 | Windows 11 x64에서 Java 11과 C++ x64로 확인했다. C++ x86의 상태 조회는 WOW64에서 확인했다. |
+| 실제 SendInput 전송, 훅 감시, 커서 도달, 해제, `activateWindow` | Windows 11 x64 전체 기준선에서 Java·C++ 각각 14 PASS·2 NOT_RUN, 최종 좌표 중심 회귀 각각 6 PASS. C++ x86 WOW64 핵심 입력은 5 PASS. 전경 전환 요청의 결과는 기록만 하고 합격 조건으로 삼지 않는다. |
 | 다중 모니터·음수 좌표·모니터별 배율 | 정규화 계산은 단위 시험. 실제 다중 모니터는 미실행 |
-| Windows 7, Windows 10, x86 실행, RDP | 미검증. 지원 완료가 아니다. Windows 7에서 없는 API는 실행 중에 찾도록 작성했다 |
+| Windows 7, Windows 10, 네이티브 x86 OS, Java x86, RDP | 실기기 미실행. Windows 7에서 없는 API는 실행 중에 찾도록 작성했다. |
 
 ## 미해결 문제와 제약
 
 - **AWT 텍스트 입력.** Java 11·21 AWT 픽스처의 편집 필드는 일반 `keyPress` 입력에 반응했지만 `typeText`의 유니코드 이벤트를 픽스처 값에 반영하지 않았다. 두 Agent에서 포커스와 훅 관측을 확인했다. 이 경로는 `-Case AwtUnicodePackets`로 별도 검증할 수 있다. AWT 편집 필드의 Unicode 값 변경에는 UIA 참조로 `setValue`를 호출한다. 호출자는 `setValue` 권한을 부여하고 변경 뒤 앱 상태를 확인한다.
 - **전경 전환.** `activateWindow`는 `SetForegroundWindow`를 한 번만 부른다. Windows의 전경 잠금 규칙 때문에 거부될 수 있고, 우회 기법은 쓰지 않는다. 그때는 사용자가 창을 앞으로 가져와야 한다.
 - **외부 입력의 범위.** 세션 태그가 없는 입력은 모두 사용자 입력으로 본다. 다른 자동화 도구, 원격 제어, 펜·터치 드라이버의 합성 입력도 `USER_INPUT_CONFLICT`를 일으킨다.
-- **훅이 사라지는 경우.** Windows는 응답이 늦은 저수준 훅을 알리지 않고 제거한다. 이때 `inputObserved`가 false가 되고 다음 요청에서 훅을 다시 설치하지만, 그 사이의 외부 입력은 놓칠 수 있다.
+- **훅이 사라지는 경우.** Windows는 응답이 늦은 저수준 훅을 알리지 않고 제거한다. 전송한 이벤트를 일부라도 놓치면 `inputObserved`는 false다. 관측이 0건이면 다음 요청에서 훅 재설치를 시도한다. 일부 관측 뒤의 훅 손실과 재설치 전 외부 입력 감지는 보장되지 않는다. [Windows 저수준 훅](https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelkeyboardproc)
 - **비정상 종료.** Agent가 강제 종료되거나 충돌하면 `keyDown`으로 누른 키가 눌린 채 남을 수 있다. 정상 종료(표준 입력 닫기)에서는 뗀다.
 - **입력 전송과 조작 성공.** 응답의 `performed`·`inputSent`는 입력이 시스템에 들어갔다는 뜻이고 `effectVerified`는 항상 false다. 앱 상태는 호출자가 확인한다.
 - **MSAA weak 참조.** `acceptWeakReference`는 이름·역할·식별자·bounds가 같은지만 비교한다. 같은 속성을 가진 다른 객체는 구별하지 못한다.

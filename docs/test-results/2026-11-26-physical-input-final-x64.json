@@ -1,0 +1,1317 @@
+{
+    "schema":  1,
+    "tool":  "Test-PhysicalInput.ps1",
+    "startedUtc":  "2026-11-26T13:30:45.1468007Z",
+    "mode":  "interactive",
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.9818",
+                        "processorCount":  20,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-12700",
+                        "cpuNominalMhz":  2112,
+                        "monitors":  [
+                                         {
+                                             "left":  0,
+                                             "top":  0,
+                                             "right":  1920,
+                                             "bottom":  1032,
+                                             "primary":  true
+                                         }
+                                     ],
+                        "userIdleMsAtStart":  125,
+                        "gitCommit":  "cc93de378a2fbdf009f5617fe0edf5793b2dde2d",
+                        "jarSha256":  "406978D60C5450ED1A62AD3162A833BAF9AC1473F842DFBE6F5C342165A39D43",
+                        "cppAgentSha256":  "42E396F0D2031BCAD24302C0071497FA29F1C2DD0697B6E104E624EA2BFBB501",
+                        "winFormsFixtureSha256":  "BB6C833141D11C330BF615D933A8EE2E5097113ACD24C7DBF3396702636CEC90",
+                        "swingAwtFixtureClassSha256":  "679AD3F09C3A800CB3604CA04E97B7342C5D8008876C3C5A27C23BBD59A55589",
+                        "runnerSha256":  "EBF2CD71F4D5752C45170B72F87E4C6190C8548F7CAE935BBE3C653BECB86444",
+                        "javaAgentRuntime":  "C:\\Program Files\\Java\\jdk-11.0.15\\bin\\java.exe",
+                        "javaAgentVersion":  "java version \"11.0.15\" 2022-04-19 LTS | Java(TM) SE Runtime Environment 18.9 (build 11.0.15+8-LTS-149) | Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.15+8-LTS-149, mixed mode)",
+                        "fixtureJavaVersion":  "openjdk version \"21.0.11\" 2026-04-21 LTS | OpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS) | OpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)"
+                    },
+    "agents":  [
+                   "Java",
+                   "Cpp"
+               ],
+    "cases":  [
+                  {
+                      "agent":  "Java",
+                      "case":  "CanvasMouse",
+                      "description":  "Owner-drawn canvas without accessible children: move, click, double, right and middle click, drag and both wheels in screen, window and client coordinates.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:36:33.0773644Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  229.7
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "OK",
+                                        "ms":  23.3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  29.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  31.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  13.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  15.7,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "pointerDrag",
+                                        "code":  "OK",
+                                        "ms":  149.7,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerScroll",
+                                        "code":  "OK",
+                                        "ms":  2.4,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerScroll",
+                                        "code":  "OK",
+                                        "ms":  2.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    }
+                                ],
+                      "evidence":  {
+                                       "pointerMoveExpected":  [
+                                                                   813,
+                                                                   783
+                                                               ],
+                                       "pointerMoveObserved":  [
+                                                                   813,
+                                                                   783
+                                                               ],
+                                       "cursorAfterClientScroll":  "960,802",
+                                       "canvasCenter":  "960,802",
+                                       "fixtureClicks":  [
+                                                             "left single 0.249 0.500",
+                                                             "left single 0.500 0.500",
+                                                             "left double 0.500 0.500",
+                                                             "right single 0.749 0.500",
+                                                             "middle single 0.749 0.500",
+                                                             "left single 0.599 0.793"
+                                                         ],
+                                       "fixtureDrags":  [
+                                                            "left 0.099 0.201 0.599 0.793"
+                                                        ],
+                                       "fixtureWheels":  [
+                                                             "vertical 240",
+                                                             "horizontal -120"
+                                                         ],
+                                       "fixtureWindowDpi":  96
+                                   },
+                      "durationMs":  4882,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "WinFormsListBox",
+                      "description":  "WinForms ListBox: a bounds click selects an item; an MSAA weak reference is refused without consent, then clicked with acceptWeakReference.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:36:39.2790787Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  232.5
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  541.8
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  60.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  499.1
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "PRECONDITION_FAILED",
+                                        "ms":  1.6,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  40.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    }
+                                ],
+                      "evidence":  {
+                                       "itemLookups":  [
+                                                           {
+                                                               "name":  "Item two",
+                                                               "role":  "ListItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "x":  590,
+                                                                                      "y":  157,
+                                                                                      "width":  740,
+                                                                                      "height":  740
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           }
+                                                       ],
+                                       "msaaReferenceStrength":  "weak",
+                                       "weakClickReferenceStrength":  "weak"
+                                   },
+                      "durationMs":  4279,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "WinFormsTab",
+                      "description":  "WinForms TabControl: a bounds click on a TabItem selects the page.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:36:44.8892789Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  223.8
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  193.4
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  585.1
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  46.1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  6241.8
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  1150.7
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  23.7,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  6382.5
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  921.9
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  21.7,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    }
+                                ],
+                      "evidence":  {
+                                       "itemLookups":  [
+                                                           {
+                                                               "name":  "Grid and tree",
+                                                               "role":  "TabItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "x":  590,
+                                                                                      "y":  157,
+                                                                                      "width":  740,
+                                                                                      "height":  740
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           },
+                                                           {
+                                                               "name":  "Virtual lists",
+                                                               "role":  "TabItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "x":  590,
+                                                                                      "y":  157,
+                                                                                      "width":  740,
+                                                                                      "height":  740
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           },
+                                                           {
+                                                               "name":  "Common controls",
+                                                               "role":  "TabItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "x":  590,
+                                                                                      "y":  157,
+                                                                                      "width":  740,
+                                                                                      "height":  740
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           }
+                                                       ]
+                                   },
+                      "durationMs":  18374,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "DataGridView",
+                      "description":  "DataGridView (no UIA rows or cells): click the grid, select row and cell with keys, edit with F2, typing and Enter.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:37:04.5985828Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  239.6
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  198.9
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  526.1
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  43.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  5747.4
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  31.1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  6.3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  2.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  3.1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  2.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  10.3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    }
+                                ],
+                      "evidence":  {
+                                       "itemLookups":  [
+                                                           {
+                                                               "name":  "Grid and tree",
+                                                               "role":  "TabItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "x":  590,
+                                                                                      "y":  157,
+                                                                                      "width":  740,
+                                                                                      "height":  740
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           }
+                                                       ],
+                                       "gridChildrenInUia":  1,
+                                       "gridEdits":  "1,1,Cell 2 Edited 1\n"
+                                   },
+                      "durationMs":  9608,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "SwingModal",
+                      "description":  "Swing synchronous modal: open it with a bounds click (JAB invoke blocks for 8 s there) and close it with a bounds click inside the modal.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:37:15.5499378Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  88.8
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  38.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  8.7
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  19.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    }
+                                ],
+                      "evidence":  {
+
+                                   },
+                      "durationMs":  4710,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "Performance",
+                      "description":  "Latency of pointerMove, pointerClick, clickElement, keyPress and typeText against the canvas, with the recorded state checked at the end.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:37:20.3180485Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  218.1
+                                    }
+                                ],
+                      "evidence":  {
+                                       "textInputObserved":  [
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true
+                                                             ],
+                                       "latencyMs":  {
+                                                         "pointerMove":  {
+                                                                             "count":  60,
+                                                                             "mean":  2.44,
+                                                                             "p50":  2.04,
+                                                                             "p95":  2.45,
+                                                                             "max":  25.07
+                                                                         },
+                                                         "pointerClick":  {
+                                                                              "count":  30,
+                                                                              "mean":  3.71,
+                                                                              "p50":  2.58,
+                                                                              "p95":  16.62,
+                                                                              "max":  18.1
+                                                                          },
+                                                         "clickElement":  {
+                                                                              "count":  30,
+                                                                              "mean":  36.4,
+                                                                              "p50":  26.7,
+                                                                              "p95":  39.02,
+                                                                              "max":  298.13
+                                                                          },
+                                                         "keyPress":  {
+                                                                          "count":  60,
+                                                                          "mean":  2.31,
+                                                                          "p50":  2.15,
+                                                                          "p95":  3.33,
+                                                                          "max":  5.46
+                                                                      },
+                                                         "typeText":  {
+                                                                          "count":  10,
+                                                                          "mean":  13.18,
+                                                                          "p50":  12.91,
+                                                                          "p95":  15.42,
+                                                                          "max":  15.42
+                                                                      }
+                                                     },
+                                       "clicksExpected":  60,
+                                       "clicksRecorded":  60,
+                                       "charactersExpected":  320,
+                                       "charactersRecorded":  320
+                                   },
+                      "durationMs":  7362,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "CanvasMouse",
+                      "description":  "Owner-drawn canvas without accessible children: move, click, double, right and middle click, drag and both wheels in screen, window and client coordinates.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:37:27.7000499Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  191.7
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "OK",
+                                        "ms":  2.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  28,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  14.4,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  12.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  12,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "pointerDrag",
+                                        "code":  "OK",
+                                        "ms":  149.1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerScroll",
+                                        "code":  "OK",
+                                        "ms":  0.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerScroll",
+                                        "code":  "OK",
+                                        "ms":  0.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    }
+                                ],
+                      "evidence":  {
+                                       "pointerMoveExpected":  [
+                                                                   813,
+                                                                   783
+                                                               ],
+                                       "pointerMoveObserved":  [
+                                                                   813,
+                                                                   783
+                                                               ],
+                                       "cursorAfterClientScroll":  "960,802",
+                                       "canvasCenter":  "960,802",
+                                       "fixtureClicks":  [
+                                                             "left single 0.249 0.500",
+                                                             "left single 0.500 0.500",
+                                                             "left double 0.500 0.500",
+                                                             "right single 0.749 0.500",
+                                                             "middle single 0.749 0.500",
+                                                             "left single 0.599 0.793"
+                                                         ],
+                                       "fixtureDrags":  [
+                                                            "left 0.099 0.201 0.599 0.793"
+                                                        ],
+                                       "fixtureWheels":  [
+                                                             "vertical 240",
+                                                             "horizontal -120"
+                                                         ],
+                                       "fixtureWindowDpi":  96
+                                   },
+                      "durationMs":  4054,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "WinFormsListBox",
+                      "description":  "WinForms ListBox: a bounds click selects an item; an MSAA weak reference is refused without consent, then clicked with acceptWeakReference.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:37:33.1232039Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  187.6
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  394.6
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  29.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  448.2
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "PRECONDITION_FAILED",
+                                        "ms":  0.2,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  32,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    }
+                                ],
+                      "evidence":  {
+                                       "itemLookups":  [
+                                                           {
+                                                               "name":  "Item two",
+                                                               "role":  "ListItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "height":  740,
+                                                                                      "width":  740,
+                                                                                      "x":  590,
+                                                                                      "y":  157
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           }
+                                                       ],
+                                       "msaaReferenceStrength":  "weak",
+                                       "weakClickReferenceStrength":  "weak"
+                                   },
+                      "durationMs":  3272,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "WinFormsTab",
+                      "description":  "WinForms TabControl: a bounds click on a TabItem selects the page.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:37:37.7292171Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  224.7
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  225.3
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  502.3
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  25.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  5719.4
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  994.7
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  18.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  5981.2
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  816.7
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  10.1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    }
+                                ],
+                      "evidence":  {
+                                       "itemLookups":  [
+                                                           {
+                                                               "name":  "Grid and tree",
+                                                               "role":  "TabItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "height":  740,
+                                                                                      "width":  740,
+                                                                                      "x":  590,
+                                                                                      "y":  157
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           },
+                                                           {
+                                                               "name":  "Virtual lists",
+                                                               "role":  "TabItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "height":  740,
+                                                                                      "width":  740,
+                                                                                      "x":  590,
+                                                                                      "y":  157
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           },
+                                                           {
+                                                               "name":  "Common controls",
+                                                               "role":  "TabItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "height":  740,
+                                                                                      "width":  740,
+                                                                                      "x":  590,
+                                                                                      "y":  157
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           }
+                                                       ]
+                                   },
+                      "durationMs":  16498,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "DataGridView",
+                      "description":  "DataGridView (no UIA rows or cells): click the grid, select row and cell with keys, edit with F2, typing and Enter.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:37:55.5521583Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  206.5
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  263.2
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  515.6
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  27.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  5479.2
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  33.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  1.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  0.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  1.1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  0.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  6.3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  1.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    }
+                                ],
+                      "evidence":  {
+                                       "itemLookups":  [
+                                                           {
+                                                               "name":  "Grid and tree",
+                                                               "role":  "TabItem",
+                                                               "uiaMatches":  0,
+                                                               "uiaTruncated":  true,
+                                                               "uiaPeers":  [
+
+                                                                            ],
+                                                               "msaaMatches":  1,
+                                                               "msaaTruncated":  true,
+                                                               "msaaRootBounds":  {
+                                                                                      "height":  740,
+                                                                                      "width":  740,
+                                                                                      "x":  590,
+                                                                                      "y":  157
+                                                                                  },
+                                                               "nativeWindowRect":  [
+                                                                                        582,
+                                                                                        126,
+                                                                                        1338,
+                                                                                        905
+                                                                                    ],
+                                                               "backend":  "MSAA",
+                                                               "referenceStrength":  "weak"
+                                                           }
+                                                       ],
+                                       "gridChildrenInUia":  1,
+                                       "gridEdits":  "1,1,Cell 2 Edited 1\n"
+                                   },
+                      "durationMs":  8648,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "SwingModal",
+                      "description":  "Swing synchronous modal: open it with a bounds click (JAB invoke blocks for 8 s there) and close it with a bounds click inside the modal.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:38:05.4988268Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  73.2
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  14.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  6.4
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  16.4,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    }
+                                ],
+                      "evidence":  {
+
+                                   },
+                      "durationMs":  3978,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "Performance",
+                      "description":  "Latency of pointerMove, pointerClick, clickElement, keyPress and typeText against the canvas, with the recorded state checked at the end.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T13:38:09.4988268Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  176.7
+                                    }
+                                ],
+                      "evidence":  {
+                                       "textInputObserved":  [
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true,
+                                                                 true
+                                                             ],
+                                       "latencyMs":  {
+                                                         "pointerMove":  {
+                                                                             "count":  60,
+                                                                             "mean":  0.45,
+                                                                             "p50":  0.39,
+                                                                             "p95":  0.49,
+                                                                             "max":  3.32
+                                                                         },
+                                                         "pointerClick":  {
+                                                                              "count":  30,
+                                                                              "mean":  1.71,
+                                                                              "p50":  0.54,
+                                                                              "p95":  16.96,
+                                                                              "max":  17.17
+                                                                          },
+                                                         "clickElement":  {
+                                                                              "count":  30,
+                                                                              "mean":  35.26,
+                                                                              "p50":  25.92,
+                                                                              "p95":  65.89,
+                                                                              "max":  303.85
+                                                                          },
+                                                         "keyPress":  {
+                                                                          "count":  60,
+                                                                          "mean":  0.87,
+                                                                          "p50":  0.73,
+                                                                          "p95":  1.45,
+                                                                          "max":  2.39
+                                                                      },
+                                                         "typeText":  {
+                                                                          "count":  10,
+                                                                          "mean":  8.19,
+                                                                          "p50":  8.52,
+                                                                          "p95":  10.33,
+                                                                          "max":  10.33
+                                                                      }
+                                                     },
+                                       "clicksExpected":  60,
+                                       "clicksRecorded":  60,
+                                       "charactersExpected":  320,
+                                       "charactersRecorded":  320
+                                   },
+                      "durationMs":  6289,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  }
+              ],
+    "summary":  {
+                    "PASS":  12,
+                    "FAIL":  0,
+                    "BLOCKED":  0,
+                    "NOT_RUN":  0
+                },
+    "parity":  [
+                   {
+                       "case":  "CanvasMouse",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "WinFormsListBox",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "WinFormsTab",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "DataGridView",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "SwingModal",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "Performance",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   }
+               ],
+    "finishedUtc":  "2026-11-26T13:38:15.8122124Z"
+}
