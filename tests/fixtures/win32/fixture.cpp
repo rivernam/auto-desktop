@@ -34,12 +34,12 @@ const wchar_t* ClassName(Kind kind) {
 
 class FixtureWindow {
 public:
-    FixtureWindow(HINSTANCE instance, const Arguments& args)
-        : instance_(instance), title_(args.title), controls_(args.directory) {}
+    FixtureWindow(HINSTANCE instance, const Arguments& args, Mode mode)
+        : instance_(instance), title_(args.title), controls_(args.directory), mode_(mode) {}
 
     int Run(int show) {
         if (!controls_.state.Healthy()) return 2;
-        if (!RefuseActivationInThisThread()) return 2;
+        if (!Interactive() && !RefuseActivationInThisThread()) return 2;
         KeepFullSpeedWhenCovered();
 
         WNDCLASSW type{};
@@ -50,7 +50,8 @@ public:
         type.lpszClassName = kWindowClass;
         if (!RegisterClassW(&type)) return 3;
 
-        constexpr DWORD exStyle = WS_EX_CONTROLPARENT | WS_EX_NOACTIVATE;  // never takes the focus of the PC's user
+        // In background mode the window never takes the focus of the PC's user.
+        const DWORD exStyle = WS_EX_CONTROLPARENT | (Interactive() ? 0 : WS_EX_NOACTIVATE);
         constexpr auto style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
         RECT bounds{0, 0, kClientWidth, kClientHeight};
         AdjustWindowRectEx(&bounds, style, FALSE, exStyle);
@@ -61,8 +62,12 @@ public:
         // of whoever is using the PC. Automation reads the window the same way when it is covered.
         // A process started without STARTF_USESHOWWINDOW gets SW_SHOWDEFAULT, which activates: every visible
         // request is shown without activation instead.
-        ShowWindow(window_, QuietShow(show));
-        SetWindowPos(window_, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        if (Interactive()) {
+            ShowWindow(window_, show);
+        } else {
+            ShowWindow(window_, QuietShow(show));
+            SetWindowPos(window_, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
         UpdateWindow(window_);
         controls_.state.Write(L"ready", std::to_wstring(GetCurrentProcessId()));
 
@@ -78,6 +83,8 @@ public:
     }
 
 private:
+    bool Interactive() const { return mode_ == Mode::Interactive; }
+
     static LRESULT CALLBACK Dispatch(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
         auto self = reinterpret_cast<FixtureWindow*>(GetWindowLongPtrW(window, GWLP_USERDATA));
         if (message == WM_NCCREATE) {
@@ -102,7 +109,7 @@ private:
             for (const auto& control : kControls) {
                 if (!Create(control)) return -1;
             }
-            controls_.Initialize(window_, L"Win32");
+            controls_.Initialize(window_, L"Win32", mode_);
             return controls_.state.Healthy() && SetTimer(window_, kStateTimer, 25, nullptr) ? 0 : -1;
         case WM_COMMAND:
             if (OnCommand(LOWORD(wParam), HIWORD(wParam), reinterpret_cast<HWND>(lParam))) return 0;
@@ -178,12 +185,14 @@ private:
         if (message == WM_INITDIALOG) {
             const auto self = reinterpret_cast<FixtureWindow*>(lParam);
             self->modal_ = window;
-            SetWindowLongPtrW(window, GWL_EXSTYLE, GetWindowLongPtrW(window, GWL_EXSTYLE) | WS_EX_NOACTIVATE);
             SetWindowTextW(window, (self->title_ + L" modal").c_str());
+            PostMessageW(window, kReadyMessage, reinterpret_cast<WPARAM>(self), 0);
+            // Interactive: the dialog manager shows, activates and focuses the dialog as usual.
+            if (self->Interactive()) return TRUE;
+            SetWindowLongPtrW(window, GWL_EXSTYLE, GetWindowLongPtrW(window, GWL_EXSTYLE) | WS_EX_NOACTIVATE);
             // The dialog manager shows a hidden dialog with SW_SHOWNORMAL, which activates it, and focusing the
             // first control would activate it too: show it here without activation and keep the focus unset.
             ShowWindow(window, SW_SHOWNOACTIVATE);
-            PostMessageW(window, kReadyMessage, reinterpret_cast<WPARAM>(self), 0);
             return FALSE;
         }
         if (message == kReadyMessage) {
@@ -201,6 +210,7 @@ private:
     HINSTANCE instance_;
     std::wstring title_;
     ControlState controls_;
+    Mode mode_;
     HWND window_ = nullptr;
     HWND modal_ = nullptr;
     bool closePending_ = false;
@@ -209,7 +219,9 @@ private:
 }  // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int show) {
+    const auto mode = fixture::ReadMode();
+    if (!mode) return 2;
     const auto arguments = fixture::ReadArguments();
     if (!arguments || !fixture::InitializeCommonControls()) return 1;
-    return FixtureWindow(instance, *arguments).Run(show);
+    return FixtureWindow(instance, *arguments, *mode).Run(show);
 }

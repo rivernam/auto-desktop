@@ -19,10 +19,22 @@ constexpr Control kMfcControls[]{
     {Kind::Button, kOpenProperties, L"Open property sheet", kInput, 442, 472, 224, 28},
 };
 
-// ActivateFrame and the dialog manager (SW_SHOWNORMAL for a hidden dialog) activate the window. The fixture
-// windows are shown here without activation and never focus a control, so a test run does not take the focus
-// of whoever is using the PC.
+// Read once in InitInstance (DESKTOP_FIXTURE_MODE).
+Mode mode = Mode::Background;
+
+bool Interactive() { return mode == Mode::Interactive; }
+
+// Extended style for every fixture window: background windows never take the focus of whoever is using the PC.
+DWORD QuietExStyle() { return Interactive() ? 0 : WS_EX_NOACTIVATE; }
+
+// ActivateFrame and the dialog manager (SW_SHOWNORMAL for a hidden dialog) activate the window. In background
+// mode the fixture windows are shown here without activation and never focus a control, so a test run does not
+// take the focus of whoever is using the PC. Interactive windows are shown and activated normally.
 void ShowQuietly(CWnd& window) {
+    if (Interactive()) {
+        window.ShowWindow(SW_SHOW);
+        return;
+    }
     window.ShowWindow(SW_SHOWNOACTIVATE);
     window.SetWindowPos(&CWnd::wndBottom, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
@@ -37,7 +49,7 @@ class SdiFrame final : public OwnedFrame<CFrameWnd> {
 public:
     bool Open(const std::wstring& title) {
         if (!GetSafeHwnd()) {
-            if (!Create(nullptr, title.c_str(), WS_OVERLAPPEDWINDOW, CRect(120, 120, 580, 370), nullptr, nullptr, WS_EX_NOACTIVATE)) return false;
+            if (!Create(nullptr, title.c_str(), WS_OVERLAPPEDWINDOW, CRect(120, 120, 580, 370), nullptr, nullptr, QuietExStyle())) return false;
             if (!edit_.Create(kInput | WS_BORDER | ES_AUTOHSCROLL, CRect(16, 16, 405, 46), this, 2100)) {
                 DestroyWindow();
                 return false;
@@ -74,7 +86,7 @@ class MdiFrame final : public OwnedFrame<CMDIFrameWnd> {
 public:
     bool Open(const std::wstring& title) {
         if (!GetSafeHwnd()) {
-            if (!Create(nullptr, title.c_str(), WS_OVERLAPPEDWINDOW, CRect(140, 140, 770, 510), nullptr, nullptr, WS_EX_NOACTIVATE)) return false;
+            if (!Create(nullptr, title.c_str(), WS_OVERLAPPEDWINDOW, CRect(140, 140, 770, 510), nullptr, nullptr, QuietExStyle())) return false;
             if (!first_.Open(this, L"Fixture document one", CRect(10, 15, 285, 162)) ||
                 !second_.Open(this, L"Fixture document two", CRect(292, 25, 567, 172))) {
                 DestroyWindow();
@@ -102,8 +114,9 @@ public:
 private:
     BOOL OnInitDialog() override {
         CDialog::OnInitDialog();
-        ModifyStyleEx(0, WS_EX_NOACTIVATE);  // never takes the focus of whoever is using the PC
         SetWindowText(title_.c_str());
+        if (Interactive()) return TRUE;  // shown, activated and focused by the dialog manager
+        ModifyStyleEx(0, WS_EX_NOACTIVATE);  // never takes the focus of whoever is using the PC
         ShowWindow(SW_SHOWNOACTIVATE);
         return FALSE;
     }
@@ -134,6 +147,7 @@ public:
 private:
     BOOL OnInitDialog() override {
         const auto result = CPropertySheet::OnInitDialog();
+        if (Interactive()) return result;
         ModifyStyleEx(0, WS_EX_NOACTIVATE);  // never takes the focus of whoever is using the PC
         ShowWindow(SW_SHOWNOACTIVATE);
         return result;
@@ -150,7 +164,7 @@ public:
 private:
     BOOL OnInitDialog() override {
         CDialog::OnInitDialog();
-        ModifyStyleEx(0, WS_EX_NOACTIVATE);  // never takes the focus of whoever is using the PC
+        ModifyStyleEx(0, QuietExStyle());  // background: never takes the focus of whoever is using the PC
         SetWindowText(title_.c_str());
         RECT bounds{0, 0, kClientWidth, kClientHeight};
         ::AdjustWindowRectEx(&bounds, GetStyle(), FALSE, GetExStyle());
@@ -173,10 +187,10 @@ private:
 
         CString version;
         version.Format(L"MFC 0x%04X", static_cast<unsigned>(_MFC_VER));
-        controls_.Initialize(GetSafeHwnd(), static_cast<const wchar_t*>(version));
+        controls_.Initialize(GetSafeHwnd(), static_cast<const wchar_t*>(version), mode);
         if (!controls_.state.Healthy() || !SetTimer(kStateTimer, 25, nullptr)) EndDialog(IDCANCEL);
         ShowQuietly(*this);
-        return FALSE;
+        return Interactive();  // interactive: the dialog manager focuses the first control
     }
 
     template <typename ControlType>
@@ -343,8 +357,15 @@ END_MESSAGE_MAP()
 class FixtureApp final : public CWinApp {
 private:
     BOOL InitInstance() override {
+        const auto selected = ReadMode();
+        if (!selected) {
+            exitCode_ = 2;
+            return FALSE;
+        }
+        mode = *selected;
         const auto arguments = ReadArguments();
-        if (!arguments || !InitializeCommonControls() || !CWinApp::InitInstance() || !RefuseActivationInThisThread()) return FALSE;
+        if (!arguments || !InitializeCommonControls() || !CWinApp::InitInstance()) return FALSE;
+        if (!Interactive() && !RefuseActivationInThisThread()) return FALSE;
         KeepFullSpeedWhenCovered();
         FixtureDialog dialog(*arguments);
         m_pMainWnd = &dialog;

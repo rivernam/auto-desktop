@@ -12,6 +12,7 @@
 #include <iterator>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' " \
     "version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
@@ -43,6 +44,24 @@ inline std::optional<Arguments> ReadArguments() {
     LocalFree(args);
     return result;
 }
+
+// DESKTOP_FIXTURE_MODE decides how the fixture treats the PC's user. Unset or "background": it never takes the
+// focus and stays behind the user's windows (accessibility tests). "interactive": it activates and comes to the
+// foreground like a normal application (physical-input tests only). Any other value is refused before a window
+// exists, so a typo never silently picks a mode.
+enum class Mode { Background, Interactive };
+
+inline std::optional<Mode> ReadMode() {
+    wchar_t value[16]{};
+    const auto length = GetEnvironmentVariableW(L"DESKTOP_FIXTURE_MODE", value, static_cast<DWORD>(std::size(value)));
+    if (length == 0) return Mode::Background;
+    if (length >= std::size(value)) return std::nullopt;
+    if (std::wstring_view(value) == L"background") return Mode::Background;
+    if (std::wstring_view(value) == L"interactive") return Mode::Interactive;
+    return std::nullopt;
+}
+
+inline const wchar_t* ModeName(Mode mode) { return mode == Mode::Interactive ? L"interactive" : L"background"; }
 
 inline bool InitializeCommonControls() {
     const INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_WIN95_CLASSES};
@@ -209,7 +228,8 @@ class ControlState {
 public:
     explicit ControlState(const std::filesystem::path& directory) : state(directory) {}
 
-    void Initialize(HWND parent, const std::wstring& framework) {
+    void Initialize(HWND parent, const std::wstring& framework, Mode mode) {
+        state.Write(L"fixture-mode.txt", ModeName(mode));
         state.Write(L"count.txt", L"0");
         state.Write(L"value.txt", WindowText(GetDlgItem(parent, kEdit)));
         state.Write(L"read-only.txt", WindowText(GetDlgItem(parent, kReadOnly)));

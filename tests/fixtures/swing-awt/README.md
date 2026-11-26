@@ -23,6 +23,26 @@ Create the empty command file `replace-control` to replace the increment button,
 
 Swing also has a menu bar (**Fixture menu** with **Fixture menu item**), a `JTextArea` and two radio buttons. The AWT modal dialog also holds a `TextArea`. `password-length.txt` holds the length of the masked field and never its text. The command file `open-modal` makes the application open the modal dialog by itself, outside any accessibility request. In Swing, `open-option-pane` shows a `JOptionPane` (`option.txt` is `open`, then `closed`), and `select-tab-0` or `select-tab-1` selects a tab (`tab.txt` holds its title).
 
+## Execution mode
+
+The environment variable `DESKTOP_FIXTURE_MODE` selects how the fixture treats the PC's user ([PHYSICAL-INPUT.md](../../../docs/PHYSICAL-INPUT.md#픽스처-실행-모드)). Unset or `background` keeps the current behavior: the windows are never focusable, the frame is sent behind other windows, and the modal dialog and the option pane open off screen and are placed behind the user's windows before they move into view. `interactive` is for physical-input tests only: the frame and the dialog are focusable, the frame is not sent back, and the modal dialog opens in front like any modal dialog. Any other value makes the process exit with status 2 before it creates a window. The fixture writes `background` or `interactive` to `fixture-mode.txt` before `ready`.
+
+```powershell
+$env:DESKTOP_FIXTURE_MODE = 'interactive'
+java -cp $classes FrameworkFixture awt 'target/awt-state' 'AWT fixture session'
+Remove-Item Env:DESKTOP_FIXTURE_MODE
+```
+
+Physical-input tests read the same state files as the accessibility tests:
+
+| Target | Component name and accessible name | State file |
+|---|---|---|
+| AWT and Swing increment button | `fixtureIncrement`, **Increment fixture counter** | `count.txt`: clicks as a decimal number, `0` at start |
+| AWT and Swing editable text field | `fixtureEdit`, **Fixture edit** | `value.txt`: the whole text, UTF-8 without a trailing newline |
+| Swing modal dialog (synchronous `JDialog`, title `<unique-window-title> modal`) | opened by `fixtureModal` (**Open fixture modal**, Controls tab), closed by `fixtureCloseModal` (**Close fixture modal**) or the title bar close button | `modal.txt`: `open` once the dialog is shown, `closed` after it is dismissed |
+
+The AWT dialog uses the same names and `modal.txt`.
+
 ## Java Access Bridge probe
 
 With a Windows x64 OpenJDK distribution that includes `windowsaccessbridge-64.dll`, enable Java Access Bridge for the fixture JVM with its provider property. The following commands use separate PowerShell processes because the fixture runs until closed. Substitute `awt` to inspect the AWT fixture.

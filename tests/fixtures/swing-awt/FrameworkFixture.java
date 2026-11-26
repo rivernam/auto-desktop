@@ -75,6 +75,7 @@ public final class FrameworkFixture {
     private final Path stateDirectory;
     private final String title;
     private final boolean swing;
+    private final boolean interactive;
     private Window window;
     private Dialog modal;
     private Container counterRow;
@@ -92,23 +93,32 @@ public final class FrameworkFixture {
     private long eventSequence;
     private static final boolean TRACE = Boolean.getBoolean("desktop.fixture.events");
 
-    private FrameworkFixture(String mode, Path stateDirectory, String title) {
+    private FrameworkFixture(String mode, boolean interactive, Path stateDirectory, String title) {
         this.swing = mode.equals("swing");
+        this.interactive = interactive;
         this.stateDirectory = stateDirectory;
         this.title = title;
     }
 
     public static void main(String[] args) throws Exception {
+        // Unset or "background": never focusable and kept behind the user's windows (accessibility tests).
+        // "interactive" (physical-input tests only): focusable and shown in front like a normal application.
+        String fixtureMode = System.getenv().getOrDefault("DESKTOP_FIXTURE_MODE", "");
+        if (!fixtureMode.isEmpty() && !fixtureMode.equals("background") && !fixtureMode.equals("interactive")) {
+            System.err.println("DESKTOP_FIXTURE_MODE must be background or interactive.");
+            System.exit(2);
+        }
         if (args.length != 3 || !(args[0].equals("swing") || args[0].equals("awt"))) {
             throw new IllegalArgumentException("Usage: FrameworkFixture swing|awt <state-directory> <window-title>");
         }
         Path stateDirectory = Path.of(args[1]);
         Files.createDirectories(stateDirectory);
-        var fixture = new FrameworkFixture(args[0], stateDirectory, args[2]);
+        var fixture = new FrameworkFixture(args[0], fixtureMode.equals("interactive"), stateDirectory, args[2]);
         EventQueue.invokeAndWait(fixture::show);
     }
 
     private void show() {
+        write("fixture-mode.txt", interactive ? "interactive" : "background");
         write("framework.txt", (swing ? "Swing" : "AWT") + " / "
                 + System.getProperty("java.vendor") + " Java " + Runtime.version());
         write("count.txt", "0");
@@ -121,13 +131,13 @@ public final class FrameworkFixture {
         window = swing ? swingWindow() : awtWindow();
         window.addWindowListener(onClose(this::close));
         window.pack();
-        // Never focusable: neither showing the window nor an automation action may take the focus of whoever is
-        // using the PC. The fixture is driven through accessibility APIs, which do not need it.
-        window.setAutoRequestFocus(false);
-        window.setFocusableWindowState(false);
+        // Background: never focusable, so neither showing the window nor an automation action may take the focus
+        // of whoever is using the PC. The fixture is driven through accessibility APIs, which do not need it.
+        window.setAutoRequestFocus(interactive);
+        window.setFocusableWindowState(interactive);
         window.setLocationByPlatform(true);
         window.setVisible(true);
-        window.toBack();
+        if (!interactive) window.toBack();
         commands = new Timer(50, event -> pollCommands());
         commands.start();
         write("ready", Long.toString(ProcessHandle.current().pid()));
@@ -367,9 +377,11 @@ public final class FrameworkFixture {
         }
         dialog.addWindowListener(new WindowAdapter() {
             @Override public void windowOpened(WindowEvent event) {
-                window.toBack();
-                window.setLocation(windowPlace);
-                dialog.setLocation(dialogPlace);
+                if (!interactive) {
+                    window.toBack();
+                    window.setLocation(windowPlace);
+                    dialog.setLocation(dialogPlace);
+                }
                 trace("modalOpened", 0);
                 write("modal.txt", "open");
             }
@@ -377,6 +389,12 @@ public final class FrameworkFixture {
         });
         dialog.pack();
         dialog.setLocationRelativeTo(window);
+        if (interactive) {
+            // Shown in front and focused like any modal dialog; setVisible blocks until it closes.
+            dialog.setVisible(true);
+            trace("modalShowReturned", 0);
+            return;
+        }
         dialog.setAutoRequestFocus(false);
         dialog.setFocusableWindowState(false);
         // Showing a modal dialog puts it and its owner on top of the other windows. Both wait off screen until
@@ -387,6 +405,32 @@ public final class FrameworkFixture {
         dialog.setLocation(-32000, -32000);
         dialog.setVisible(true);
         trace("modalShowReturned", 0);
+    }
+
+    /** A message dialog that the application opens by itself. Closed through its button. */
+    private void showOptionPane() {
+        write("option.txt", "open");
+        JDialog dialog = new JOptionPane("Fixture option pane message", JOptionPane.INFORMATION_MESSAGE)
+                .createDialog(window, title + " option");
+        if (!interactive) {
+            // As for the modal dialog: never focusable, opened off screen, then put back behind the user's windows.
+            dialog.setAutoRequestFocus(false);
+            dialog.setFocusableWindowState(false);
+            var dialogAt = dialog.getLocation();
+            var windowAt = window.getLocation();
+            dialog.addWindowListener(new WindowAdapter() {
+                @Override public void windowOpened(WindowEvent event) {
+                    window.toBack();
+                    window.setLocation(windowAt);
+                    dialog.setLocation(dialogAt);
+                }
+            });
+            window.setLocation(-32000, -32000);
+            dialog.setLocation(-32000, -32000);
+        }
+        dialog.setVisible(true);
+        dialog.dispose();
+        write("option.txt", "closed");
     }
 
     private void closeModal() {
@@ -422,12 +466,7 @@ public final class FrameworkFixture {
             EventQueue.invokeLater(this::showModal);
         }
         if (swing && consume("open-option-pane")) {
-            EventQueue.invokeLater(() -> {
-                write("option.txt", "open");
-                JOptionPane.showMessageDialog(window, "Fixture option pane message", title + " option",
-                        JOptionPane.INFORMATION_MESSAGE);
-                write("option.txt", "closed");
-            });
+            EventQueue.invokeLater(this::showOptionPane);
         }
         if (TRACE && swing && consume("expose-edit-name")) {
             swingEdit.getAccessibleContext().setAccessibleName(swingEdit.getText());

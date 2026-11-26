@@ -6,6 +6,16 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 
+# DESKTOP_FIXTURE_MODE: unset or 'background' keeps the fixture behind the user's windows and away from the focus;
+# 'interactive' (physical-input tests only) lets it activate like a normal application. Anything else: exit 2
+# before a window exists.
+$fixtureMode = if ($env:DESKTOP_FIXTURE_MODE) { $env:DESKTOP_FIXTURE_MODE } else { 'background' }
+if ($fixtureMode -cne 'background' -and $fixtureMode -cne 'interactive') {
+    [Console]::Error.WriteLine('DESKTOP_FIXTURE_MODE must be background or interactive.')
+    exit 2
+}
+$background = $fixtureMode -ceq 'background'
+
 Add-Type -AssemblyName PresentationFramework
 Add-Type -TypeDefinition @'
 using System;
@@ -434,9 +444,9 @@ function Show-FixtureModal {
     $script:modalWindow.Owner = $window
     $script:modalWindow.WindowStartupLocation = [Windows.WindowStartupLocation]::CenterOwner
     $script:modalWindow.ShowInTaskbar = $false
-    $script:modalWindow.ShowActivated = $false
+    $script:modalWindow.ShowActivated = !$background
     $script:modalWindow.Add_SourceInitialized({ param($sender, $eventArgs)
-        [FixtureCursor]::KeepBehind((New-Object Windows.Interop.WindowInteropHelper $sender).Handle)
+        if ($background) { [FixtureCursor]::KeepBehind((New-Object Windows.Interop.WindowInteropHelper $sender).Handle) }
     })
     $close = New-Object Windows.Controls.Button
     $close.Content = 'Close fixture modal'
@@ -449,13 +459,15 @@ function Show-FixtureModal {
     finally { $script:modalWindow = $null; Write-State 'modal.txt' 'closed' }
 }
 
-[FixtureCursor]::RefuseActivationInThisThread()
+if ($background) { [FixtureCursor]::RefuseActivationInThisThread() }
 [FixtureCursor]::KeepFullSpeedWhenCovered()
+Write-State 'fixture-mode.txt' $fixtureMode
 $window = New-Object Windows.Window
 $window.Title = $WindowTitle
-# A test run must not take the focus from whoever is using the PC.
-$window.ShowActivated = $false
+# In background mode a test run must not take the focus from whoever is using the PC.
+$window.ShowActivated = !$background
 $window.Add_SourceInitialized({
+    if (!$background) { return }
     $handle = (New-Object Windows.Interop.WindowInteropHelper $window).Handle
     [FixtureCursor]::NeverActivate($handle)
     [FixtureCursor]::KeepBehind($handle)

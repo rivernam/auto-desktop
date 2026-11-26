@@ -12,6 +12,11 @@ using System.Windows.Forms;
 // refuses every activation that is not a mouse click on the fixture, so a test run never takes the PC user's focus.
 internal static class ActivationGuard
 {
+    // DESKTOP_FIXTURE_MODE, read once in Main. Background (unset or "background"): the fixture never takes the
+    // focus and stays behind the user's windows. Interactive ("interactive", physical-input tests only): it
+    // activates and comes to the foreground like a normal application, so every guard below is off.
+    public static bool Background = true;
+
     private const int WhCbt = 5;
     private const int HcbtActivate = 5;
     private delegate IntPtr HookProc(int code, IntPtr wParam, IntPtr lParam);
@@ -52,7 +57,7 @@ internal static class ActivationGuard
     // window goes to the bottom instead, unless the user is working in the fixture itself.
     public static void KeepBehind(ref Message message)
     {
-        if (message.Msg != 0x0046) return; // WM_WINDOWPOSCHANGING
+        if (!Background || message.Msg != 0x0046) return; // WM_WINDOWPOSCHANGING
         var position = (WindowPos)Marshal.PtrToStructure(message.LParam, typeof(WindowPos));
         // A new window is created at the top, and its first show keeps that place (SWP_NOZORDER): a show moves
         // the window to the bottom too.
@@ -81,7 +86,7 @@ internal static class ActivationGuard
 
     public static void PushDownIfAbove(IntPtr window)
     {
-        if (pushing) return;
+        if (!Background || pushing) return;
         var foreground = GetForegroundWindow();
         uint owner;
         GetWindowThreadProcessId(foreground, out owner);
@@ -98,6 +103,7 @@ internal static class ActivationGuard
 
     public static void InstallForThisThread()
     {
+        if (!Background) return;
         if (SetWindowsHookEx(WhCbt, Refuse, IntPtr.Zero, GetCurrentThreadId()) == IntPtr.Zero)
             throw new System.ComponentModel.Win32Exception();
     }
@@ -112,7 +118,7 @@ internal static class ActivationGuard
 
 internal sealed class QuietForm : Form
 {
-    protected override bool ShowWithoutActivation { get { return true; } }
+    protected override bool ShowWithoutActivation { get { return ActivationGuard.Background; } }
 
     protected override void WndProc(ref Message message)
     {
@@ -126,7 +132,7 @@ internal sealed class QuietForm : Form
         get
         {
             var create = base.CreateParams;
-            create.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE
+            if (ActivationGuard.Background) create.ExStyle |= 0x08000000; // WS_EX_NOACTIVATE
             return create;
         }
     }
@@ -145,10 +151,20 @@ internal sealed class WinFormsFixture : Form
     private Button increment;
     private Form modal;
     private int count;
+    private int shortcuts;
+    private readonly System.Collections.Generic.Dictionary<string, StringBuilder> logs =
+        new System.Collections.Generic.Dictionary<string, StringBuilder>();
 
     [STAThread]
     private static int Main(string[] args)
     {
+        string mode = Environment.GetEnvironmentVariable("DESKTOP_FIXTURE_MODE");
+        if (!String.IsNullOrEmpty(mode) && mode != "background" && mode != "interactive")
+        {
+            Console.Error.WriteLine("DESKTOP_FIXTURE_MODE must be background or interactive.");
+            return 2;
+        }
+        ActivationGuard.Background = mode != "interactive";
         if (args.Length != 2)
         {
             Console.Error.WriteLine("Usage: WinFormsFixture <state-directory> <window-title>");
@@ -168,8 +184,8 @@ internal sealed class WinFormsFixture : Form
         return 0;
     }
 
-    // The fixture must not take the focus from whoever is using the PC while a test runs. The window is
-    // non-activating for its whole life, so neither Application.Run nor an automation action can activate it.
+    // In background mode the fixture must not take the focus from whoever is using the PC while a test runs. The
+    // window is non-activating for its whole life, so neither Application.Run nor an automation action can activate it.
     private const int WsExNoActivate = 0x08000000;
 
     protected override void WndProc(ref Message message)
@@ -179,14 +195,14 @@ internal sealed class WinFormsFixture : Form
         ActivationGuard.PushDownIfAbove(ref message);
     }
 
-    protected override bool ShowWithoutActivation { get { return true; } }
+    protected override bool ShowWithoutActivation { get { return ActivationGuard.Background; } }
 
     protected override CreateParams CreateParams
     {
         get
         {
             var create = base.CreateParams;
-            create.ExStyle |= WsExNoActivate;
+            if (ActivationGuard.Background) create.ExStyle |= WsExNoActivate;
             return create;
         }
     }
@@ -195,23 +211,30 @@ internal sealed class WinFormsFixture : Form
     {
         stateDirectory = directory;
         Text = title;
-        ClientSize = new Size(740, 620);
+        ClientSize = new Size(740, 740);
         StartPosition = FormStartPosition.CenterScreen;
 
-        var root = new TableLayoutPanel { ColumnCount = 1, RowCount = 2, Dock = DockStyle.Fill };
+        var root = new TableLayoutPanel { ColumnCount = 1, RowCount = 3, Dock = DockStyle.Fill };
         root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        // Below the tabs so it is visible whichever page is selected.
+        root.RowStyles.Add(new RowStyle(SizeType.Absolute, 190));
         Controls.Add(root);
         root.Controls.Add(BuildActions(), 0, 0);
         tabs = BuildTabs();
         root.Controls.Add(tabs, 0, 1);
+        root.Controls.Add(new FixtureCanvas(WriteState, AppendState) { Dock = DockStyle.Fill }, 0, 2);
 
+        WriteState("fixture-mode.txt", ActivationGuard.Background ? "background" : "interactive");
         WriteState("count.txt", "0");
         WriteState("value.txt", edit.Text);
         WriteState("read-only.txt", readOnly.Text);
         WriteState("disabled-click.txt", "0");
         WriteState("modal.txt", "closed");
         WriteState("selected.txt", "Choice one");
+        WriteState("list.txt", "Item one");
+        WriteState("tab.txt", tabs.TabPages[0].Text); // SelectedTab is null until the control has a handle
+        WriteState("shortcut.txt", "0");
 #if NET9_0_OR_GREATER
         string runtime = RuntimeInformation.FrameworkDescription;
 #else
@@ -221,7 +244,7 @@ internal sealed class WinFormsFixture : Form
         timer.Tick += PollCommands;
         Shown += delegate
         {
-            SendToBack();
+            if (ActivationGuard.Background) SendToBack();
             WriteState("page.txt", tabs.SelectedIndex.ToString(CultureInfo.InvariantCulture));
             using (var process = Process.GetCurrentProcess())
             {
@@ -262,6 +285,7 @@ internal sealed class WinFormsFixture : Form
         tabs.TabPages.Add(new TabPage("Common controls") { Controls = { BuildCommonControls() } });
         tabs.TabPages.Add(new TabPage("Grid and tree") { Controls = { BuildGridAndTree() } });
         tabs.TabPages.Add(new TabPage("Virtual lists") { Controls = { BuildVirtualLists() } });
+        tabs.SelectedIndexChanged += delegate { if (tabs.SelectedTab != null) WriteState("tab.txt", tabs.SelectedTab.Text); };
         return tabs;
     }
 
@@ -295,7 +319,11 @@ internal sealed class WinFormsFixture : Form
         fixtureList = list;
         list.Items.AddRange(new object[] { "Item one", "Item two", "Item three" });
         list.SelectedIndex = 0;
-        list.SelectedIndexChanged += delegate { WriteState("selected.txt", (string)list.SelectedItem); };
+        list.SelectedIndexChanged += delegate
+        {
+            WriteState("selected.txt", (string)list.SelectedItem);
+            WriteState("list.txt", (string)list.SelectedItem);
+        };
         AddField(table, "List box", list);
 
         var radioGroup = new FlowLayoutPanel { AutoSize = true };
@@ -338,6 +366,14 @@ internal sealed class WinFormsFixture : Form
         {
             editedCells[e.RowIndex] = Convert.ToString(e.Value, CultureInfo.InvariantCulture);
             WriteState("grid-edit.txt", editedCells[e.RowIndex]);
+            AppendState("grid-edits.txt", String.Format(CultureInfo.InvariantCulture, "{0},{1},{2}",
+                e.RowIndex, e.ColumnIndex, editedCells[e.RowIndex]));
+        };
+        grid.CurrentCellChanged += delegate
+        {
+            var cell = grid.CurrentCellAddress;
+            if (cell.X >= 0 && cell.Y >= 0)
+                WriteState("grid-cell.txt", String.Format(CultureInfo.InvariantCulture, "{0},{1}", cell.Y, cell.X));
         };
         grid.RowCount = 2000;
         split.Panel1.Controls.Add(grid);
@@ -440,6 +476,15 @@ internal sealed class WinFormsFixture : Form
         WriteState("modal.txt", "closed");
     }
 
+    // Counted wherever the focus is in the main window (the canvas or any other control); the key still reaches
+    // the focused control, so canvas-keys.txt records it too.
+    protected override bool ProcessCmdKey(ref Message message, Keys keyData)
+    {
+        if (message.Msg == 0x0100 && keyData == (Keys.Control | Keys.Shift | Keys.K)) // WM_KEYDOWN
+            WriteState("shortcut.txt", (++shortcuts).ToString(CultureInfo.InvariantCulture));
+        return base.ProcessCmdKey(ref message, keyData);
+    }
+
     private void PollCommands(object sender, EventArgs e)
     {
         // Backstop for z-order changes that WM_WINDOWPOSCHANGED did not catch.
@@ -512,12 +557,197 @@ internal sealed class WinFormsFixture : Form
         return true;
     }
 
+    // An event log: the whole file is rewritten atomically, so a reader never sees a partial line.
+    private void AppendState(string fileName, string line)
+    {
+        StringBuilder log;
+        if (!logs.TryGetValue(fileName, out log)) logs[fileName] = log = new StringBuilder();
+        log.Append(line).Append('\n');
+        WriteState(fileName, log.ToString());
+    }
+
     private void WriteState(string fileName, string value)
     {
         string path = Path.Combine(stateDirectory, fileName);
         string pending = path + ".pending";
         File.WriteAllText(pending, value, new UTF8Encoding(false));
-        if (File.Exists(path)) File.Replace(pending, path, null);
-        else File.Move(pending, path);
+        // A test that reads the file at that instant holds it without delete sharing, and File.Replace fails. The
+        // native and Java fixtures retry the same way; the canvas logs are written often during input tests.
+        for (int attempt = 0; ; attempt++)
+        {
+            try
+            {
+                if (File.Exists(path)) File.Replace(pending, path, null);
+                else File.Move(pending, path);
+                return;
+            }
+            catch (IOException)
+            {
+                if (attempt >= 100) throw;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                if (attempt >= 100) throw;
+            }
+            System.Threading.Thread.Sleep(5);
+        }
+    }
+}
+
+// A custom-drawn surface with no accessible children (one UIA pane): physical-input tests can see what reached it
+// only through these state files. Positions are fractions of the client size (invariant culture, 3 decimals),
+// so they do not depend on the DPI scale or on whether the process is DPI aware.
+internal sealed class FixtureCanvas : Control
+{
+    private const int DragDistance = 4;
+    private readonly Action<string, string> write;
+    private readonly Action<string, string> append;
+    private readonly StringBuilder typed = new StringBuilder();
+    private MouseButtons pressed = MouseButtons.None;
+    private Point pressedAt;
+
+    public FixtureCanvas(Action<string, string> write, Action<string, string> append)
+    {
+        this.write = write;
+        this.append = append;
+        SetStyle(ControlStyles.Selectable | ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint |
+            ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.StandardClick |
+            ControlStyles.StandardDoubleClick, true);
+        TabStop = true;
+        Name = "fixtureCanvas";
+        AccessibleName = "Fixture canvas";
+        AccessibleRole = AccessibleRole.Pane;
+        BackColor = Color.FromArgb(228, 238, 249);
+        MinimumSize = new Size(300, 150);
+    }
+
+    // Tab, Enter and the arrows are typed into the canvas instead of moving the focus. Alt combinations keep
+    // their system meaning (window menu, Alt+F4).
+    protected override bool IsInputKey(Keys keyData) { return (keyData & Keys.Alt) == 0 || base.IsInputKey(keyData); }
+
+    protected override bool IsInputChar(char charCode) { return true; }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        Focus();
+        string button = ButtonName(e.Button);
+        if (button == null) return;
+        append("canvas-buttons.txt", "down " + button + " " + At(e.Location));
+        if (pressed != MouseButtons.None) return;
+        pressed = e.Button;
+        pressedAt = e.Location;
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+        string button = ButtonName(e.Button);
+        if (button == null) return;
+        append("canvas-buttons.txt", "up " + button + " " + At(e.Location));
+        if (e.Button != pressed) return;
+        pressed = MouseButtons.None;
+        if (Math.Abs(e.X - pressedAt.X) > DragDistance || Math.Abs(e.Y - pressedAt.Y) > DragDistance)
+            append("canvas-drag.txt", button + " " + At(pressedAt) + " " + At(e.Location));
+    }
+
+    // WinForms raises MouseClick for the first click and MouseDoubleClick (no MouseClick) for the second click
+    // of a double click, so a double click records "single" then "double".
+    protected override void OnMouseClick(MouseEventArgs e)
+    {
+        base.OnMouseClick(e);
+        string button = ButtonName(e.Button);
+        if (button != null) append("canvas-clicks.txt", button + " single " + At(e.Location));
+    }
+
+    protected override void OnMouseDoubleClick(MouseEventArgs e)
+    {
+        base.OnMouseDoubleClick(e);
+        string button = ButtonName(e.Button);
+        if (button != null) append("canvas-clicks.txt", button + " double " + At(e.Location));
+    }
+
+    protected override void WndProc(ref Message message)
+    {
+        if (message.Msg == 0x020A || message.Msg == 0x020E) // WM_MOUSEWHEEL, WM_MOUSEHWHEEL
+        {
+            var delta = (short)((message.WParam.ToInt64() >> 16) & 0xFFFF);
+            append("canvas-wheel.txt", (message.Msg == 0x020A ? "vertical " : "horizontal ") +
+                delta.ToString(CultureInfo.InvariantCulture));
+        }
+        base.WndProc(ref message);
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        append("canvas-keys.txt", "down " + KeyName(e.KeyCode));
+    }
+
+    protected override void OnKeyUp(KeyEventArgs e)
+    {
+        base.OnKeyUp(e);
+        append("canvas-keys.txt", "up " + KeyName(e.KeyCode));
+    }
+
+    protected override void OnKeyPress(KeyPressEventArgs e)
+    {
+        base.OnKeyPress(e);
+        char typedChar = e.KeyChar == '\r' ? '\n' : e.KeyChar;
+        // Backspace, Escape and Ctrl+letter characters are not text.
+        if (typedChar < ' ' && typedChar != '\n' && typedChar != '\t') return;
+        typed.Append(typedChar);
+        write("canvas-text.txt", typed.ToString());
+        e.Handled = true;
+    }
+
+    protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
+
+    protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        base.OnPaint(e);
+        e.Graphics.DrawRectangle(SystemPens.ControlDark, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1);
+        TextRenderer.DrawText(e.Graphics, "Fixture canvas: click, drag, scroll or type here", Font, new Point(8, 8),
+            Color.FromArgb(26, 52, 79));
+        if (Focused) ControlPaint.DrawFocusRectangle(e.Graphics, Rectangle.Inflate(ClientRectangle, -3, -3));
+    }
+
+    private string At(Point point)
+    {
+        return Fraction(point.X, ClientSize.Width) + " " + Fraction(point.Y, ClientSize.Height);
+    }
+
+    private static string Fraction(int position, int size)
+    {
+        return (position / (double)Math.Max(1, size)).ToString("0.000", CultureInfo.InvariantCulture);
+    }
+
+    private static string ButtonName(MouseButtons button)
+    {
+        switch (button)
+        {
+            case MouseButtons.Left: return "left";
+            case MouseButtons.Right: return "right";
+            case MouseButtons.Middle: return "middle";
+            default: return null;
+        }
+    }
+
+    // Keys has several names for one value (Enter/Return, PageDown/Next, HangulMode/KanaMode), and the name that
+    // Enum.ToString picks is not specified: the common ones are fixed here.
+    private static string KeyName(Keys key)
+    {
+        switch (key)
+        {
+            case Keys.Enter: return "Enter";
+            case Keys.PageUp: return "PageUp";
+            case Keys.PageDown: return "PageDown";
+            case Keys.CapsLock: return "CapsLock";
+            case Keys.HangulMode: return "HangulMode";
+            case Keys.HanjaMode: return "HanjaMode";
+            default: return key.ToString();
+        }
     }
 }
