@@ -1,5 +1,26 @@
 # 빌드 및 시험 기록
 
+## 2026-11-26 물리 입력(SendInput)과 Java 11
+
+Windows 11 Pro 25H2(빌드 26200.7840), Core i7-1255U, 125 % 배율 모니터 1개. Java Agent는 Temurin 11.0.33 x64, C++ Agent는 MSVC 19.44 x64·x86 Release. Swing/AWT 픽스처는 이전 기준선과 같은 JDK 17.0.10. 사용자가 PC로 업무를 보는 중이었으므로 실제 입력이 발생하는 시험은 실행하지 않았다. 아래 GUI 시험은 모두 포커스를 가져가지 않는 Background 모드 픽스처로 했고, `tools/Watch-Foreground.ps1`을 함께 실행했다. [물리 입력 계약과 시험 방법](PHYSICAL-INPUT.md)
+
+| 시험 | 결과 | 원본 |
+|---|---|---|
+| Java 빌드·단위 테스트, JDK 11 (`mvn -o package`) | 132개 중 128개 실행, 실패 0. 4개는 GUI 통합 테스트(별도 플래그) | 빌드 로그 |
+| Java 11 런타임 실행 | JAR를 Temurin 11.0.33으로 실행. `getCapabilities`, `listWindows`(17개 창), 입력 허용 세션의 `input` 행(perMonitorV2, medium, 1920×1080), 거부 경로. 같은 요청에 C++ Agent와 같은 오류 코드와 `inputSent` | 콘솔 |
+| Java GUI 통합 (`WindowsGuiTest`, Java 11) | 1개 실행 PASS(나머지 3개는 C#·PowerShell 워커 플래그 필요). 첫 실행은 사용자의 마우스 이동으로 "Physical cursor moved" 실패, PC가 한가할 때 재실행 통과 | Surefire 보고서 |
+| C++ CTest | x64 3/3, x86 3/3 (`agent-core-contract`, `input-contract`, `input-driver-status`) | 빌드 로그 |
+| 물리 입력 네이티브 거부 경로 (Java `WindowsInputDriverTest`) | 없는 창·다른 PID·창 밖 좌표가 입력 없이 거부되고 게이트 호출과 훅 설치가 없음 | Surefire 보고서 |
+| UIA 프레임워크 회귀 (Java 11 JNA, C++) | 298개 검사 중 PASS 256. 2026-11-24 기준선과 검사 단위까지 같음. 기준선에서 NOT_RUN이던 MFC가 두 Agent 모두 22/22 | [JSON](test-results/2026-11-26-input-uia-regression.json) |
+| JAB 회귀 (Swing·AWT, 두 Agent) | 128개 중 PASS 120. 기준선과 검사 단위까지 같음 | [JSON](test-results/2026-11-26-input-jab-regression.json) |
+| Multi-Backend Safety·UiaFault·Metadata | 두 Agent 6/6 시나리오 PASS | [JSON](test-results/2026-11-26-input-multi-regression.json) |
+| MSAA (Java, C++ x64, C++ x86) | 각 6/6 | [JSON](test-results/2026-11-26-input-msaa-regression.json) |
+| 읽기 전용 계약 (`check-readonly-contract.py`) | Java 9, C++ 9 | 콘솔 |
+| 포커스 감시 | 첫 회귀에서 Swing 픽스처의 옵션 창(JOptionPane)이 Background 모드에서도 전경을 두 번 가져갔다. 이번 변경 전부터 있던 코드였고, 모달과 같은 방식으로 고친 뒤 JAB 회귀를 다시 실행해 0회. 표시 직후 20~30 ms 동안 픽스처 창이 위에 그려진 기록이 실행마다 1~2건 있다(포커스는 이동하지 않음, 이전 빌드와 같음) | 로컬 보고서 |
+| 물리 입력 Interactive 시험 | NOT_RUN. 계획 파일만 생성(32건 모두 NOT_RUN) | [JSON](test-results/2026-11-26-physical-input-plan.json) |
+
+미실행: 실제 SendInput 전송과 훅 감시, 해제, 전경 전환을 포함한 Interactive 기능 시험과 Java·C++ 성능 비교, 다중 모니터, 관리자 권한 대상, Windows 7·10, x86 Agent의 GUI 시험, RDP, Java 11 대상 JVM(픽스처), 화면 캡처·이미지 매칭·OCR·장시간 시험(이번 범위 밖). 포커스 감시 원본에는 사용자의 창 제목이 들어 있어 저장소에 넣지 않았다.
+
 ## 2026-11-25 MSAA Adapter
 
 Java x64와 C++ x64·x86에서 WinForms 탐색, 표준 Win32 재조회, 테스트 COM Provider 동작, 객체 교체와 장애 복구를 검증했다. 관찰 범위, CPU·메모리 수치, 원본 및 기존 UIA·JAB·Multi-Backend 회귀 결과는 [MSAA Adapter](MSAA-ADAPTER.md)에 있다.
@@ -482,7 +503,7 @@ Surefire 집계는 총 32개, 성공 30개, 실패 0개, 오류 0개, 건너뜀 
 
 ## Windows에서의 합격 판정
 
-1. Windows 10 또는 11의 잠금 해제된 대화형 데스크톱에서 JDK 17 이상과 Maven을 준비한다. 테스트 중 다른 사용자가 마우스를 움직이지 않아야 한다.
+1. Windows 10 또는 11의 잠금 해제된 대화형 데스크톱에서 JDK 11 이상과 Maven을 준비한다. 테스트 중 다른 사용자가 마우스를 움직이지 않아야 한다.
 2. 프로젝트 루트의 PowerShell에서 아래 명령을 실행한다. 테스트가 전용 WPF 앱을 열고, 실제 창 제목과 PID로 앱을 식별한다.
 3. 시험은 스냅샷 참조로 편집 요소와 버튼을 찾아 두 패턴을 호출한다. WPF TextChanged 이벤트가 기록한 값, Click 이벤트의 카운터(0 → 1), GetPhysicalCursorPos로 읽은 실행 전후 좌표를 각각 검사한다. 중복 이름·패턴 미지원·중복 명령·민감한 입력값 노출도 검사한다.
 4. 두 백엔드를 함께 활성화하면 `WindowsGuiTest`의 시험이 2개 실행되고 실패·오류·건너뜀이 모두 0이어야 한다. 시험 앱의 성공은 해당 Windows 빌드와 WPF 공급자 조합에 대한 결과다.

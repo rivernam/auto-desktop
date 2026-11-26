@@ -15,6 +15,7 @@
 | setValue | `ref`, `value` | `{"performed":true,"effectVerified":false}`. UIA ValuePattern, JAB `setTextContents` 또는 MSAA `put_accValue`의 호출 반환. 빈 문자열도 허용하며 UTF-16 코드 단위 기준 최대 길이는 UIA·MSAA 16,384, JAB 1,023이다. |
 | defaultAction | `ref` | MSAA `accDoDefaultAction` 호출 반환. `{"performed":true,"effectVerified":false}`를 제공한다. |
 | select | `ref` | MSAA `accSelect(SELFLAG_TAKESELECTION)` 호출 반환. `{"performed":true,"effectVerified":false}`를 제공한다. |
+| activateWindow, pointerMove, pointerClick, pointerDrag, pointerScroll, clickElement, keyPress, keyDown, keyUp, typeText | [물리 입력](PHYSICAL-INPUT.md#연산) | 시작 옵션 `--allow-action pointer\|keyboard\|activate`로 허용한 세션에서만 쓴다. `{"performed":true,"inputSent":true,"inputObserved":...,"effectVerified":false,"events":N}`. 접근성 동작이 실패해도 Agent가 물리 입력으로 바꿔 보내지 않는다. |
 
 백엔드는 CLI를 시작할 때 정한다. Java Agent는 `--backend jna|jab|msaa|multi|powershell`, C++ Agent는 `--backend uia|jab|msaa|multi`를 받고, 생략하면 기존 기본값이다. `multi`가 아닌 세션의 요청은 모두 그 백엔드 하나로만 처리한다. 백엔드가 실패해도 다른 백엔드로 같은 요청을 보내지 않는다. Swing과 AWT 창은 `--backend jab`이나 `--backend multi`로 연다. [JAB 백엔드의 선택, 요소 모델과 제약](JAVA-ACCESS-BRIDGE.md)
 
@@ -140,6 +141,7 @@ AWT 창에서 텍스트는 UIA로, 버튼은 JAB로 다루는 예다. `UIA-SNAPS
 | ACTION_OUTCOME_UNKNOWN | 변경이 이미 수행됐을 수 있으므로 앱의 독립적인 상태를 확인. 자동 재전송 금지 |
 | DUPLICATE_COMMAND, SESSION_LIMIT | 변경 명령의 세션 기록 또는 한도 확인 |
 | WORKER_PROTOCOL, INTERNAL_ERROR | 현재 요청의 로그와 버전 확인 |
+| INPUT_UNAVAILABLE, INPUT_DESKTOP_UNAVAILABLE, INTEGRITY_MISMATCH, FOREGROUND_MISMATCH, WINDOW_OBSCURED, USER_INPUT_CONFLICT, BOUNDS_UNVERIFIED, INPUT_BLOCKED | 물리 입력 연산의 거부 또는 중단. 오류 객체의 `inputSent`가 true면 일부 입력이 이미 들어갔으므로 `ACTION_OUTCOME_UNKNOWN`처럼 앱 상태를 먼저 확인한다. [처리 방법](PHYSICAL-INPUT.md#응답) |
 
 ## 프로세스 종료
 

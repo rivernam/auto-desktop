@@ -49,12 +49,13 @@ Java와 C++는 각각 Core와 Windows Adapter를 소유한다. 공통 NDJSON 계
 | 1 | UIA 트리와 패턴 워커, Java 명령·정책·참조 관리, 지속형 CLI, 모킹 및 WPF 테스트 | Linux 빌드·단위 테스트와 별도로 Windows 10/11에서 앱의 값·클릭 카운터 및 커서 전후 좌표 확인 |
 | 1b | Java Access Bridge Adapter. Swing과 AWT 창의 트리, Locator, 버튼 실행과 텍스트 입력 (Java/JNA와 C++) | Windows 11에서 Java 17·23 대상 JVM의 실제 카운터·입력값·모달 상태, 참조 무효화와 핸들 반환 확인. 구형 JVM과 x86은 미실행 |
 | 1c | Multi-Backend 세션. UIA와 JAB를 한 Agent에서 함께 쓰고 장애를 백엔드 단위로 가둔다 (Java/JNA와 C++) | 한 프로세스로 AWT 창의 텍스트(UIA)와 버튼·모달(JAB)을 조작, JAB 무응답 중 UIA 동작과 그 반대, 참조·명령 ID 규칙, 10분 혼합 반복 |
+| 1d | 물리 입력(SendInput). 좌표·요소 bounds 기반 마우스와 키보드, 입력 전 창·PID·권한·전경·사용자 입력 검증, 실패 시 해제 (Java/JNA와 C++) | 단위·거부 경로 시험과 기존 접근성 회귀 유지. Interactive 시험(`tools/Test-PhysicalInput.ps1 -Interactive`)으로 실제 앱 상태 변화와 해제 확인. 2026-11-26 기준 Interactive 시험은 미실행 |
 | 2 | XP SP3/x86과 XP Embedded 이미지에서 실행 가능한 JVM·Win32 헬퍼 조합 조사. MSAA의 IAccessible, accDoDefaultAction, 속성 조회 구현. UIA 설치본별 탐지 | 현대 Windows와 동일 JSON 계약 테스트, 구형 컨트롤의 지원·미지원 패턴, 실제 x86/x64 조합 및 리소스 회수 결과 |
 | 3 | Ubuntu 22.04에서 AT-SPI2/D-Bus 탐색 및 Action·EditableText 어댑터 개발. CentOS 5는 AT-SPI1/CORBA와 구형 ABI로 별도 빌드. CentOS 6/7·RHEL은 설치된 접근성 버스 탐지 | 각 이미지와 데스크톱에서 직접 수행한 트리·동작 테스트. X11의 XTest·캡처와 Wayland RemoteDesktop/ScreenCast 포털의 동의·권한 결과를 각각 기록 |
 | 4 | 명령 큐·작업 상태·heartbeat, 지속적인 중복 방지, 재접속, 세션별 워커 감독, 인증된 로컬 IPC와 원격 명령 계약 | 지연·충돌·재시작 시 상태 보존 및 미확인 변경의 중복 실행 방지 시험. 중앙 서버 구현은 별도 범위 |
 | 5 | OS·CPU별 패키징, 로그인 시 자동 시작, 서명한 업데이트·롤백, 진단 로그 수집과 장시간 부하 시험 | 승인된 환경에서 CPU·RSS·핸들 추이, 업그레이드/롤백, 세션 잠금·해제·재연결 결과 기록 |
 
-추후 공통 API 후보에는 `getWindow`, `toggle`, `focus`, `waitFor`가 포함된다. 현재 `select`는 MSAA의 `SELFLAG_TAKESELECTION`에 한정한다. 물리 입력은 별도 명령 영역에 `mouseMove`, `mouseClick`, `mouseDrag`, 키보드 입력, 단축키, 캡처를 설계한다. 각 기능에는 별도의 capability와 정책 허용이 필요하다. UIA 호출 실패로 물리 입력을 발생시키는 경로는 없다. 실제 설비 조작을 도입할 때는 공정별 사전 조건, 조작 후 독립적인 상태 확인 및 승인된 환경에서의 시험이 필요하다.
+추후 공통 API 후보에는 `getWindow`, `toggle`, `waitFor`가 포함된다. 현재 `select`는 MSAA의 `SELFLAG_TAKESELECTION`에 한정한다. 물리 입력(SendInput)은 별도 명령 영역으로 구현했다. 포인터·키보드·창 활성화마다 `--allow-action` 허용과 capability의 `input` 행이 따로 있고, Java는 `InputDriver`·`WindowsInputDriver`, C++은 `InputDriver`·`windows/input_driver.cpp`가 같은 계약을 따른다. 접근성 호출 실패로 물리 입력을 발생시키는 경로는 없다. 화면 캡처는 아직 없다. [물리 입력](PHYSICAL-INPUT.md) 실제 설비 조작을 도입할 때는 공정별 사전 조건, 조작 후 독립적인 상태 확인 및 승인된 환경에서의 시험이 필요하다.
 
 ## 레거시 조회 PoC
 

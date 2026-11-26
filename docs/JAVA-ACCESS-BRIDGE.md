@@ -399,7 +399,7 @@ AWT 설비 화면은 버튼은 JAB, 텍스트 입력은 UIA가 필요한 실제 
 2. **JRE에 브리지가 있는가.** Java SE 7 Update 6 이전의 JRE에는 브리지가 들어 있지 않아 Java Access Bridge 2.0.x를 따로 설치해야 한다. 그 이후 JRE는 `bin`에 DLL이 있다.
 3. **비트수.** 64비트 Agent는 `WindowsAccessBridge-64.dll`을, 32비트 Agent는 `-32.dll`을 쓴다. 32비트 JVM만 있는 설비에서 어느 조합이 통하는지는 미실행이다. 객체 핸들이 32비트인 구형 `WindowsAccessBridge.dll` ABI는 두 Agent 모두 지원하지 않는다.
 4. **브리지 API 범위.** 두 Agent는 Java Access Bridge 2.0에서 추가된 `setTextContents`와 액션 함수를 요구한다. 없으면 백엔드 전체를 쓰지 않고 빠진 함수 이름을 보고한다.
-5. **Agent를 어디서 돌리는가.** 대상이 Java 6 프로그램이어도 Agent는 Java 17 이상(JNA) 또는 C++ 실행 파일이다. Windows XP나 7에서 이 Agent들이 실행되는지는 별개의 미검증 항목이다. 대상 JVM에 접근할 수 있다는 결과를 구형 OS에서 Agent가 돈다는 뜻으로 읽으면 안 된다.
+5. **Agent를 어디서 돌리는가.** 대상이 Java 6 프로그램이어도 Agent는 Java 11 이상(JNA) 또는 C++ 실행 파일이다. Windows XP나 7에서 이 Agent들이 실행되는지는 별개의 미검증 항목이다. 대상 JVM에 접근할 수 있다는 결과를 구형 OS에서 Agent가 돈다는 뜻으로 읽으면 안 된다.
 6. **Java 쪽 동작 차이.** 모달 버튼의 대기와 AWT 텍스트 입력은 JDK 17 소스로 확인했다. 구형 JDK의 브리지 구현이 같은지는 확인하지 않았다.
 
 ## MSAA Adapter 검토

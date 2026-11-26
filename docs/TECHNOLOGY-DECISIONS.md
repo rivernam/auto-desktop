@@ -2,7 +2,7 @@
 
 후속 비교에서 선택형 C# 워커와 [Java + JNA 직접 COM 어댑터](JNA.md)를 구현했다. 아래는 최초 PowerShell 기준선을 선정했을 때의 기록이다. [비교 결과와 권고](WINDOWS-BACKENDS.md)
 
-1단계에서는 Java 17 이상에서 Windows PowerShell 5.1 프로세스 하나를 세션 동안 유지한다. Java가 명령, 스냅샷, 참조 수명과 결과 형식을 관리하고, 프로젝트에 포함된 스크립트가 .NET Framework의 `UIAutomationClient`를 호출한다. 첫 요청의 프로세스 기동 비용은 세션 내 후속 요청에 반복되지 않는다. 외부 자동화 엔진이나 별도 JNI DLL을 배포할 필요가 없다. 이 결정은 Windows 접근성 트리를 실제로 읽는 최소 단위를 먼저 구현하기 위한 것이다.
+1단계에서는 Java 11 이상에서(2026-11-25 Java 17에서 하향) Windows PowerShell 5.1 프로세스 하나를 세션 동안 유지한다. Java가 명령, 스냅샷, 참조 수명과 결과 형식을 관리하고, 프로젝트에 포함된 스크립트가 .NET Framework의 `UIAutomationClient`를 호출한다. 첫 요청의 프로세스 기동 비용은 세션 내 후속 요청에 반복되지 않는다. 외부 자동화 엔진이나 별도 JNI DLL을 배포할 필요가 없다. 이 결정은 Windows 접근성 트리를 실제로 읽는 최소 단위를 먼저 구현하기 위한 것이다.
 
 ## 원본에서 확인한 설계
 

@@ -1,0 +1,2306 @@
+{
+  "startUtc": "2026-11-26T00:19:47.843159+00:00",
+  "windows": "10.0.26200",
+  "javaVersion": "openjdk version \"11.0.33\" 2026-10-20",
+  "fixtureSha256": "a165d61b2075daedde6e762bc73bd173a5c5aabb791c22e2ea24d15927ad4d80",
+  "identityFixtureSha256": "ee9057a6dacde82ac19df1cd1d1c00df75d6fad3c410052ea33f3a816b245ab5",
+  "agent": {
+    "Java": {
+      "sha256": "1b6cc1edd2a4f5980bfb135509a259bb2127261bc3022a15e5eed0ae1ba37778",
+      "checks": {
+        "winforms": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 811.402
+            },
+            {
+              "id": "2",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 100.23
+            },
+            {
+              "id": "3",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 211.528
+            },
+            {
+              "id": "4",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 762.83
+            },
+            {
+              "id": "5",
+              "op": "snapshot",
+              "code": "STALE_REFERENCE",
+              "ms": 1.969
+            },
+            {
+              "id": "6",
+              "op": "defaultAction",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 1.327
+            },
+            {
+              "id": "7",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 1.271
+            },
+            {
+              "id": "8",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 61.317
+            },
+            {
+              "id": "9",
+              "op": "findElement",
+              "code": "OK",
+              "ms": 4.771
+            },
+            {
+              "id": "10",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 40.152
+            },
+            {
+              "id": "11",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 4.78
+            },
+            {
+              "id": "12",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 695.071
+            },
+            {
+              "id": "13",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 78.328
+            },
+            {
+              "id": "14",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 49.539
+            },
+            {
+              "id": "15",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.64
+            },
+            {
+              "id": "16",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 650.686
+            },
+            {
+              "id": "17",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 40.691
+            },
+            {
+              "id": "18",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 39.901
+            },
+            {
+              "id": "19",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.934
+            },
+            {
+              "id": "20",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 661.695
+            },
+            {
+              "id": "21",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 51.218
+            },
+            {
+              "id": "22",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 60.973
+            },
+            {
+              "id": "23",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 1.385
+            },
+            {
+              "id": "24",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 970.098
+            },
+            {
+              "id": "25",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 680.171
+            },
+            {
+              "id": "26",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 41.88
+            },
+            {
+              "id": "27",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 47.278
+            },
+            {
+              "id": "28",
+              "op": "findElement",
+              "code": "OK",
+              "ms": 1.053
+            },
+            {
+              "id": "29",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 42.426
+            },
+            {
+              "id": "30",
+              "op": "setValue",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 1.628
+            },
+            {
+              "id": "31",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 7.027
+            },
+            {
+              "id": "1",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 695.177
+            },
+            {
+              "id": "2",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 13.783
+            },
+            {
+              "id": "3",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 1291.71
+            }
+          ],
+          "uiaObserved": {
+            "Window": 1,
+            "Pane": 7,
+            "Button": 7,
+            "Tab": 1,
+            "Text": 12,
+            "Edit": 3,
+            "CheckBox": 1,
+            "ComboBox": 2,
+            "List": 1,
+            "RadioButton": 2,
+            "Slider": 1,
+            "ProgressBar": 1,
+            "TitleBar": 1
+          },
+          "commonRoles": {
+            "Pane": 7,
+            "Window": 36,
+            "MenuBar": 72,
+            "Custom": 101,
+            "ScrollBar": 72,
+            "Button": 187,
+            "Tab": 1,
+            "TabItem": 3,
+            "Text": 12,
+            "Edit": 3,
+            "CheckBox": 1,
+            "ComboBox": 2,
+            "List": 1,
+            "Slider": 1,
+            "ProgressBar": 1
+          },
+          "listChanges": [
+            "replace",
+            "reorder",
+            "delete"
+          ],
+          "gridRoles": {
+            "Pane": 11,
+            "Window": 46,
+            "MenuBar": 92,
+            "Custom": 184,
+            "ScrollBar": 92,
+            "Button": 602,
+            "Tab": 1,
+            "TabItem": 3,
+            "Text": 13,
+            "Edit": 4,
+            "CheckBox": 7,
+            "ComboBox": 2,
+            "List": 1,
+            "Slider": 1,
+            "ProgressBar": 1,
+            "ListItem": 2,
+            "RadioButton": 2,
+            "Spinner": 1,
+            "Table": 1,
+            "Tree": 1,
+            "Row": 32
+          },
+          "scopedGridRoles": {
+            "Table": 1,
+            "Row": 127,
+            "HeaderItem": 66,
+            "Cell": 126
+          },
+          "status": "PASS",
+          "wallSeconds": 8.906
+        },
+        "win32": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 646.896
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 252.781
+            },
+            {
+              "id": "3",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 5.1
+            },
+            {
+              "id": "4",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 1.862
+            },
+            {
+              "id": "5",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 3.41
+            },
+            {
+              "id": "6",
+              "op": "defaultAction",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.61
+            }
+          ],
+          "roles": {
+            "Pane": 1,
+            "Window": 25,
+            "MenuBar": 50,
+            "Custom": 100,
+            "Button": 333,
+            "ScrollBar": 50,
+            "Text": 9,
+            "Edit": 3,
+            "CheckBox": 1,
+            "ComboBox": 1,
+            "List": 2,
+            "Tree": 1,
+            "Tab": 1,
+            "ListItem": 14,
+            "TreeItem": 2,
+            "TabItem": 2
+          },
+          "status": "PASS",
+          "wallSeconds": 1.094
+        },
+        "defaultAction": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 634.559
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 31.838
+            },
+            {
+              "id": "3",
+              "op": "defaultAction",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 3.215
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 653.492
+            },
+            {
+              "id": "2",
+              "op": "defaultAction",
+              "code": "PERMISSION_DENIED",
+              "ms": 4.598
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 692.547
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 57.913
+            },
+            {
+              "id": "3",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 11.946
+            },
+            {
+              "id": "4",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 1.974
+            },
+            {
+              "id": "applied",
+              "op": "defaultAction",
+              "code": "OK",
+              "ms": 19.122
+            },
+            {
+              "id": "applied",
+              "op": "defaultAction",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.722
+            },
+            {
+              "id": "applied",
+              "op": "invoke",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.318
+            },
+            {
+              "id": "5",
+              "op": "defaultAction",
+              "code": "PRECONDITION_FAILED",
+              "ms": 9.37
+            },
+            {
+              "id": "6",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 11.645
+            },
+            {
+              "id": "7",
+              "op": "defaultAction",
+              "code": "STALE_REFERENCE",
+              "ms": 6.596
+            },
+            {
+              "id": "8",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 7.901
+            },
+            {
+              "id": "ambiguous",
+              "op": "defaultAction",
+              "code": "ACTION_OUTCOME_UNKNOWN",
+              "ms": 12.052
+            },
+            {
+              "id": "ambiguous",
+              "op": "defaultAction",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.649
+            },
+            {
+              "id": "9",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 7.931
+            }
+          ],
+          "providerCalls": 2,
+          "applicationEffectObserved": true,
+          "metadataMaskVerified": true,
+          "status": "PASS",
+          "wallSeconds": 3.078
+        },
+        "setValue": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 666.885
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 27.392
+            },
+            {
+              "id": "3",
+              "op": "setValue",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 4.129
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 646.134
+            },
+            {
+              "id": "2",
+              "op": "setValue",
+              "code": "PERMISSION_DENIED",
+              "ms": 3.127
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 627.048
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 55.922
+            },
+            {
+              "id": "3",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 2.116
+            },
+            {
+              "id": "applied",
+              "op": "setValue",
+              "code": "OK",
+              "ms": 17.618
+            },
+            {
+              "id": "applied",
+              "op": "setValue",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.745
+            },
+            {
+              "id": "applied",
+              "op": "invoke",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.534
+            },
+            {
+              "id": "4",
+              "op": "setValue",
+              "code": "PRECONDITION_FAILED",
+              "ms": 4.524
+            },
+            {
+              "id": "5",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 9.355
+            },
+            {
+              "id": "6",
+              "op": "setValue",
+              "code": "STALE_REFERENCE",
+              "ms": 6.08
+            },
+            {
+              "id": "7",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 6.211
+            },
+            {
+              "id": "ambiguous",
+              "op": "setValue",
+              "code": "ACTION_OUTCOME_UNKNOWN",
+              "ms": 6.227
+            },
+            {
+              "id": "ambiguous",
+              "op": "setValue",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.725
+            }
+          ],
+          "providerCalls": 2,
+          "applicationEffectObserved": true,
+          "status": "PASS",
+          "wallSeconds": 3.031
+        },
+        "select": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 710.342
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 28.511
+            },
+            {
+              "id": "3",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 4.49
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 634.216
+            },
+            {
+              "id": "2",
+              "op": "select",
+              "code": "PERMISSION_DENIED",
+              "ms": 3.199
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 650.016
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 58.283
+            },
+            {
+              "id": "3",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 2.67
+            },
+            {
+              "id": "applied",
+              "op": "select",
+              "code": "OK",
+              "ms": 34.699
+            },
+            {
+              "id": "4",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 6.994
+            },
+            {
+              "id": "applied",
+              "op": "select",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.572
+            },
+            {
+              "id": "applied",
+              "op": "invoke",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.48
+            },
+            {
+              "id": "5",
+              "op": "select",
+              "code": "PRECONDITION_FAILED",
+              "ms": 6.555
+            },
+            {
+              "id": "6",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 8.561
+            },
+            {
+              "id": "7",
+              "op": "select",
+              "code": "STALE_REFERENCE",
+              "ms": 9.6
+            },
+            {
+              "id": "8",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 6.504
+            },
+            {
+              "id": "ambiguous",
+              "op": "select",
+              "code": "ACTION_OUTCOME_UNKNOWN",
+              "ms": 6.165
+            },
+            {
+              "id": "ambiguous",
+              "op": "select",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.459
+            },
+            {
+              "id": "9",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 3.903
+            }
+          ],
+          "providerCalls": 2,
+          "applicationEffectObserved": true,
+          "metadataMaskVerified": true,
+          "status": "PASS",
+          "wallSeconds": 3.125
+        },
+        "timeoutRecovery": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 920.03
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 351.342
+            },
+            {
+              "id": "3",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 118.016
+            },
+            {
+              "id": "4",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 35.056
+            },
+            {
+              "id": "5",
+              "op": "getElementInfo",
+              "code": "TIMEOUT",
+              "ms": 10018.2
+            },
+            {
+              "id": "6",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 9.66
+            },
+            {
+              "id": "7",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 5.857
+            },
+            {
+              "id": "8",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 0.756
+            },
+            {
+              "id": "9",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 14.727
+            },
+            {
+              "id": "10",
+              "op": "defaultAction",
+              "code": "OK",
+              "ms": 34.704
+            }
+          ],
+          "status": "PASS",
+          "wallSeconds": 13.891
+        }
+      }
+    },
+    "Cpp": {
+      "sha256": "0af85be2ce01cbb1ad771a4225203653cb58adca7c57b179547a50959e6d172d",
+      "checks": {
+        "winforms": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 241.034
+            },
+            {
+              "id": "2",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 132.533
+            },
+            {
+              "id": "3",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 588.736
+            },
+            {
+              "id": "4",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 1638.812
+            },
+            {
+              "id": "5",
+              "op": "snapshot",
+              "code": "STALE_REFERENCE",
+              "ms": 0.661
+            },
+            {
+              "id": "6",
+              "op": "defaultAction",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.386
+            },
+            {
+              "id": "7",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.209
+            },
+            {
+              "id": "8",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 87.877
+            },
+            {
+              "id": "9",
+              "op": "findElement",
+              "code": "OK",
+              "ms": 0.416
+            },
+            {
+              "id": "10",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 81.255
+            },
+            {
+              "id": "11",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 8.795
+            },
+            {
+              "id": "12",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 1589.285
+            },
+            {
+              "id": "13",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 109.29
+            },
+            {
+              "id": "14",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 92.26
+            },
+            {
+              "id": "15",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.574
+            },
+            {
+              "id": "16",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 802.326
+            },
+            {
+              "id": "17",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 52.984
+            },
+            {
+              "id": "18",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 34.326
+            },
+            {
+              "id": "19",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.439
+            },
+            {
+              "id": "20",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 692.42
+            },
+            {
+              "id": "21",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 88.458
+            },
+            {
+              "id": "22",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 45.782
+            },
+            {
+              "id": "23",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.3
+            },
+            {
+              "id": "24",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 1194.411
+            },
+            {
+              "id": "25",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 1001.296
+            },
+            {
+              "id": "26",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 60.702
+            },
+            {
+              "id": "27",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 82.318
+            },
+            {
+              "id": "28",
+              "op": "findElement",
+              "code": "OK",
+              "ms": 0.697
+            },
+            {
+              "id": "29",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 161.97
+            },
+            {
+              "id": "30",
+              "op": "setValue",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.72
+            },
+            {
+              "id": "31",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 15.056
+            },
+            {
+              "id": "1",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 48.928
+            },
+            {
+              "id": "2",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 2.167
+            },
+            {
+              "id": "3",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 2725.682
+            }
+          ],
+          "uiaObserved": {
+            "Window": 1,
+            "Pane": 7,
+            "Button": 7,
+            "Tab": 1,
+            "Text": 12,
+            "Edit": 3,
+            "CheckBox": 1,
+            "ComboBox": 2,
+            "List": 1,
+            "RadioButton": 2,
+            "Slider": 1,
+            "ProgressBar": 1,
+            "TitleBar": 1
+          },
+          "commonRoles": {
+            "Pane": 7,
+            "Window": 36,
+            "MenuBar": 72,
+            "Custom": 101,
+            "ScrollBar": 72,
+            "Button": 187,
+            "Tab": 1,
+            "TabItem": 3,
+            "Text": 12,
+            "Edit": 3,
+            "CheckBox": 1,
+            "ComboBox": 2,
+            "List": 1,
+            "Slider": 1,
+            "ProgressBar": 1
+          },
+          "listChanges": [
+            "replace",
+            "reorder",
+            "delete"
+          ],
+          "gridRoles": {
+            "Pane": 11,
+            "Window": 46,
+            "MenuBar": 92,
+            "Custom": 184,
+            "ScrollBar": 92,
+            "Button": 602,
+            "Tab": 1,
+            "TabItem": 3,
+            "Text": 13,
+            "Edit": 4,
+            "CheckBox": 7,
+            "ComboBox": 2,
+            "List": 1,
+            "Slider": 1,
+            "ProgressBar": 1,
+            "ListItem": 2,
+            "RadioButton": 2,
+            "Spinner": 1,
+            "Table": 1,
+            "Tree": 1,
+            "Row": 32
+          },
+          "scopedGridRoles": {
+            "Table": 1,
+            "Row": 127,
+            "HeaderItem": 66,
+            "Cell": 126
+          },
+          "status": "PASS",
+          "wallSeconds": 12.578
+        },
+        "win32": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 52.809
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 144.755
+            },
+            {
+              "id": "3",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 6.273
+            },
+            {
+              "id": "4",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.393
+            },
+            {
+              "id": "5",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 5.819
+            },
+            {
+              "id": "6",
+              "op": "defaultAction",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.383
+            }
+          ],
+          "roles": {
+            "Pane": 1,
+            "Window": 25,
+            "MenuBar": 50,
+            "Custom": 100,
+            "Button": 333,
+            "ScrollBar": 50,
+            "Text": 9,
+            "Edit": 3,
+            "CheckBox": 1,
+            "ComboBox": 1,
+            "List": 2,
+            "Tree": 1,
+            "Tab": 1,
+            "ListItem": 14,
+            "TreeItem": 2,
+            "TabItem": 2
+          },
+          "status": "PASS",
+          "wallSeconds": 0.547
+        },
+        "defaultAction": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 40.905
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 25.007
+            },
+            {
+              "id": "3",
+              "op": "defaultAction",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.216
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 44.739
+            },
+            {
+              "id": "2",
+              "op": "defaultAction",
+              "code": "PERMISSION_DENIED",
+              "ms": 0.203
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 64.888
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 11.89
+            },
+            {
+              "id": "3",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 4.982
+            },
+            {
+              "id": "4",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.211
+            },
+            {
+              "id": "applied",
+              "op": "defaultAction",
+              "code": "OK",
+              "ms": 14.91
+            },
+            {
+              "id": "applied",
+              "op": "defaultAction",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.244
+            },
+            {
+              "id": "applied",
+              "op": "invoke",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.154
+            },
+            {
+              "id": "5",
+              "op": "defaultAction",
+              "code": "PRECONDITION_FAILED",
+              "ms": 4.824
+            },
+            {
+              "id": "6",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 5.423
+            },
+            {
+              "id": "7",
+              "op": "defaultAction",
+              "code": "STALE_REFERENCE",
+              "ms": 4.46
+            },
+            {
+              "id": "8",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 5.206
+            },
+            {
+              "id": "ambiguous",
+              "op": "defaultAction",
+              "code": "ACTION_OUTCOME_UNKNOWN",
+              "ms": 10.087
+            },
+            {
+              "id": "ambiguous",
+              "op": "defaultAction",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.232
+            },
+            {
+              "id": "9",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 6.578
+            }
+          ],
+          "providerCalls": 2,
+          "applicationEffectObserved": true,
+          "metadataMaskVerified": true,
+          "status": "PASS",
+          "wallSeconds": 0.875
+        },
+        "setValue": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 36.166
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 20.682
+            },
+            {
+              "id": "3",
+              "op": "setValue",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.317
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 64.157
+            },
+            {
+              "id": "2",
+              "op": "setValue",
+              "code": "PERMISSION_DENIED",
+              "ms": 0.222
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 62.481
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 12.658
+            },
+            {
+              "id": "3",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.195
+            },
+            {
+              "id": "applied",
+              "op": "setValue",
+              "code": "OK",
+              "ms": 10.172
+            },
+            {
+              "id": "applied",
+              "op": "setValue",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.403
+            },
+            {
+              "id": "applied",
+              "op": "invoke",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.31
+            },
+            {
+              "id": "4",
+              "op": "setValue",
+              "code": "PRECONDITION_FAILED",
+              "ms": 3.498
+            },
+            {
+              "id": "5",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 5.017
+            },
+            {
+              "id": "6",
+              "op": "setValue",
+              "code": "STALE_REFERENCE",
+              "ms": 4.366
+            },
+            {
+              "id": "7",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 4.75
+            },
+            {
+              "id": "ambiguous",
+              "op": "setValue",
+              "code": "ACTION_OUTCOME_UNKNOWN",
+              "ms": 6.138
+            },
+            {
+              "id": "ambiguous",
+              "op": "setValue",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.233
+            }
+          ],
+          "providerCalls": 2,
+          "applicationEffectObserved": true,
+          "status": "PASS",
+          "wallSeconds": 0.938
+        },
+        "select": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 32.47
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 23.496
+            },
+            {
+              "id": "3",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.235
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 58.926
+            },
+            {
+              "id": "2",
+              "op": "select",
+              "code": "PERMISSION_DENIED",
+              "ms": 0.286
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 64.655
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 10.01
+            },
+            {
+              "id": "3",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.225
+            },
+            {
+              "id": "applied",
+              "op": "select",
+              "code": "OK",
+              "ms": 10.86
+            },
+            {
+              "id": "4",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 2.007
+            },
+            {
+              "id": "applied",
+              "op": "select",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.158
+            },
+            {
+              "id": "applied",
+              "op": "invoke",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.119
+            },
+            {
+              "id": "5",
+              "op": "select",
+              "code": "PRECONDITION_FAILED",
+              "ms": 2.421
+            },
+            {
+              "id": "6",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 3.951
+            },
+            {
+              "id": "7",
+              "op": "select",
+              "code": "STALE_REFERENCE",
+              "ms": 3.886
+            },
+            {
+              "id": "8",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 6.161
+            },
+            {
+              "id": "ambiguous",
+              "op": "select",
+              "code": "ACTION_OUTCOME_UNKNOWN",
+              "ms": 7.037
+            },
+            {
+              "id": "ambiguous",
+              "op": "select",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.288
+            },
+            {
+              "id": "9",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 3.925
+            }
+          ],
+          "providerCalls": 2,
+          "applicationEffectObserved": true,
+          "metadataMaskVerified": true,
+          "status": "PASS",
+          "wallSeconds": 0.906
+        },
+        "timeoutRecovery": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 290.137
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 373.406
+            },
+            {
+              "id": "3",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 109.352
+            },
+            {
+              "id": "4",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 12.3
+            },
+            {
+              "id": "5",
+              "op": "getElementInfo",
+              "code": "TIMEOUT",
+              "ms": 10008.153
+            },
+            {
+              "id": "6",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 13.93
+            },
+            {
+              "id": "7",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 4.632
+            },
+            {
+              "id": "8",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 4.26
+            },
+            {
+              "id": "9",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 0.277
+            },
+            {
+              "id": "10",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 7.409
+            },
+            {
+              "id": "11",
+              "op": "defaultAction",
+              "code": "OK",
+              "ms": 21.702
+            }
+          ],
+          "status": "PASS",
+          "wallSeconds": 13.313
+        }
+      }
+    },
+    "CppX86": {
+      "sha256": "3faa8affd589c15d98e974d0f46a9fbd0c84fe02bc452849e71585fb1c319755",
+      "checks": {
+        "winforms": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 245.11
+            },
+            {
+              "id": "2",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 292.476
+            },
+            {
+              "id": "3",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 634.682
+            },
+            {
+              "id": "4",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 781.476
+            },
+            {
+              "id": "5",
+              "op": "snapshot",
+              "code": "STALE_REFERENCE",
+              "ms": 0.61
+            },
+            {
+              "id": "6",
+              "op": "defaultAction",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.491
+            },
+            {
+              "id": "7",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.306
+            },
+            {
+              "id": "8",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 60.974
+            },
+            {
+              "id": "9",
+              "op": "findElement",
+              "code": "OK",
+              "ms": 0.188
+            },
+            {
+              "id": "10",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 51.773
+            },
+            {
+              "id": "11",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 7.286
+            },
+            {
+              "id": "12",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 771.598
+            },
+            {
+              "id": "13",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 44.748
+            },
+            {
+              "id": "14",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 52.75
+            },
+            {
+              "id": "15",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.475
+            },
+            {
+              "id": "16",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 787.576
+            },
+            {
+              "id": "17",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 61.242
+            },
+            {
+              "id": "18",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 51.965
+            },
+            {
+              "id": "19",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 1.63
+            },
+            {
+              "id": "20",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 781.293
+            },
+            {
+              "id": "21",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 49.857
+            },
+            {
+              "id": "22",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 52.935
+            },
+            {
+              "id": "23",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.493
+            },
+            {
+              "id": "24",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 1235.271
+            },
+            {
+              "id": "25",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 711.906
+            },
+            {
+              "id": "26",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 71.153
+            },
+            {
+              "id": "27",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 81.501
+            },
+            {
+              "id": "28",
+              "op": "findElement",
+              "code": "OK",
+              "ms": 0.376
+            },
+            {
+              "id": "29",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 81.083
+            },
+            {
+              "id": "30",
+              "op": "setValue",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.286
+            },
+            {
+              "id": "31",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 7.385
+            },
+            {
+              "id": "1",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 34.414
+            },
+            {
+              "id": "2",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 1.0
+            },
+            {
+              "id": "3",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 1202.698
+            }
+          ],
+          "uiaObserved": {
+            "Window": 1,
+            "Pane": 7,
+            "Button": 7,
+            "Tab": 1,
+            "Text": 12,
+            "Edit": 3,
+            "CheckBox": 1,
+            "ComboBox": 2,
+            "List": 1,
+            "RadioButton": 2,
+            "Slider": 1,
+            "ProgressBar": 1,
+            "TitleBar": 1
+          },
+          "commonRoles": {
+            "Pane": 7,
+            "Window": 36,
+            "MenuBar": 72,
+            "Custom": 101,
+            "ScrollBar": 72,
+            "Button": 187,
+            "Tab": 1,
+            "TabItem": 3,
+            "Text": 12,
+            "Edit": 3,
+            "CheckBox": 1,
+            "ComboBox": 2,
+            "List": 1,
+            "Slider": 1,
+            "ProgressBar": 1
+          },
+          "listChanges": [
+            "replace",
+            "reorder",
+            "delete"
+          ],
+          "gridRoles": {
+            "Pane": 11,
+            "Window": 46,
+            "MenuBar": 92,
+            "Custom": 184,
+            "ScrollBar": 92,
+            "Button": 602,
+            "Tab": 1,
+            "TabItem": 3,
+            "Text": 13,
+            "Edit": 4,
+            "CheckBox": 7,
+            "ComboBox": 2,
+            "List": 1,
+            "Slider": 1,
+            "ProgressBar": 1,
+            "ListItem": 2,
+            "RadioButton": 2,
+            "Spinner": 1,
+            "Table": 1,
+            "Tree": 1,
+            "Row": 32
+          },
+          "scopedGridRoles": {
+            "Table": 1,
+            "Row": 127,
+            "HeaderItem": 66,
+            "Cell": 126
+          },
+          "status": "PASS",
+          "wallSeconds": 9.312
+        },
+        "win32": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 33.13
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 541.22
+            },
+            {
+              "id": "3",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 11.016
+            },
+            {
+              "id": "4",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.22
+            },
+            {
+              "id": "5",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 11.137
+            },
+            {
+              "id": "6",
+              "op": "defaultAction",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.302
+            }
+          ],
+          "roles": {
+            "Pane": 1,
+            "Window": 25,
+            "MenuBar": 50,
+            "Custom": 100,
+            "Button": 333,
+            "ScrollBar": 50,
+            "Text": 9,
+            "Edit": 3,
+            "CheckBox": 1,
+            "ComboBox": 1,
+            "List": 2,
+            "Tree": 1,
+            "Tab": 1,
+            "ListItem": 14,
+            "TreeItem": 2,
+            "TabItem": 2
+          },
+          "status": "PASS",
+          "wallSeconds": 0.797
+        },
+        "defaultAction": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 32.186
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 21.613
+            },
+            {
+              "id": "3",
+              "op": "defaultAction",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.236
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 50.242
+            },
+            {
+              "id": "2",
+              "op": "defaultAction",
+              "code": "PERMISSION_DENIED",
+              "ms": 0.205
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 162.28
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 16.352
+            },
+            {
+              "id": "3",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 8.371
+            },
+            {
+              "id": "4",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.248
+            },
+            {
+              "id": "applied",
+              "op": "defaultAction",
+              "code": "OK",
+              "ms": 15.918
+            },
+            {
+              "id": "applied",
+              "op": "defaultAction",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.248
+            },
+            {
+              "id": "applied",
+              "op": "invoke",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.13
+            },
+            {
+              "id": "5",
+              "op": "defaultAction",
+              "code": "PRECONDITION_FAILED",
+              "ms": 4.828
+            },
+            {
+              "id": "6",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 8.967
+            },
+            {
+              "id": "7",
+              "op": "defaultAction",
+              "code": "STALE_REFERENCE",
+              "ms": 8.998
+            },
+            {
+              "id": "8",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 9.716
+            },
+            {
+              "id": "ambiguous",
+              "op": "defaultAction",
+              "code": "ACTION_OUTCOME_UNKNOWN",
+              "ms": 14.976
+            },
+            {
+              "id": "ambiguous",
+              "op": "defaultAction",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.242
+            },
+            {
+              "id": "9",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 6.363
+            }
+          ],
+          "providerCalls": 2,
+          "applicationEffectObserved": true,
+          "metadataMaskVerified": true,
+          "status": "PASS",
+          "wallSeconds": 0.968
+        },
+        "setValue": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 41.071
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 23.377
+            },
+            {
+              "id": "3",
+              "op": "setValue",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.245
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 62.836
+            },
+            {
+              "id": "2",
+              "op": "setValue",
+              "code": "PERMISSION_DENIED",
+              "ms": 0.359
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 88.833
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 10.843
+            },
+            {
+              "id": "3",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.246
+            },
+            {
+              "id": "applied",
+              "op": "setValue",
+              "code": "OK",
+              "ms": 20.966
+            },
+            {
+              "id": "applied",
+              "op": "setValue",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 2.382
+            },
+            {
+              "id": "applied",
+              "op": "invoke",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.198
+            },
+            {
+              "id": "4",
+              "op": "setValue",
+              "code": "PRECONDITION_FAILED",
+              "ms": 5.165
+            },
+            {
+              "id": "5",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 2.71
+            },
+            {
+              "id": "6",
+              "op": "setValue",
+              "code": "STALE_REFERENCE",
+              "ms": 3.494
+            },
+            {
+              "id": "7",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 5.216
+            },
+            {
+              "id": "ambiguous",
+              "op": "setValue",
+              "code": "ACTION_OUTCOME_UNKNOWN",
+              "ms": 8.316
+            },
+            {
+              "id": "ambiguous",
+              "op": "setValue",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.898
+            }
+          ],
+          "providerCalls": 2,
+          "applicationEffectObserved": true,
+          "status": "PASS",
+          "wallSeconds": 0.938
+        },
+        "select": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 49.363
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 27.791
+            },
+            {
+              "id": "3",
+              "op": "select",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.262
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 53.036
+            },
+            {
+              "id": "2",
+              "op": "select",
+              "code": "PERMISSION_DENIED",
+              "ms": 0.229
+            },
+            {
+              "id": "1",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 95.609
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 6.9
+            },
+            {
+              "id": "3",
+              "op": "invoke",
+              "code": "PATTERN_UNSUPPORTED",
+              "ms": 0.193
+            },
+            {
+              "id": "applied",
+              "op": "select",
+              "code": "OK",
+              "ms": 11.052
+            },
+            {
+              "id": "4",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 2.113
+            },
+            {
+              "id": "applied",
+              "op": "select",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.123
+            },
+            {
+              "id": "applied",
+              "op": "invoke",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.083
+            },
+            {
+              "id": "5",
+              "op": "select",
+              "code": "PRECONDITION_FAILED",
+              "ms": 2.554
+            },
+            {
+              "id": "6",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 3.633
+            },
+            {
+              "id": "7",
+              "op": "select",
+              "code": "STALE_REFERENCE",
+              "ms": 2.736
+            },
+            {
+              "id": "8",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 2.612
+            },
+            {
+              "id": "ambiguous",
+              "op": "select",
+              "code": "ACTION_OUTCOME_UNKNOWN",
+              "ms": 3.969
+            },
+            {
+              "id": "ambiguous",
+              "op": "select",
+              "code": "DUPLICATE_COMMAND",
+              "ms": 0.323
+            },
+            {
+              "id": "9",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 2.865
+            }
+          ],
+          "providerCalls": 2,
+          "applicationEffectObserved": true,
+          "metadataMaskVerified": true,
+          "status": "PASS",
+          "wallSeconds": 0.89
+        },
+        "timeoutRecovery": {
+          "frames": [
+            {
+              "id": "1",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 224.517
+            },
+            {
+              "id": "2",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 465.349
+            },
+            {
+              "id": "3",
+              "op": "listWindows",
+              "code": "OK",
+              "ms": 119.903
+            },
+            {
+              "id": "4",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 7.414
+            },
+            {
+              "id": "5",
+              "op": "getElementInfo",
+              "code": "TIMEOUT",
+              "ms": 10001.838
+            },
+            {
+              "id": "6",
+              "op": "getElementInfo",
+              "code": "OK",
+              "ms": 7.998
+            },
+            {
+              "id": "7",
+              "op": "getCapabilities",
+              "code": "OK",
+              "ms": 75.472
+            },
+            {
+              "id": "8",
+              "op": "getElementInfo",
+              "code": "STALE_REFERENCE",
+              "ms": 0.496
+            },
+            {
+              "id": "9",
+              "op": "snapshot",
+              "code": "OK",
+              "ms": 29.744
+            },
+            {
+              "id": "10",
+              "op": "defaultAction",
+              "code": "OK",
+              "ms": 53.401
+            }
+          ],
+          "status": "PASS",
+          "wallSeconds": 13.453
+        }
+      }
+    }
+  },
+  "win32FixtureSha256": "d4e5f9963bea1eef9f9bfb2e8b3cc3ea46de866f1198a30265fffe6437c3fd7b",
+  "totalSeconds": 88.734
+}

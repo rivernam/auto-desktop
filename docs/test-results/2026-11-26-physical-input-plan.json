@@ -1,0 +1,382 @@
+{
+    "schema":  1,
+    "tool":  "Test-PhysicalInput.ps1",
+    "startedUtc":  "2026-11-26T00:10:05.7965797Z",
+    "mode":  "plan",
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.7705",
+                        "processorCount":  12,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-1255U",
+                        "cpuNominalMhz":  2611,
+                        "monitors":  [
+                                         {
+                                             "left":  0,
+                                             "top":  0,
+                                             "right":  1920,
+                                             "bottom":  1020,
+                                             "primary":  true
+                                         }
+                                     ],
+                        "userIdleMsAtStart":  34578,
+                        "gitCommit":  "82872455238295b30b9e6e2c989de1bbdd571eb3",
+                        "jarSha256":  "1B6CC1EDD2A4F5980BFB135509A259BB2127261BC3022A15E5EED0AE1BA37778",
+                        "cppAgentSha256":  "0AF85BE2CE01CBB1AD771A4225203653CB58ADCA7C57B179547A50959E6D172D",
+                        "winFormsFixtureSha256":  "A165D61B2075DAEDDE6E762BC73BD173A5C5AABB791C22E2EA24D15927AD4D80",
+                        "javaAgentRuntime":  "C:\\Users\\User\\tools\\jdk-11.0.33+10\\bin\\java.exe",
+                        "javaAgentVersion":  "openjdk version \"11.0.33\" 2026-10-20 | OpenJDK Runtime Environment Temurin-11.0.33+10 (build 11.0.33+10) | OpenJDK 64-Bit Server VM Temurin-11.0.33+10 (build 11.0.33+10, mixed mode)"
+                    },
+    "agents":  [
+                   "Java",
+                   "Cpp"
+               ],
+    "cases":  [
+                  {
+                      "agent":  "Java",
+                      "case":  "AwtButtonClick",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "AWT button: UIA invoke reaches the native peer and has no effect; a bounds click on the same UIA element increments the counter once."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "AwtTextInput",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "AWT TextField: click its UIA bounds, End, then type Unicode text; value.txt must hold the result."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "SwingModal",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Swing synchronous modal: open it with a bounds click (JAB invoke blocks for 8 s there) and close it with a bounds click inside the modal."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "WinFormsListBox",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "WinForms ListBox: a UIA bounds click selects an item; an MSAA weak reference is refused without consent, then clicked with acceptWeakReference."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "WinFormsTab",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "WinForms TabControl: a bounds click on a TabItem selects the page."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "DataGridView",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "DataGridView (no UIA rows or cells): click the grid, select row and cell with keys, edit with F2, typing and Enter."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "CanvasMouse",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Owner-drawn canvas without accessible children: click, double, right and middle click, drag and both wheels in screen, window and client coordinates."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "CanvasKeyboard",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Canvas keyboard: Unicode text with Tab, Enter and a surrogate pair, Ctrl+Shift+K, key down and up, refusals."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "MultiMonitor",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Other monitors and negative coordinates: move the fixture to every other monitor and click there. NOT_RUN with one monitor."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "FocusChange",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Another window takes the foreground: keyboard and pointer input to the target are refused without input; activateWindow is tried once."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "WindowObscured",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "A topmost window that takes no focus covers part of the canvas: a click there is refused, a click beside it works."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "TargetReplaced",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "The target exits and restarts; a window of another process is named with the old PID: refused as PERMISSION_DENIED or WINDOW_NOT_FOUND."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "PermissionMismatch",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "An elevated target (UAC prompt, -IncludeElevated): INTEGRITY_MISMATCH before any input."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "UserInputConflict",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Foreign input (injected by this script without the session tag) during typing and right before a request: USER_INPUT_CONFLICT."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "ReleaseOnFailure",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "A drag and a held Shift are interrupted by foreign input: the button and the key are released; a key held at session end is released."
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "Performance",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Latency of pointerMove, pointerClick, clickElement, keyPress and typeText against the canvas, with the recorded state checked at the end."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "AwtButtonClick",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "AWT button: UIA invoke reaches the native peer and has no effect; a bounds click on the same UIA element increments the counter once."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "AwtTextInput",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "AWT TextField: click its UIA bounds, End, then type Unicode text; value.txt must hold the result."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "SwingModal",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Swing synchronous modal: open it with a bounds click (JAB invoke blocks for 8 s there) and close it with a bounds click inside the modal."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "WinFormsListBox",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "WinForms ListBox: a UIA bounds click selects an item; an MSAA weak reference is refused without consent, then clicked with acceptWeakReference."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "WinFormsTab",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "WinForms TabControl: a bounds click on a TabItem selects the page."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "DataGridView",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "DataGridView (no UIA rows or cells): click the grid, select row and cell with keys, edit with F2, typing and Enter."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "CanvasMouse",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Owner-drawn canvas without accessible children: click, double, right and middle click, drag and both wheels in screen, window and client coordinates."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "CanvasKeyboard",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Canvas keyboard: Unicode text with Tab, Enter and a surrogate pair, Ctrl+Shift+K, key down and up, refusals."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "MultiMonitor",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Other monitors and negative coordinates: move the fixture to every other monitor and click there. NOT_RUN with one monitor."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "FocusChange",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Another window takes the foreground: keyboard and pointer input to the target are refused without input; activateWindow is tried once."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "WindowObscured",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "A topmost window that takes no focus covers part of the canvas: a click there is refused, a click beside it works."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "TargetReplaced",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "The target exits and restarts; a window of another process is named with the old PID: refused as PERMISSION_DENIED or WINDOW_NOT_FOUND."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "PermissionMismatch",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "An elevated target (UAC prompt, -IncludeElevated): INTEGRITY_MISMATCH before any input."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "UserInputConflict",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Foreign input (injected by this script without the session tag) during typing and right before a request: USER_INPUT_CONFLICT."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "ReleaseOnFailure",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "A drag and a held Shift are interrupted by foreign input: the button and the key are released; a key held at session end is released."
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "Performance",
+                      "status":  "NOT_RUN",
+                      "reason":  "Plan only: run with -Interactive to send input.",
+                      "description":  "Latency of pointerMove, pointerClick, clickElement, keyPress and typeText against the canvas, with the recorded state checked at the end."
+                  }
+              ],
+    "summary":  {
+                    "PASS":  0,
+                    "FAIL":  0,
+                    "BLOCKED":  0,
+                    "NOT_RUN":  32
+                },
+    "parity":  [
+                   {
+                       "case":  "AwtButtonClick",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "AwtTextInput",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "SwingModal",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "WinFormsListBox",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "WinFormsTab",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "DataGridView",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "CanvasMouse",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "CanvasKeyboard",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "MultiMonitor",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "FocusChange",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "WindowObscured",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "TargetReplaced",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "PermissionMismatch",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "UserInputConflict",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "ReleaseOnFailure",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "Performance",
+                       "java":  "NOT_RUN",
+                       "cpp":  "NOT_RUN",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   }
+               ],
+    "finishedUtc":  "2026-11-26T00:10:05.8519286Z"
+}

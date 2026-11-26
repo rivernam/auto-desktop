@@ -4,11 +4,11 @@
 
 | 환경 | 1단계 판단 | 전제와 제한 |
 |---|---|---|
-| Windows 11 x64 | 우선 검증 대상 | Java 17 이상, Windows PowerShell 5.1, .NET Framework UIA, 로그인한 사용자의 대화형 데스크톱. WPF·Win32·브라우저는 각각 다른 제공자를 사용하므로 앱별 확인이 필요하다. |
+| Windows 11 x64 | 우선 검증 대상 | Java 11 이상(2026-11-26 Temurin 11.0.33 검증), Windows PowerShell 5.1, .NET Framework UIA, 로그인한 사용자의 대화형 데스크톱. WPF·Win32·브라우저는 각각 다른 제공자를 사용하므로 앱별 확인이 필요하다. |
 | Windows 10 x64 | 조건부 검증 대상 | 에디션·빌드 및 사용 중인 Java 공급사의 지원표를 확인한다. Windows 11의 시험 결과를 그대로 적용할 수 없다. Oracle은 일반 Windows 10을 JDK 17의 과거 지원 목록에 싣고 있다. |
-| Windows 7 SP1 | 1단계 지원 대상 밖 | UIA COM API가 있고 WMF 5.1을 추가 설치할 수 있는 조합도 있다. 현재 Java 17 배포판의 Windows 7 지원과 전체 조합의 동작은 확인되지 않았다. |
+| Windows 7 SP1 | 1단계 지원 대상 밖 | UIA COM API가 있고 WMF 5.1을 추가 설치할 수 있는 조합도 있다. Java Agent의 최소 버전은 Java 11이고, C++ Agent와 물리 입력은 Windows 7에 없는 API를 실행 중에 찾도록 작성했다. 그러나 Windows 7에서 어느 Agent도 실행해 보지 않았으므로 지원 완료가 아니다. Java 11 배포판의 Windows 7 지원 여부도 공급사별로 확인해야 한다. |
 | Windows Server | Desktop Experience가 설치된 최신 x64 버전은 조건부 후보 | 서버용 JVM 지원과 원격 세션 내 UI 접근은 별개다. 대상 앱과 같은 사용자 세션에서 시험한다. Server Core, 서비스의 Session 0 및 연결 해제된 원격 데스크톱에서 일반 데스크톱 조작을 보장하지 않는다. |
-| Windows XP SP3 / XP Embedded | 1단계 미지원 | XP 시기에도 .NET 기반 UIA와 MSAA가 있었으나 현재 Java 17 및 WMF 5.1 조합은 지원 대상이 아니다. 임베디드 이미지는 설치한 접근성·.NET 구성과 아키텍처까지 확인해야 한다. |
+| Windows XP SP3 / XP Embedded | 1단계 미지원 | XP 시기에도 .NET 기반 UIA와 MSAA가 있었으나 현재 Java 11 이상 및 WMF 5.1 조합은 지원 대상이 아니다. 임베디드 이미지는 설치한 접근성·.NET 구성과 아키텍처까지 확인해야 한다. |
 | 현대 Linux의 X11 | Java 코어 실행 후보. 실제 Linux 백엔드는 후속 범위 | AT-SPI2 접근성 버스, 애플리케이션의 툴킷 브리지 및 대화형 세션이 필요하다. XTest의 물리 입력은 별도 기능이다. |
 | 현대 Linux의 Wayland | 실제 Linux 백엔드는 후속 범위 | 세션의 AT-SPI2 버스에서 요소를 관찰할 수 있는지 확인한다. 전역 좌표, 화면 캡처 및 합성 입력은 컴포지터·포털의 권한에 의존하므로 X11에서의 결과를 일반화할 수 없다. |
 | CentOS 5 / 5.x Embedded 이미지 | 1단계 미지원 | 배포판 업데이트는 2017년에 종료됐다. 현재 JDK 인증 범위와 구형 libc·CPU ABI, 데스크톱 유무가 제약이다. GNOME 2 계열의 구형 AT-SPI/CORBA를 AT-SPI2/D-Bus로 가정할 수 없다. |
@@ -21,7 +21,7 @@ CentOS 5용 경로는 대상 이미지의 CPU, 커널, libc, 설치한 GNOME·AT
 
 ## Java GUI와 Java Access Bridge
 
-Swing과 AWT 설비 프로그램에는 Agent의 실행 환경과 별개로 **대상 GUI JVM**의 조건이 있다. Agent를 실행하는 Java(17 이상)나 C++ 실행 파일의 버전과 대상 프로그램의 Java 버전은 서로 다른 문제다.
+Swing과 AWT 설비 프로그램에는 Agent의 실행 환경과 별개로 **대상 GUI JVM**의 조건이 있다. Agent를 실행하는 Java(11 이상)나 C++ 실행 파일의 버전과 대상 프로그램의 Java 버전은 서로 다른 문제다.
 
 | 조건 | 내용 |
 |---|---|
@@ -51,7 +51,7 @@ XP SP3 x86 현장 이미지에서는 Windows Automation API 3.0 업데이트(KB9
 
 ## 레거시 빌드가 같은 Core 계약을 공유하는 방법
 
-1. **현대 빌드.** Java 17 이상의 동일 JAR에서 플랫폼 어댑터를 선택한다. Windows UIA 워커는 네이티브 객체 수명과 OS 호출을 소유한다. MSAA·AT-SPI1·AT-SPI2·다른 연동 기술을 추가할 때도 공통 명령 파싱, Locator, 참조 수명, 실행 정책을 Java에 둔다.
+1. **현대 빌드.** Java 11 이상의 동일 JAR에서 플랫폼 어댑터를 선택한다. Windows UIA 워커는 네이티브 객체 수명과 OS 호출을 소유한다. MSAA·AT-SPI1·AT-SPI2·다른 연동 기술을 추가할 때도 공통 명령 파싱, Locator, 참조 수명, 실행 정책을 Java에 둔다.
 2. **구형 장비의 런타임 확인.** XP SP3/Embedded와 CentOS 5의 정확한 이미지마다 CPU·JVM·기본 라이브러리·세션·접근성 API를 기록한다. 지원 가능한 JVM이 정해져야 어떤 소스와 의존성을 공유할 수 있는지 결정할 수 있다. 현재 코어에는 record, switch 식, ProcessHandle, 최신 Jackson API가 있어 컴파일 옵션만 낮춰서는 구형 JVM에서 실행할 수 없다.
 3. **소스 공유와 빌드 분리.** 검증된 최저 JVM에서 쓸 수 있는 참조/Locator/정책 알고리즘과 DTO를 공통 소스로 유지하고 현대·레거시 빌드가 같은 소스를 컴파일하도록 한다. JSON 코덱, PID 시작 시각 확인, 워커 실행·시간 제한·자원 해제는 호환 런타임 경계에서 교체한다. OS·비트수별 전용 코드는 어댑터 및 배포 패키지에 둔다. 현재 두 빌드는 UTF-8 프레이밍과 조회 인터페이스를 공유한다. 레거시 JAR의 지원 범위는 capability와 창 열거다.
 4. **바이너리 대신 검증할 계약.** 두 빌드에 같은 JSON 시나리오를 적용한다. 명령·응답·오류, 요소별 actions, 부모 ref, 교체 후 stale, 모호한 검색, 실행 횟수와 실제 값 변경이 일치해야 한다. ref·windowId의 실제 문자열이나 내부 키의 OS 형식은 비교하지 않는다. JVM을 구동할 수 없는 이미지는 지원 미검증으로 남긴다. [실행 구조](ARCHITECTURE.md)

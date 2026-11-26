@@ -76,7 +76,7 @@ UIA 호출과 JSON·스레드 대기·파이프 비용은 개별 계측하지 �
 
 5분 세션별 프로세스 표본은 22개였다. C++ Private Bytes는 8.62 → 9.36 MiB, 핸들은 306 → 316개로 증가했다. 핸들 최대값은 320개였다. Java/JNA Private Bytes는 70.14 → 70.80 MiB, 구간 관측 범위는 68.98~80.52 MiB였다. Java/JNA 핸들은 507 → 501개였다. 5분 관측만으로 어느 쪽도 장기 누수 여부를 판단할 수 없다.
 
-MSVC `dumpbin /headers`에서 x64, `dumpbin /dependents`에서 `ole32.dll`, `OLEAUT32.dll`, `USER32.dll`, `KERNEL32.dll` 가져오기를 확인했다. C++는 운영체제에 등록된 UI Automation COM 구현도 런타임에 사용한다. Release EXE는 MSVC 런타임을 정적으로 링크하므로 CRT 업데이트를 포함하려면 재빌드해야 한다. Java/JNA는 Java 17 이상을 요구하며 시험에서는 Temurin 21.0.11+10 x64를 사용했다. JAR에는 Jackson 및 JNA와 플랫폼용 JNA 네이티브 디스패처가 포함된다. JDK 설치 크기는 비교하지 않았다.
+MSVC `dumpbin /headers`에서 x64, `dumpbin /dependents`에서 `ole32.dll`, `OLEAUT32.dll`, `USER32.dll`, `KERNEL32.dll` 가져오기를 확인했다. C++는 운영체제에 등록된 UI Automation COM 구현도 런타임에 사용한다. Release EXE는 MSVC 런타임을 정적으로 링크하므로 CRT 업데이트를 포함하려면 재빌드해야 한다. Java/JNA는 평가 당시 Java 17 이상을 요구했고(2026-11-25부터 Java 11 이상) 시험에서는 Temurin 21.0.11+10 x64를 사용했다. JAR에는 Jackson 및 JNA와 플랫폼용 JNA 네이티브 디스패처가 포함된다. JDK 설치 크기는 비교하지 않았다.
 
 ## D. COM 자원, 시간 제한 및 복구
 

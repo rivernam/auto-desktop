@@ -29,4 +29,4 @@ Windows 11의 일반 WPF 창에서 PowerShell과 C#은 `TitleBar`의 시스템 �
 
 ### 레거시
 
-Windows XP는 Java 17, JNA 5.17의 네이티브 디스패처, 설치된 UIA 버전 전체가 검증되지 않았다. 현재 XP용 Java 7 조회 호스트와 x86 Win32 창 열거 PoC를 유지한다. XP 이미지별 KB971513, MSAA 및 구형 JNA/JVM 조합의 로딩부터 검증해야 한다. CentOS 5는 기존 Linux 진단과 읽기 전용 호스트를 사용하며 Windows COM 어댑터를 로드할 이유가 없다. [레거시 호환성](COMPATIBILITY.md)
+Windows XP는 Java 11 이상, JNA 5.17의 네이티브 디스패처, 설치된 UIA 버전 전체가 검증되지 않았다. 현재 XP용 Java 7 조회 호스트와 x86 Win32 창 열거 PoC를 유지한다. XP 이미지별 KB971513, MSAA 및 구형 JNA/JVM 조합의 로딩부터 검증해야 한다. CentOS 5는 기존 Linux 진단과 읽기 전용 호스트를 사용하며 Windows COM 어댑터를 로드할 이유가 없다. [레거시 호환성](COMPATIBILITY.md)

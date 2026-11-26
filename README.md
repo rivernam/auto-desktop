@@ -4,7 +4,7 @@
 
 ## 빌드와 실행
 
-JDK 17 이상과 Maven 3.9를 사용한다. 처음 빌드할 때 Maven이 의존성을 내려받는다. 빌드한 JAR에는 Jackson, JNA 및 UIA 작업 스크립트가 포함된다. Agent 실행에는 외부 서버가 필요하지 않다.
+JDK 11 이상과 Maven 3.9를 사용한다. 컴파일 대상은 Java 11(`maven.compiler.release` 11, 클래스 버전 55)이며 Temurin 11.0.33에서 빌드·단위 테스트·실행을 확인했다. 처음 빌드할 때 Maven이 의존성을 내려받는다. 빌드한 JAR에는 Jackson, JNA 및 UIA 작업 스크립트가 포함된다. Agent 실행에는 외부 서버가 필요하지 않다.
 
 ```sh
 mvn clean verify
@@ -73,12 +73,29 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend multi --al
 
 [요청 형식](docs/API.md#여러-백엔드를-한-세션에서-쓰기) · [구조, 격리 범위, 검증 결과와 성능](docs/MULTI-BACKEND.md)
 
+## 물리 입력 (SendInput)
+
+AWT 버튼, DataGridView 셀, 직접 그린 UI처럼 접근성 API로 조작되지 않는 컨트롤은 실제 마우스·키보드 입력으로 조작한다. 시작 옵션으로 허용한 세션에서만 동작하고, 접근성 동작이 실패해도 Agent가 스스로 물리 입력으로 바꾸지 않는다. 입력 전에 창·PID·프로세스 시작 시각, 입력 데스크톱, 무결성 수준, 전경·포커스, 가림, 사용자의 입력을 확인하고, 실패하면 누른 키와 버튼을 뗀다.
+
+```powershell
+java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend multi --allow-pid 1234 --allow-action pointer --allow-action keyboard
+./target/cpp-agent/Release/cpp-agent.exe --backend multi --allow-pid 1234 --allow-action pointer --allow-action keyboard
+```
+
+```jsonl
+{"id":"c1","op":"clickElement","ref":"<snapshot ref>"}
+{"id":"t1","op":"typeText","windowId":"<HWND>","processId":1234,"text":"Hello"}
+```
+
+실제 입력 시험은 PC를 쓰지 않을 때 `.\tools\Test-PhysicalInput.ps1 -Interactive`로 실행한다(약 10분). [계약, 검증 순서, 시험 방법과 제약](docs/PHYSICAL-INPUT.md)
+
 ## 문서
 
 - [PowerShell·JNA 직접 COM·C# 워커 비교와 권고](docs/WINDOWS-BACKENDS.md)
 
 - [Vercel 원본과 Java Core의 구조·명령 대조](docs/UPSTREAM-COMPARISON.md)
 - [명령 예제, JSON 모델과 오류 코드](docs/API.md)
+- [물리 입력(SendInput): 계약, 입력 전 검증, 픽스처 모드와 Interactive 시험](docs/PHYSICAL-INPUT.md)
 - [실행 구조와 Phase 2~5 개발 계획](docs/ARCHITECTURE.md)
 - [접근성 기술 선택 근거 및 원본 자료](docs/TECHNOLOGY-DECISIONS.md)
 - [OS·런타임 호환성 및 레거시 검증 전략](docs/COMPATIBILITY.md)

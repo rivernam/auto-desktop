@@ -40,7 +40,7 @@ Client COM 포인터는 같은 Provider 인스턴스가 `WM_GETOBJECT`에 응답
 - Win32 공용 컨트롤 Fixture의 ListBox와 탭은 약한 참조로 재조회하며, 선택이나 기본 동작이 앱 상태를 바꾸지 않는지 대조한다.
 - 별도 Win32 COM Provider Fixture에서 범위 Snapshot으로 얻은 자식 HWND의 기본 동작, 선택, 유니코드 값 쓰기를 실제 앱 상태 파일로 검증한다. 교체된 객체가 같은 HWND·속성·ID를 제공해도 원본 객체가 ID를 철회하면 이전 ref의 조회와 변경을 거부한다. 사전 검사 중 비활성화, 이름 조회 중 보호 상태 전환, 상태를 변경한 뒤 실패 HRESULT를 내는 사례도 포함한다.
 - 기존 WinForms Provider에서 선택이 반환되어도 이벤트가 발생하지 않았던 관측, AWT 버튼의 UIA/MSAA 기본 동작 무효, Swing 모달이 다른 JVM의 JAB 요청까지 지연하는 제약, 안정화 A-1~A-3의 미확정 증상은 기존 판정을 유지한다. [기존 WinForms MSAA Probe](JAVA-ACCESS-BRIDGE.md#msaa-adapter-검토) · [UIA 결함 기록](UIA-AGENT-DEFECTS.md) · [미확정 재현 기록](MULTI-BACKEND-STABILIZATION.md)
-- MSAA ABI는 x86의 stdcall과 포인터 크기에 맞춰 사용한다. Windows XP API 일부의 존재는 현재 Java 17/JNA 또는 MSVC 바이너리의 XP 동작을 의미하지 않는다. XP와 XP Embedded는 별도 PE 임포트·런타임 조사와 실기기 검증이 필요하다.
+- MSAA ABI는 x86의 stdcall과 포인터 크기에 맞춰 사용한다. Windows XP API 일부의 존재는 현재 Java 11/JNA 또는 MSVC 바이너리의 XP 동작을 의미하지 않는다. XP와 XP Embedded는 별도 PE 임포트·런타임 조사와 실기기 검증이 필요하다.
 
 ### 실측 결과
 
