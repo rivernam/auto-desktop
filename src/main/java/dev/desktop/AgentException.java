@@ -1,6 +1,7 @@
 package dev.desktop;
 
-public final class AgentException extends RuntimeException {
+/** A protocol error with a stable code. {@link InputException} adds the outcome of physical input. */
+public class AgentException extends RuntimeException {
     private final String code;
 
     public AgentException(String code, String message) {

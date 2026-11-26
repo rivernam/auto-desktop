@@ -16,7 +16,7 @@ public:
 
     SessionWorker(AdapterFactory factory, std::string session, AllowedProcess allowedProcess,
                   std::set<Action> actions, std::chrono::milliseconds budget = requestBudget,
-                  std::string backend = "UIA", CommandHistory* sharedHistory = nullptr);
+                  std::string backend = "UIA", CommandHistory* sharedHistory = nullptr, InputSupport input = {});
     ~SessionWorker();
     Json handle(Json request);
     // Immediately enqueue a read on this worker. The coordinator awaits it before routing another frame.
@@ -64,6 +64,7 @@ private:
     const std::chrono::milliseconds budget_;
     const std::string backend_;
     std::function<void()> abandon_;
+    const InputSupport input_;
     std::thread thread_;
 };
 } // namespace desktop

@@ -17,6 +17,22 @@ final class ActionDispatcher {
         this.allowedActions = Set.copyOf(allowedActions);
     }
 
+    boolean allows(String action) {
+        return allowedActions.contains(action);
+    }
+
+    boolean allowsProcess(int processId) {
+        return allowedProcess.test(processId);
+    }
+
+    /** Records a command ID that is handed to a device outside this dispatcher, such as physical input. */
+    void remember(String id) {
+        checkUnused(id);
+        if (dispatched.size() >= COMMAND_LIMIT)
+            throw new AgentException("SESSION_LIMIT", "Start a new agent session to dispatch more commands.");
+        dispatched.add(id);
+    }
+
     void checkUnused(String id) {
         if (dispatched.contains(id))
             throw new AgentException("DUPLICATE_COMMAND", "This command ID has already been dispatched.");

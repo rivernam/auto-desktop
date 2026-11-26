@@ -11,12 +11,17 @@ namespace desktop {
 struct Error : std::runtime_error {
     const char* code;
     bool retire;
+    // Physical input operations only: whether any input left the process for this request, and whether
+    // held keys or buttons were released on the way out. Other errors keep their JSON shape.
+    std::optional<bool> inputSent;
+    bool released = false;
 
     Error(const char* code, const char* message, bool retire = false)
         : std::runtime_error(message), code(code), retire(retire) {}
 };
 
-enum class Action { invoke, setValue, defaultAction, select };
+// The last three permit physical input operations, never an accessibility action.
+enum class Action { invoke, setValue, defaultAction, select, pointer, keyboard, activate };
 
 struct Bounds {
     long x, y;

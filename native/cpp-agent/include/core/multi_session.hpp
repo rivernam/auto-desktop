@@ -19,7 +19,8 @@ public:
 
     // The first backend is the default for a snapshot that names none.
     MultiSession(std::vector<Backend> backends, std::string session, AllowedProcess allowedProcess,
-                 std::set<Action> actions, std::chrono::milliseconds budget = requestBudget);
+                 std::set<Action> actions, std::chrono::milliseconds budget = requestBudget,
+                 InputDriver* input = nullptr);
     ~MultiSession();
     Json handle(Json request);
     // Replaces the default end of a process whose provider thread never returned.
@@ -47,6 +48,8 @@ private:
     AllowedProcess allowedProcess_;
     std::set<Action> actions_;
     const std::chrono::milliseconds budget_;
+    // Shared by every worker. Its capability belongs to the top level.
+    InputDriver* input_;
     std::function<void()> abandon_;
     std::mutex serial_;
     CommandHistory history_;

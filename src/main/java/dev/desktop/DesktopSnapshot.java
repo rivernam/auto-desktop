@@ -26,6 +26,9 @@ final class DesktopSnapshot {
     private final Map<String, Element> byRef = new LinkedHashMap<>();
     private final Map<String, String> refByKey = new HashMap<>();
     private final Map<String, List<Element>> childrenByKey = new HashMap<>();
+    private Element root;
+    // True when the capture started at a held element rather than at the window.
+    private boolean scoped;
 
     static final class Element {
         private final String ref;
@@ -151,7 +154,10 @@ final class DesktopSnapshot {
             Element element = Element.read(UUID.randomUUID().toString(), row);
             if (refByKey.put(element.key(), element.ref()) != null) throw malformed();
             byRef.put(element.ref(), element);
-            if (element.parentKey() == null) roots++;
+            if (element.parentKey() == null) {
+                roots++;
+                root = element;
+            }
             else childrenByKey.computeIfAbsent(element.parentKey(), unused -> new ArrayList<>()).add(element);
         }
         if (roots != 1) throw malformed();
@@ -168,6 +174,18 @@ final class DesktopSnapshot {
     }
 
     boolean expired(long now) { return now - capturedAt >= TTL_NANOS; }
+
+    String windowId() { return windowId; }
+
+    /** The first element of the capture: the window itself unless the capture was scoped. */
+    Element root() { return root; }
+
+    boolean scoped() { return scoped; }
+
+    DesktopSnapshot markScoped() {
+        scoped = true;
+        return this;
+    }
 
     String id() { return id; }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/desktop_adapter.hpp"
+#include "core/input.hpp"
 #include "protocol/ndjson.hpp"
 
 #include <atomic>
@@ -40,6 +41,8 @@ private:
 };
 
 Json failure(Json id, const Error& error);
+// An error of an input operation always says whether input was sent.
+Json failure(Json id, Error error, std::string_view op);
 Json capabilities(const char* backend, bool available);
 Json capabilities(const char* backend, const Availability& availability);
 Json requestId(const Json& request);
@@ -51,7 +54,7 @@ class Agent {
 public:
     Agent(DesktopAdapter& adapter, std::string session, AllowedProcess allowedProcess,
           std::set<Action> allowedActions, std::function<Clock::time_point()> now = Clock::now,
-          CommandHistory* sharedHistory = nullptr);
+          CommandHistory* sharedHistory = nullptr, InputSupport input = {});
     Json handle(const Json& request, RequestDeadline& deadline);
     void expire();
     Clock::time_point nextExpiry() const;
@@ -60,6 +63,8 @@ private:
     struct Snapshot {
         std::string id, window;
         Clock::time_point expires;
+        // Captured below scopeRef: the root is an element, not the window.
+        bool scoped = false;
         Capture capture;
         std::vector<std::string> refs;
         std::unordered_map<std::string, std::size_t> indices;
@@ -69,6 +74,7 @@ private:
     Json find(const Json& request) const;
     Json info(const Json& request);
     Json perform(const Json& request, const std::string& id, Action action, RequestDeadline& deadline);
+    Json physical(const Json& request, const std::string& id, InputOp op, RequestDeadline& deadline);
     const Snapshot& current() const;
     std::size_t resolve(const std::string& ref) const;
     Json publicElement(std::size_t index, const Element& row) const;
@@ -81,6 +87,7 @@ private:
     std::function<Clock::time_point()> now_;
     CommandHistory localHistory_;
     CommandHistory& history_;
+    InputSupport input_;
     std::optional<Snapshot> snapshot_;
     std::uint64_t sequence_ = 0;
 };

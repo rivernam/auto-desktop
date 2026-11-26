@@ -7,8 +7,9 @@
 namespace desktop {
 SessionWorker::SessionWorker(AdapterFactory factory, std::string session, AllowedProcess process,
                              std::set<Action> actions, std::chrono::milliseconds budget, std::string backend,
-                             CommandHistory* sharedHistory)
+                             CommandHistory* sharedHistory, InputSupport input)
     : history_(sharedHistory ? *sharedHistory : ownHistory_), budget_(budget), backend_(std::move(backend)),
+      input_(input),
       thread_([this, factory = std::move(factory), session = std::move(session),
                process = std::move(process), actions = std::move(actions)]() mutable {
           run(factory, session, std::move(process), std::move(actions));
@@ -55,7 +56,8 @@ void SessionWorker::stop() {
 Json SessionWorker::handle(Json request) {
     const std::lock_guard<std::mutex> serial(serial_);
     auto id = requestId(request);
-    if (id.is_null()) return failure(nullptr, {"INVALID_REQUEST", "Expected one valid UTF-8 JSON request."});
+    if (id.is_null())
+        return failure(nullptr, {"INVALID_REQUEST", "Expected one valid UTF-8 JSON request."}, operation(request));
     const auto* op = operation(request);
     if (std::string_view(op) == "invalid") {
         const auto raw = request.find("op");
@@ -99,9 +101,9 @@ std::function<Json()> SessionWorker::enqueue(Json request, Clock::time_point dea
                                                         : "The backend session was retired after a fault.";
                     return Json{{"id", std::move(id)}, {"ok", true}, {"result", capabilities(backend_.c_str(), state)}};
                 }
-                if (isMutation(op) && history_.contains(id.get_ref<const std::string&>()))
-                    return failure(std::move(id), {"DUPLICATE_COMMAND", "This command ID has already been dispatched."});
-                return failure(std::move(id), {"BACKEND_UNAVAILABLE", "Restart the retired provider session."});
+                if ((isMutation(op) || isInputOperation(op)) && history_.contains(id.get_ref<const std::string&>()))
+                    return failure(std::move(id), {"DUPLICATE_COMMAND", "This command ID has already been dispatched."}, op);
+                return failure(std::move(id), {"BACKEND_UNAVAILABLE", "Restart the retired provider session."}, op);
             };
         }
         pending_ = work;
@@ -114,12 +116,17 @@ std::function<Json()> SessionWorker::enqueue(Json request, Clock::time_point dea
 Json SessionWorker::await(const std::shared_ptr<Work>& work) {
     if (work->result.wait_until(work->deadline.expires) == std::future_status::ready) return work->result.get();
     auto id = requestId(work->request);
+    const std::string_view op = operation(work->request);
     const bool dispatched = work->deadline.cancel();
     stop();
-    if (dispatched)
-        return failure(std::move(id), {"ACTION_OUTCOME_UNKNOWN", "The provider did not confirm the action."});
+    if (dispatched) {
+        Error error{"ACTION_OUTCOME_UNKNOWN", "The provider did not confirm the action."};
+        // The input gate opened, so input may have been sent.
+        if (isInputOperation(op)) error.inputSent = true;
+        return failure(std::move(id), error, op);
+    }
     return failure(std::move(id), {"TIMEOUT", backend_ == "UIA"
-        ? "UI Automation exceeded the request deadline." : "The provider exceeded the request deadline."});
+        ? "UI Automation exceeded the request deadline." : "The provider exceeded the request deadline."}, op);
 }
 
 void SessionWorker::run(const AdapterFactory& factory, const std::string& session, AllowedProcess process,
@@ -164,21 +171,22 @@ void SessionWorker::run(const AdapterFactory& factory, const std::string& sessio
         Json reply;
         if (Clock::now() >= work->deadline.expires) {
             stop();
-            work->reply.set_value(failure(requestId(work->request), {"TIMEOUT", "The provider request expired before dispatch."}));
+            work->reply.set_value(failure(requestId(work->request), {"TIMEOUT", "The provider request expired before dispatch."},
+                                          operation(work->request)));
             continue;
         }
         if (!agent) {
             try {
                 adapter = factory();
                 if (!adapter) throw std::runtime_error("Provider factory returned no adapter.");
-                agent.emplace(*adapter, session, std::move(process), std::move(actions), Clock::now, &history_);
+                agent.emplace(*adapter, session, std::move(process), std::move(actions), Clock::now, &history_, input_);
             } catch (const std::exception&) {
                 initializationFailed_ = true;
                 stop();
                 const auto error = Clock::now() >= work->deadline.expires
                     ? Error{"TIMEOUT", "The provider request expired during initialization."}
                     : Error{"BACKEND_UNAVAILABLE", "Could not start the native session."};
-                work->reply.set_value(failure(requestId(work->request), error));
+                work->reply.set_value(failure(requestId(work->request), error, operation(work->request)));
                 continue;
             }
         }
@@ -189,16 +197,26 @@ void SessionWorker::run(const AdapterFactory& factory, const std::string& sessio
             if (Clock::now() >= work->deadline.expires) {
                 const bool dispatched = work->deadline.cancel();
                 work->deadline.retire();
-                reply = failure(requestId(work->request), dispatched
+                Error error = dispatched
                     ? Error{"ACTION_OUTCOME_UNKNOWN", "The provider did not confirm the action before the deadline."}
-                    : Error{"TIMEOUT", "The provider exceeded the request deadline."});
+                    : Error{"TIMEOUT", "The provider exceeded the request deadline."};
+                const std::string_view op = operation(work->request);
+                if (isInputOperation(op)) {
+                    // Keep what the driver reported about sent and released input.
+                    const auto detail = reply.find("error");
+                    const bool failed = detail != reply.end();
+                    error.inputSent = dispatched || (failed && detail->value("inputSent", false));
+                    error.released = failed && detail->value("released", false);
+                }
+                reply = failure(requestId(work->request), error, op);
             }
         } catch (const Error& error) {
             work->deadline.retire();
-            reply = failure(requestId(work->request), error);
+            reply = failure(requestId(work->request), error, operation(work->request));
         } catch (const std::exception&) {
             work->deadline.retire();
-            reply = failure(requestId(work->request), {"INTERNAL_ERROR", "The provider could not complete the request."});
+            reply = failure(requestId(work->request), {"INTERNAL_ERROR", "The provider could not complete the request."},
+                            operation(work->request));
         }
         if (work->deadline.retiring()) stop();
         work->reply.set_value(std::move(reply));

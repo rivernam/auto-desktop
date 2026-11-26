@@ -18,9 +18,9 @@ const std::string& text(const Json& request, const char* key, std::size_t limit)
 } // namespace
 
 MultiSession::MultiSession(std::vector<Backend> backends, std::string session, AllowedProcess allowedProcess,
-                           std::set<Action> actions, std::chrono::milliseconds budget)
+                           std::set<Action> actions, std::chrono::milliseconds budget, InputDriver* input)
     : session_(std::move(session)), allowedProcess_(std::move(allowedProcess)), actions_(std::move(actions)),
-      budget_(budget) {
+      budget_(budget), input_(input) {
     if (backends.empty()) throw std::invalid_argument("A session needs one or more backends.");
     slots_.reserve(backends.size());
     for (auto& backend : backends) {
@@ -45,7 +45,7 @@ void MultiSession::start(Slot& slot) {
     const auto token = session_ + "." + slot.config.name + "." + std::to_string(++slot.generation);
     slot.prefix = token + "-";
     slot.worker = std::make_unique<SessionWorker>(slot.config.factory, token, allowedProcess_, actions_, budget_,
-                                                  slot.config.name, &history_);
+                                                  slot.config.name, &history_, InputSupport{input_, false});
     if (abandon_) slot.worker->onAbandon(abandon_);
 }
 
@@ -94,8 +94,12 @@ MultiSession::Slot* MultiSession::route(const Json& request, std::string_view op
         if (!scoped || (named && named != scoped)) throw stale();
         return scoped;
     }
-    if (isMutation(op) && history_.contains(id.get_ref<const std::string&>()))
+    const bool input = isInputOperation(op);
+    if ((isMutation(op) || input) && history_.contains(id.get_ref<const std::string&>()))
         throw Error("DUPLICATE_COMMAND", "This command ID has already been dispatched.");
+    // Input without an element needs no snapshot. The default backend's worker serializes it.
+    if (input && op != "clickElement") return &slots_.front();
+    // clickElement goes to the backend that issued its reference.
     auto* issuer = owner(text(request, op == "findElement" ? "snapshotId" : "ref", 128));
     if (!issuer) throw stale();
     return issuer;
@@ -113,7 +117,7 @@ Json MultiSession::handle(Json request) {
     try {
         slot = route(request, op, id);
     } catch (const Error& error) {
-        return failure(std::move(id), error);
+        return failure(std::move(id), error, op);
     }
     auto reply = call(*slot, std::move(request));
     if (op == "snapshot" && reply.at("ok") == true) reply["result"]["backend"] = slot->config.name;
@@ -172,6 +176,7 @@ Json MultiSession::capabilities(const Json& id) {
         operations.push_back("defaultAction");
         operations.push_back("select");
     }
+    attachInput(result, input_, actions_);
     result["defaultBackend"] = slots_.front().config.name;
     result["backends"] = std::move(rows);
     return {{"id", id}, {"ok", true}, {"result", std::move(result)}};

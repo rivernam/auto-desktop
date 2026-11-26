@@ -1,4 +1,5 @@
 #include "core/multi_session.hpp"
+#include "windows/input_driver.hpp"
 #include "windows/jab_adapter.hpp"
 #include "windows/msaa_adapter.hpp"
 #include "windows/uia_adapter.hpp"
@@ -52,8 +53,8 @@ std::optional<Policy> parsePolicy(int argc, char** argv) {
             const auto started = windows::processStart(pid);
             if (!started) return {};
             policy.started[pid] = *started;
-        } else if (flag == "--allow-action" && isMutation(value)) {
-            policy.actions.insert(*parseAction(value));
+        } else if (flag == "--allow-action" && parseActionName(value)) {
+            policy.actions.insert(*parseActionName(value));
         } else if (flag == "--backend" && !policy.backendGiven
                    && (value == "uia" || value == "jab" || value == "msaa" || value == "multi")) {
             policy.backendGiven = true;
@@ -80,7 +81,8 @@ int main(int argc, char** argv) {
     try {
         auto policy = parsePolicy(argc, argv);
         if (!policy) {
-            std::cerr << "Usage: cpp-agent.exe [--allow-pid PID] [--allow-action invoke|setValue|defaultAction|select] "
+            std::cerr << "Usage: cpp-agent.exe [--allow-pid PID] "
+                         "[--allow-action invoke|setValue|defaultAction|select|pointer|keyboard|activate] "
                          "[--backend uia|jab|msaa|multi] [--jab-dll ABSOLUTE_DLL_PATH] [--trust-msaa-identity PID]\n"
                          "Each allowed PID must identify a running process with a readable start time.\n";
             return 2;
@@ -92,6 +94,10 @@ int main(int argc, char** argv) {
         const bool jab = policy->jab;
         int status = 0;
         {
+            // Physical input exists only in a session that allows it. It outlives the workers that use it,
+            // so its destructor releases held keys after the last request.
+            std::unique_ptr<InputDriver> input;
+            if (allowsInput(policy->actions)) input = windows::makeInputDriver();
             const SessionWorker::AdapterFactory bridge = [library = policy->jabLibrary] {
                 return windows::makeJabAdapter(library);
             };
@@ -115,13 +121,15 @@ int main(int argc, char** argv) {
                 several.emplace(std::vector<MultiSession::Backend>{{"UIA", windows::makeAdapter, true},
                                                                    {"JAB", bridge, false},
                                                                    {"MSAA", msaa, true}},
-                                windows::sessionToken(), std::move(allowed), std::move(policy->actions));
+                                windows::sessionToken(), std::move(allowed), std::move(policy->actions), requestBudget,
+                                input.get());
                 several->onAbandon(endWithoutDetach);
                 handle = [&several](Json request) { return several->handle(std::move(request)); };
             } else {
                 single.emplace(jab ? bridge : policy->msaa ? msaa : SessionWorker::AdapterFactory(windows::makeAdapter),
                                windows::sessionToken(), std::move(allowed), std::move(policy->actions),
-                               requestBudget, jab ? "JAB" : policy->msaa ? "MSAA" : "UIA");
+                               requestBudget, jab ? "JAB" : policy->msaa ? "MSAA" : "UIA", nullptr,
+                               InputSupport{input.get(), true});
                 if (jab) single->onAbandon(endWithoutDetach);
                 handle = [&single](Json request) { return single->handle(std::move(request)); };
             }

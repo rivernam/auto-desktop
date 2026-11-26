@@ -22,12 +22,18 @@ import java.util.function.IntPredicate;
 
 /** One local foreground session. Every request and response occupies one UTF-8 line. */
 public final class Cli {
-    private static final Set<String> OPERATIONS = Set.of("getCapabilities", "listWindows", "snapshot",
-            "findElement", "getElementInfo", "invoke", "setValue", "defaultAction", "select");
+    private static final Set<String> OPERATIONS = operations();
     static final int MAX_FRAME = Utf8Frames.COMMAND_LIMIT;
     private static final ObjectMapper JSON = new ObjectMapper()
             .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
             .enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
+
+    private static Set<String> operations() {
+        Set<String> names = new HashSet<>(Set.of("getCapabilities", "listWindows", "snapshot",
+                "findElement", "getElementInfo", "invoke", "setValue", "defaultAction", "select"));
+        names.addAll(InputRequest.OPERATIONS.keySet());
+        return Set.copyOf(names);
+    }
 
     public static void main(String[] args) {
         int status;
@@ -97,7 +103,8 @@ public final class Cli {
                         break;
                     }
                     case "--allow-action": {
-                        if (!Set.of("invoke", "setValue", "defaultAction", "select").contains(value))
+                        if (!Set.of("invoke", "setValue", "defaultAction", "select").contains(value)
+                                && !InputRequest.ACTIONS.contains(value))
                             throw new IllegalArgumentException();
                         allowedActions.add(value);
                         break;
@@ -119,7 +126,7 @@ public final class Cli {
                     : DesktopAdapters.open(worker, backend, trustedMsaa);
         } catch (IllegalArgumentException invalid) {
             System.err.println("Usage: java -jar desktop-agent.jar [--allow-pid PID] "
-                    + "[--allow-action invoke|setValue|defaultAction|select] "
+                    + "[--allow-action invoke|setValue|defaultAction|select|pointer|keyboard|activate] "
                     + "[--backend jna|jab|msaa|multi|powershell OR --csharp-worker ABSOLUTE_EXE_PATH] "
                     + "[--jab-dll ABSOLUTE_DLL_PATH] [--trust-msaa-identity PID]");
             System.err.println("Each allowed PID must identify a running process with a readable start time.");
@@ -127,8 +134,10 @@ public final class Cli {
             return 2;
         }
         Utf8Frames source = new Utf8Frames(input, MAX_FRAME);
-        try (Agent agent = selected == null ? Agent.multi(DesktopAdapters.multi(trustedMsaa), allowedProcess, allowedActions)
-                : new Agent(DesktopAdapters.label(worker, backend), selected, allowedProcess, allowedActions)) {
+        boolean physicalInput = InputRequest.ACTIONS.stream().anyMatch(allowedActions::contains);
+        try (Agent agent = (selected == null ? Agent.multi(DesktopAdapters.multi(trustedMsaa), allowedProcess, allowedActions)
+                : new Agent(DesktopAdapters.label(worker, backend), selected, allowedProcess, allowedActions))
+                .withInput(physicalInput ? InputDriver.open() : null)) {
             long sequence = 0;
             while (true) {
                 String frame;

@@ -39,6 +39,12 @@ Swing과 AWT 창은 Java Access Bridge 백엔드로 연다. `--backend uia`가 �
 ./target/cpp-agent/Release/cpp-agent.exe --backend multi --allow-pid 1234 --allow-action invoke --allow-action setValue
 ```
 
+물리 입력(SendInput)은 `--allow-action pointer`, `keyboard`, `activate`로 켠다. 허용한 세션만 `getCapabilities`에 `input` 객체와 입력 연산(`activateWindow`, `pointerMove`, `pointerClick`, `pointerDrag`, `pointerScroll`, `clickElement`, `keyPress`, `keyDown`, `keyUp`, `typeText`)이 붙고, 허용하지 않은 세션의 응답은 이전과 같다. 입력 전 검증 순서, 좌표, 오류 필드(`inputSent`, `released`)는 [물리 입력](../../docs/PHYSICAL-INPUT.md)을 따른다.
+
+```powershell
+./target/cpp-agent/Release/cpp-agent.exe --backend multi --allow-pid 1234 --allow-action pointer --allow-action keyboard --allow-action activate
+```
+
 `getCapabilities`, `listWindows`, `snapshot`, `findElement`, `getElementInfo`, `invoke`, `setValue`를 제공하며 MSAA는 별도로 `defaultAction`과 `select`를 제공한다. `windowId`는 조회 결과에서, `snapshotId`와 `ref`는 최신 스냅샷에서 가져온다. 지원 필드와 오류 코드, 같은 세션에서의 요청 순서는 [공통 API](../../docs/API.md)에 있다.
 
 ## 세션 동작
@@ -48,6 +54,7 @@ Swing과 AWT 창은 Java Access Bridge 백엔드로 연다. `--backend uia`가 �
 - `src/windows`는 Control View, HWND와 프로세스 시작 시각, Runtime ID, 조상 경로를 검증하는 Adapter다. 창 목록은 데스크톱 직계 창 뒤에 소유 창(모달, 팝업)을 `ownerWindowId`와 함께 덧붙이고, 하위 트리가 잘린 요소에는 `partial`을 표시한다. 원인과 검증은 [UIA Agent 결함 분석](../../docs/UIA-AGENT-DEFECTS.md)에 있다. 창의 시작 시각을 읽을 권한이 없으면 해당 창의 스냅샷이나 참조 재검증을 거부할 수 있다. 편집·비밀번호·ValuePattern 요소의 이름을 가리고 하위 트리를 건너뛴다. Value 속성을 읽지 않는다.
 - `src/windows/jab_adapter.cpp`는 Java Access Bridge Adapter다. 같은 세션 스레드가 브리지 DLL을 로드하고 모든 호출과 창 메시지 처리를 맡으며, 요청이 없을 때도 250 ms마다 메시지를 처리한다. 받은 컨텍스트 핸들은 한 번씩 반환하고, 응답하지 않는 JVM의 핸들은 보류한다. 그런 JVM이 있으면 DLL을 내리지 않고 프로세스를 끝낸다. 요소 모델과 제약은 [Java Access Bridge Adapter](../../docs/JAVA-ACCESS-BRIDGE.md)에 있다.
 - `src/core/multi_session.cpp`는 multi 모드의 라우터다. 백엔드마다 `SessionWorker` 하나(스레드, Adapter, 최신 스냅샷)를 두고 명령 ID 기록만 공유한다. 참조와 스냅샷 ID의 접두사로 발급한 백엔드를 가려 그 워커로만 전달한다. 기한을 넘긴 UIA·MSAA 워커는 스레드가 끝난 뒤 새 워커로 바뀌고, JAB 워커는 바꾸지 않는다.
+- `src/core/input.cpp`는 입력 요청 검증, 키 이름, 가상 데스크톱 정규화, `clickElement`의 bounds 대응을 플랫폼과 무관하게 처리한다. `InputDriver` 하나를 세션의 모든 워커가 공유하며, 시험은 가짜 드라이버를 쓴다. `src/windows/input_driver.cpp`는 Windows 구현이다. 새 DPI API는 실행 중에 찾으므로 Windows 7과 x86에서도 로드된다. 저수준 훅은 첫 입력 직전에 전용 스레드에 설치하고, 세션이 끝나면 `keyDown`으로 누른 키를 떼고 훅을 제거한다. CTest의 `input-driver-status`는 입력을 보내거나 훅을 설치하지 않고 DPI 인식, 무결성 수준, 입력 데스크톱, 가상 화면만 읽는다.
 - UIA 호출과 COM 자원 해제는 같은 전용 MTA 스레드에서 수행한다. 요청 기한은 10초다. 변경 호출에 진입하기 전에 기한이 지나면 `TIMEOUT`, 진입한 호출의 결과를 확인할 수 없으면 `ACTION_OUTCOME_UNKNOWN`을 반환한다. Java/JNA는 일부 변경 사전 검사의 타임아웃도 결과 미상으로 처리한다. 타임아웃 뒤 C++ 세션은 폐기되며, 호출이 반환되는 시점에 소유 스레드가 참조를 해제한다. EOF 후 정리가 10초 내 끝나지 않으면 종료 코드 1로 프로세스 종료를 시도한다. 외부 호출자는 응답이 끊긴 변경을 재전송하기 전에 대상 상태를 확인해야 한다.
 
 ## Java/JNA와 비교

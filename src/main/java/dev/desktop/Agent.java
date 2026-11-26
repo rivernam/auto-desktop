@@ -72,6 +72,9 @@ public final class Agent implements AutoCloseable {
     private final boolean multi;
     private final ActionDispatcher actions;
     private final LongSupplier nanoTime;
+    // The physical input actions this session allows. Empty keeps physical input out of the session.
+    private final List<String> inputActions = new ArrayList<>();
+    private InputDriver input;
 
     public Agent(DesktopAdapter adapter, Set<Integer> allowedPids, Set<String> allowedActions) {
         this(adapter, allowedPids, allowedActions, System::nanoTime);
@@ -96,6 +99,7 @@ public final class Agent implements AutoCloseable {
         multi = false;
         actions = new ActionDispatcher(allowedProcess, allowedActions);
         this.nanoTime = nanoTime;
+        inputActions(allowedActions);
     }
 
     private Agent(Map<String, BackendSource> sources, IntPredicate allowedProcess, Set<String> allowedActions,
@@ -108,6 +112,25 @@ public final class Agent implements AutoCloseable {
         multi = true;
         actions = new ActionDispatcher(allowedProcess, allowedActions);
         this.nanoTime = nanoTime;
+        inputActions(allowedActions);
+    }
+
+    private void inputActions(Set<String> allowedActions) {
+        for (String action : InputRequest.ACTIONS) if (allowedActions.contains(action)) inputActions.add(action);
+    }
+
+    /**
+     * Gives the session its physical input device. Only a session that allows a physical input
+     * action uses it. The session owns the driver and closes it first.
+     */
+    Agent withInput(InputDriver driver) {
+        input = driver;
+        return this;
+    }
+
+    private InputDriver input() {
+        if (input == null) input = InputDriver.unavailable("This session has no physical input device.");
+        return input;
     }
 
     /**
@@ -130,15 +153,16 @@ public final class Agent implements AutoCloseable {
 
     public synchronized ObjectNode handle(ObjectNode request) {
         ObjectNode response = object().putNull("id");
+        String op = null;
         try {
             if (request == null) throw invalid("Expected a request object.");
             String id = string(request, "id", 128);
             response.put("id", id);
-            String op = string(request, "op", 32);
+            op = string(request, "op", 32);
             JsonNode result;
             switch (op) {
                 case "getCapabilities":
-                    result = multi ? capabilities() : backends.get(0).adapter.capabilities();
+                    result = withInput(multi ? capabilities() : backends.get(0).adapter.capabilities());
                     break;
                 case "listWindows":
                     result = multi ? windows(response) : backends.get(0).adapter.listWindows();
@@ -165,16 +189,153 @@ public final class Agent implements AutoCloseable {
                     result = perform(request, id, DesktopAction.SELECT);
                     break;
                 default:
-                    throw new AgentException("UNKNOWN_OPERATION", "Unknown operation.");
+                    if (!InputRequest.isInput(op)) throw new AgentException("UNKNOWN_OPERATION", "Unknown operation.");
+                    result = physicalInput(request, id, op);
+                    break;
             }
             response.put("ok", true).set("result", result);
         } catch (AgentException ex) {
-            response.put("ok", false).putObject("error").put("code", ex.code()).put("message", ex.getMessage());
+            ObjectNode error = response.put("ok", false).putObject("error").put("code", ex.code())
+                    .put("message", ex.getMessage());
+            if (op != null && InputRequest.isInput(op)) inputOutcome(error, ex);
         } catch (RuntimeException ex) {
-            response.put("ok", false).putObject("error").put("code", "INTERNAL_ERROR")
+            ObjectNode error = response.put("ok", false).putObject("error").put("code", "INTERNAL_ERROR")
                     .put("message", "The operation could not be completed.");
+            if (op != null && InputRequest.isInput(op)) error.put("inputSent", false);
         }
         return response;
+    }
+
+    /** Every failed input request says whether input reached the system, and whether it released keys. */
+    private static void inputOutcome(ObjectNode error, AgentException failure) {
+        boolean sent = failure instanceof InputException && ((InputException) failure).inputSent();
+        error.put("inputSent", sent);
+        if (failure instanceof InputException && ((InputException) failure).released()) error.put("released", true);
+    }
+
+    /** Adds the physical input row to the capabilities of a session that allows physical input. */
+    private JsonNode withInput(JsonNode capabilities) {
+        if (inputActions.isEmpty() || !(capabilities instanceof ObjectNode)) return capabilities;
+        ObjectNode result = ((ObjectNode) capabilities).deepCopy();
+        ObjectNode row;
+        try {
+            row = input().describe();
+        } catch (AgentException unavailable) {
+            row = object().put("available", false).put("reason", unavailable.getMessage());
+        }
+        ArrayNode allowed = row.putArray("allowedActions");
+        inputActions.stream().sorted().forEach(allowed::add);
+        boolean available = row.path("available").asBoolean();
+        result.put("physicalInput", available);
+        if (available) {
+            ArrayNode operations = result.withArray("operations");
+            for (var entry : InputRequest.OPERATIONS.entrySet())
+                if (inputActions.contains(entry.getValue())) operations.add(entry.getKey());
+        }
+        result.set("input", row);
+        return result;
+    }
+
+    /**
+     * Physical input. It is a separate command area: it runs only when the caller asks for it, and
+     * no failed accessibility action falls back to it.
+     */
+    private JsonNode physicalInput(ObjectNode request, String id, String op) {
+        actions.checkUnused(id);
+        String action = InputRequest.OPERATIONS.get(op);
+        if ("clickElement".equals(op)) return clickElement(request, id);
+        InputRequest parsed = InputRequest.parse(op, request);
+        if (!actions.allows(action) || !actions.allowsProcess(parsed.processId))
+            throw new AgentException("PERMISSION_DENIED", "The process and action must both be allowed.");
+        InputDriver driver = input();
+        actions.remember(id);
+        return driver.execute(parsed, inputGate(parsed.processId), inputDeadline());
+    }
+
+    private Runnable inputGate(int processId) {
+        return () -> {
+            if (!actions.allowsProcess(processId))
+                throw InputException.refused("PERMISSION_DENIED", "The target process is no longer allowed.");
+        };
+    }
+
+    private static long inputDeadline() {
+        return System.nanoTime() + JnaDesktopAdapter.REQUEST_BUDGET.toNanos();
+    }
+
+    /**
+     * Clicks inside the live bounds of a snapshot element. The element and the window are read
+     * again from the backend that issued the reference, and the backend's coordinates are related
+     * to the real window rectangle before any input.
+     */
+    private JsonNode clickElement(ObjectNode request, String id) {
+        String ref = string(request, "ref", 128);
+        InputRequest.Button button = InputRequest.button(request);
+        int clicks = InputRequest.clicks(request);
+        JsonNode position = request.get("position");
+        if (position != null && !position.isObject()) throw invalid("Invalid position.");
+        double fx = InputRequest.fraction(position, "x");
+        double fy = InputRequest.fraction(position, "y");
+        JsonNode weakFlag = request.get("acceptWeakReference");
+        if (weakFlag != null && !weakFlag.isBoolean()) throw invalid("Invalid acceptWeakReference.");
+        boolean acceptWeak = weakFlag != null && weakFlag.booleanValue();
+        int quietMs = InputRequest.quietMs(request);
+        Backend backend = owner(ref);
+        DesktopSnapshot current = backend.snapshot;
+        DesktopSnapshot.Element target = current.resolve(ref);
+        if (!actions.allows("pointer") || !actions.allowsProcess(target.processId()))
+            throw new AgentException("PERMISSION_DENIED", "The process and action must both be allowed.");
+        if (!target.properties().path("enabled").asBoolean())
+            throw new AgentException("PRECONDITION_FAILED", "The element is disabled.");
+        boolean weak = "weak".equals(target.properties().path("referenceStrength").asText());
+        if (weak && !acceptWeak)
+            throw new AgentException("PRECONDITION_FAILED",
+                    "A weak reference may resolve to another element. Set acceptWeakReference to click it.");
+        InputDriver driver = input();
+        actions.remember(id);
+        long window;
+        try {
+            window = Long.parseLong(current.windowId());
+        } catch (NumberFormatException notAHandle) {
+            throw new AgentException("WINDOW_NOT_FOUND", "The snapshot window is not a native window.");
+        }
+        String name = backend.name != null ? backend.name : target.properties().path("backend").asText("UIA");
+        DesktopAdapter adapter = issuer(backend);
+        DesktopSnapshot.Element root = current.root();
+        ObjectNode live;
+        ObjectNode liveRoot = null;
+        attend(backend, true);
+        try {
+            live = current.liveInfo(target, adapter.elementInfo(target.key(), target.processId()));
+            if (!current.scoped())
+                liveRoot = root == target ? live : current.liveInfo(root, adapter.elementInfo(root.key(), root.processId()));
+        } finally {
+            attend(backend, false);
+        }
+        if (!live.path("enabled").asBoolean(false))
+            throw new AgentException("PRECONDITION_FAILED", "The element is disabled.");
+        if (live.path("offscreen").asBoolean(false))
+            throw new AgentException("PRECONDITION_FAILED", "The element is off screen.");
+        InputGeometry.Bounds bounds = InputGeometry.Bounds.read(live.get("bounds"));
+        if (bounds == null) throw new AgentException("PRECONDITION_FAILED", "The element has no bounds.");
+        if (weak) {
+            for (String field : ElementLocator.FIELDS)
+                if (!target.properties().path(field).asText().equals(live.path(field).asText()))
+                    throw DesktopSnapshot.stale();
+            if (!bounds.sameAs(InputGeometry.Bounds.read(target.properties().get("bounds"))))
+                throw DesktopSnapshot.stale();
+        }
+        InputGeometry.Rect frame = driver.windowRect(window, target.processId());
+        InputGeometry.Mapping mapping;
+        if (liveRoot != null) mapping = InputGeometry.mapping(frame, InputGeometry.Bounds.read(liveRoot.get("bounds")));
+        else if ("JAB".equals(name)) throw InputGeometry.unverified();
+        else mapping = InputGeometry.Mapping.identity("assumedPhysical");
+        int[] point = InputGeometry.point(mapping.apply(bounds), fx, fy);
+        InputRequest click = InputRequest.click(window, target.processId(), point[0], point[1], button, clicks, quietMs);
+        ObjectNode result = driver.execute(click, inputGate(target.processId()), inputDeadline());
+        result.put("backend", name).put("boundsMapping", mapping.kind);
+        if (weak) result.put("referenceStrength", "weak");
+        return result;
     }
 
     /** The adapter of a backend. A restartable adapter that a fault retired and released is replaced first. */
@@ -373,6 +534,7 @@ public final class Agent implements AutoCloseable {
             attend(target, false);
         }
         target.snapshot = new DesktopSnapshot(windowId, captured, depth, limit, nanoTime.getAsLong());
+        if (scope != null) target.snapshot.markScoped();
         ObjectNode described = target.snapshot.describe();
         if (multi) described.put("backend", target.name);
         return described;
@@ -439,6 +601,8 @@ public final class Agent implements AutoCloseable {
 
     /** Closes every backend. One that waits on a provider call does not delay the release of the others. */
     @Override public synchronized void close() {
+        // Keys that the session still holds are released before anything else ends.
+        if (input != null) input.close();
         if (backends.size() == 1) {
             backends.get(0).adapter.close();
             return;
