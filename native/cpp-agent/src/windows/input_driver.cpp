@@ -1,8 +1,10 @@
 #include "windows/input_driver.hpp"
+#include "input_observation.hpp"
 
 #include <Windows.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <climits>
 #include <future>
@@ -160,31 +162,89 @@ Bounds virtualScreen() {
             GetSystemMetrics(SM_CXVIRTUALSCREEN), GetSystemMetrics(SM_CYVIRTUALSCREEN)};
 }
 
+#ifdef DESKTOP_INPUT_FAULT_TEST
+enum class HookFault { none, mouseRemove, keyboardRemove, bothRemove, mousePartial, keyboardPartial };
+
+HookFault selectedFault() {
+    wchar_t value[32]{};
+    const auto length = GetEnvironmentVariableW(L"AUTO_DESKTOP_TEST_INPUT_FAULT", value, ARRAYSIZE(value));
+    if (!length || length >= ARRAYSIZE(value)) return HookFault::none;
+    const std::wstring_view mode(value, length);
+    if (mode == L"mouse-remove") return HookFault::mouseRemove;
+    if (mode == L"keyboard-remove") return HookFault::keyboardRemove;
+    if (mode == L"both-remove") return HookFault::bothRemove;
+    if (mode == L"mouse-partial") return HookFault::mousePartial;
+    if (mode == L"keyboard-partial") return HookFault::keyboardPartial;
+    return HookFault::none;
+}
+
+struct HookFaultInjection {
+    HookFault configured = selectedFault();
+    std::atomic<HHOOK> mouse{nullptr}, keyboard{nullptr};
+    std::atomic<std::uint32_t> armedTag{0};
+    std::atomic<unsigned> seen{0};
+
+    static void remove(std::atomic<HHOOK>& handle) {
+        if (const HHOOK installed = handle.exchange(nullptr)) UnhookWindowsHookEx(installed);
+    }
+
+    void arm(InputOp op, std::uint32_t tag) {
+        if (configured == HookFault::none || armedTag.load()) return;
+        const bool mouseFault = configured == HookFault::mouseRemove || configured == HookFault::mousePartial;
+        if (op != (mouseFault ? InputOp::pointerDrag : InputOp::typeText)) return;
+        armedTag.store(tag);
+        if (configured == HookFault::bothRemove) {
+            remove(mouse);
+            remove(keyboard);
+        }
+    }
+
+    bool omitObservation(InputDevice device, std::uint32_t tag) {
+        if (tag != armedTag.load()) return false;
+        const bool mouseFault = configured == HookFault::mouseRemove || configured == HookFault::mousePartial;
+        if (device != (mouseFault ? InputDevice::mouse : InputDevice::keyboard)) return false;
+        const auto observations = seen.fetch_add(1) + 1;
+        if (observations == 2 && (configured == HookFault::mouseRemove || configured == HookFault::keyboardRemove))
+            remove(mouseFault ? mouse : keyboard);
+        return observations > 2 && (configured == HookFault::mousePartial || configured == HookFault::keyboardPartial);
+    }
+};
+#endif
+
 // Shared with the hook callbacks, which have no context argument. One driver exists per process.
 struct HookCounters {
-    ULONG_PTR tag = 0;
-    std::atomic<std::uint64_t> observed{0};
+    ULONG_PTR cleanupTag = 0;
+    InputObservations observed;
     std::atomic<std::uint64_t> foreign{0};
     std::atomic<ULONGLONG> lastForeign{0};
+#ifdef DESKTOP_INPUT_FAULT_TEST
+    HookFaultInjection testFault;
+#endif
 };
 std::atomic<HookCounters*> activeCounters{nullptr};
 
 // Kept trivial: Windows drops a low-level hook that is slow to return.
-void see(bool injected, ULONG_PTR extra) {
+void see(InputDevice device, bool injected, ULONG_PTR extra) {
     auto* counters = activeCounters.load(std::memory_order_acquire);
     if (!counters) return;
-    if (injected && extra == counters->tag) {
-        counters->observed.fetch_add(1, std::memory_order_release);
-    } else {
-        counters->lastForeign.store(GetTickCount64(), std::memory_order_release);
-        counters->foreign.fetch_add(1, std::memory_order_release);
+    if (injected && extra) {
+        if (extra == counters->cleanupTag) return;
+        const auto tag = static_cast<std::uint32_t>(extra);
+        if (tag == extra) {
+#ifdef DESKTOP_INPUT_FAULT_TEST
+            if (counters->testFault.omitObservation(device, tag)) return;
+#endif
+            if (counters->observed.record(device, tag)) return;
+        }
     }
+    counters->lastForeign.store(GetTickCount64(), std::memory_order_release);
+    counters->foreign.fetch_add(1, std::memory_order_release);
 }
 
 LRESULT CALLBACK mouseHook(int code, WPARAM message, LPARAM data) {
     if (code == HC_ACTION) {
         const auto* event = reinterpret_cast<const MSLLHOOKSTRUCT*>(data);
-        see((event->flags & LLMHF_INJECTED) != 0, event->dwExtraInfo);
+        see(InputDevice::mouse, (event->flags & LLMHF_INJECTED) != 0, event->dwExtraInfo);
     }
     return CallNextHookEx(nullptr, code, message, data);
 }
@@ -192,7 +252,7 @@ LRESULT CALLBACK mouseHook(int code, WPARAM message, LPARAM data) {
 LRESULT CALLBACK keyboardHook(int code, WPARAM message, LPARAM data) {
     if (code == HC_ACTION) {
         const auto* event = reinterpret_cast<const KBDLLHOOKSTRUCT*>(data);
-        see((event->flags & LLKHF_INJECTED) != 0, event->dwExtraInfo);
+        see(InputDevice::keyboard, (event->flags & LLKHF_INJECTED) != 0, event->dwExtraInfo);
     }
     return CallNextHookEx(nullptr, code, message, data);
 }
@@ -212,20 +272,29 @@ public:
         std::promise<DWORD> ready;
         auto started = ready.get_future();
         activeCounters.store(&counters_, std::memory_order_release);
-        thread_ = std::thread([&ready] {
+        thread_ = std::thread([this, &ready] {
             MSG message;
             // Creates the queue before the thread ID is published for WM_QUIT.
             PeekMessageW(&message, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
             const HINSTANCE module = GetModuleHandleW(nullptr);
             const HHOOK mouse = SetWindowsHookExW(WH_MOUSE_LL, mouseHook, module, 0);
             const HHOOK keyboard = SetWindowsHookExW(WH_KEYBOARD_LL, keyboardHook, module, 0);
+#ifdef DESKTOP_INPUT_FAULT_TEST
+            counters_.testFault.mouse.store(mouse);
+            counters_.testFault.keyboard.store(keyboard);
+#endif
             const bool installed = mouse && keyboard;
             ready.set_value(installed ? GetCurrentThreadId() : 0);
             if (installed) {
                 while (GetMessageW(&message, nullptr, 0, 0) > 0) {}
             }
+#ifdef DESKTOP_INPUT_FAULT_TEST
+            HookFaultInjection::remove(counters_.testFault.mouse);
+            HookFaultInjection::remove(counters_.testFault.keyboard);
+#else
             if (mouse) UnhookWindowsHookEx(mouse);
             if (keyboard) UnhookWindowsHookEx(keyboard);
+#endif
         });
         threadId_ = started.get();
         if (!threadId_) {
@@ -257,6 +326,38 @@ struct Event {
     int id = 0;
 };
 
+struct LayoutKey {
+    WORD virtualKey;
+    WORD scanCode;
+    bool extended;
+    bool shift;
+};
+
+LayoutKey mapLayoutKey(WORD virtualKey, bool shift, HKL layout) {
+    const auto scan = MapVirtualKeyExW(virtualKey, MAPVK_VK_TO_VSC_EX, layout);
+    const auto prefix = scan >> 8;
+    if (!(scan & 0xff) || (prefix && prefix != 0xe0))
+        throw refusal("PRECONDITION_FAILED", "The keyboard layout cannot represent the requested text.");
+    return {virtualKey, static_cast<WORD>(scan & 0xff), prefix == 0xe0, shift};
+}
+
+LayoutKey mapTextUnit(char16_t unit, HKL layout) {
+    if (unit == u'\r') return mapLayoutKey(VK_RETURN, false, layout);
+    if (unit == u'\t') return mapLayoutKey(VK_TAB, false, layout);
+    const SHORT mapped = VkKeyScanExW(static_cast<WCHAR>(unit), layout);
+    if (mapped == -1 || (mapped & 0xfe00))
+        throw refusal("PRECONDITION_FAILED", "The keyboard layout cannot represent the requested text without Ctrl or Alt.");
+    const auto result = mapLayoutKey(static_cast<WORD>(mapped & 0xff), (mapped & 0x100) != 0, layout);
+    std::array<BYTE, 256> keys{};
+    if (result.shift) keys[VK_SHIFT] = 0x80;
+    WCHAR output[4]{};
+    // On supported Windows builds flag bit 2 prevents changing the keyboard's dead-key state.
+    const int count = ToUnicodeEx(result.virtualKey, result.scanCode, keys.data(), output, ARRAYSIZE(output), 4, layout);
+    if (count != 1 || output[0] != static_cast<WCHAR>(unit))
+        throw refusal("PRECONDITION_FAILED", "The keyboard layout cannot produce the requested text without composition.");
+    return result;
+}
+
 class Driver;
 
 // The state of one request: what it pressed, how much it sent, and the checks between batches.
@@ -271,7 +372,10 @@ private:
     void checkWindow() const;
     void checkReady(bool foreground, bool user) const;
     void checkForeground() const;
-    void checkUser() const;
+    HKL focusedLayout() const;
+    void checkLayoutText() const;
+    void checkUser(bool recovering = false) const;
+    void checkForeign() const;
     ScreenPoint resolve(const InputPoint& point) const;
     void checkPoint(const ScreenPoint& point) const;
     void hitTest(const ScreenPoint& point) const;
@@ -281,10 +385,11 @@ private:
     void pause(int milliseconds) const;
     void send(std::vector<Event> batch);
     void reach(const ScreenPoint& point) const;
-    bool settle();
+    void settle();
     Event move(const ScreenPoint& point) const;
     Event button(bool down) const;
     Event key(const Key& key, bool up) const;
+    Event layoutEvent(const LayoutKey& key, bool up) const;
     Event unicode(char16_t unit, bool up) const;
     InputOutcome pointer();
     InputOutcome drag();
@@ -300,7 +405,10 @@ private:
     bool begun_ = false;
     bool sent_ = false;
     int events_ = 0;
-    std::uint64_t observedAtStart_ = 0, foreignAtStart_ = 0;
+    InputEventCounts expected_;
+    std::uint32_t tag_ = 0;
+    std::uint64_t foreignAtStart_ = 0;
+    HKL textLayout_ = nullptr;
     Bounds screen_{};
 };
 
@@ -312,7 +420,8 @@ public:
         // Use the same positive range as Java and avoid pen/touch signatures.
         std::uniform_int_distribution<std::uint32_t> distribution(0x10000u, 0x7ffeffffu);
         tag_ = distribution(random);
-        counters_.tag = tag_;
+        counters_.cleanupTag = tag_;
+        requestTag_ = static_cast<std::uint32_t>(tag_);
     }
 
     ~Driver() override {
@@ -329,6 +438,7 @@ public:
             status.reason = problem;
         } else {
             status.available = true;
+            status.layoutText = api_.set != nullptr; // Windows 10 1607 introduced both this export and the ToUnicodeEx flag.
             status.reason.clear();
         }
         const auto own = integrity(GetCurrentProcess());
@@ -423,18 +533,26 @@ private:
     }
 
     void ensureHooks() {
-        if (reinstall_ && hooks_.running()) hooks_.stop();
+        if (unhealthy_ && hooks_.running()) hooks_.stop();
         if (hooks_.running()) return;
         if (!hooks_.start()) throw refusal("INPUT_UNAVAILABLE", "The input monitor could not be installed.");
         installedTick_ = GetTickCount();
-        reinstall_ = false;
+        unhealthy_ = 0;
+    }
+
+    std::uint32_t nextTag() {
+        do {
+            requestTag_ = requestTag_ == 0x7ffeffffu ? 0x10000u : requestTag_ + 1;
+        } while (requestTag_ == tag_);
+        return requestTag_;
     }
 
     DpiApi api_;
     ULONG_PTR tag_ = 0;
     HookCounters counters_;
     HookMonitor hooks_;
-    bool reinstall_ = false;
+    std::uint32_t requestTag_ = 0;
+    unsigned unhealthy_ = 0;
     DWORD installedTick_ = 0;
     std::timed_mutex busy_;
     std::mutex heldMutex_;
@@ -449,6 +567,7 @@ Run::Run(Driver& driver, const InputCommand& command, const InputGate& gate)
 // Every error leaves here: inputSent is what this request actually sent, whatever the thrower assumed.
 Error Run::fail(Error error) {
     error.inputSent = sent_;
+    if (sent_) driver_.unhealthy_ |= driver_.counters_.observed.missing(expected_);
     error.released = driver_.release(pressed_);
     pressed_.clear();
     return error;
@@ -504,7 +623,26 @@ void Run::checkForeground() const {
         throw refusal("FOREGROUND_MISMATCH", "The keyboard focus is not in the target process.");
 }
 
-void Run::checkUser() const {
+HKL Run::focusedLayout() const {
+    GUITHREADINFO info{};
+    info.cbSize = sizeof(info);
+    const auto foregroundThread = GetWindowThreadProcessId(GetForegroundWindow(), nullptr);
+    if (!foregroundThread || !GetGUIThreadInfo(foregroundThread, &info)) return nullptr;
+    const auto focusThread = GetWindowThreadProcessId(info.hwndFocus ? info.hwndFocus : info.hwndActive, nullptr);
+    return focusThread ? GetKeyboardLayout(focusThread) : nullptr;
+}
+
+void Run::checkLayoutText() const {
+    if (focusedLayout() != textLayout_)
+        throw refusal("PRECONDITION_FAILED", "The focused keyboard layout changed.");
+    if (!driver_.held().empty() || (GetKeyState(VK_CAPITAL) & 1))
+        throw refusal("PRECONDITION_FAILED", "Layout-based text needs Caps Lock off and no held keys.");
+    for (const int modifier : {VK_SHIFT, VK_CONTROL, VK_MENU, VK_LWIN, VK_RWIN})
+        if (GetAsyncKeyState(modifier) & 0x8000)
+            throw refusal("USER_INPUT_CONFLICT", "A modifier key is held down.");
+}
+
+void Run::checkUser(bool recovering) const {
     for (const int code : {VK_LBUTTON, VK_RBUTTON, VK_MBUTTON, VK_XBUTTON1, VK_XBUTTON2}) {
         if (GetAsyncKeyState(code) & 0x8000)
             throw refusal("USER_INPUT_CONFLICT", "A mouse button is held down.");
@@ -514,10 +652,11 @@ void Run::checkUser() const {
         if (std::find(held.begin(), held.end(), static_cast<std::uint16_t>(code)) != held.end()) continue;
         if (GetAsyncKeyState(code) & 0x8000) throw refusal("USER_INPUT_CONFLICT", "A modifier key is held down.");
     }
-    if (command_.quietMs <= 0) return;
-    const auto quiet = static_cast<DWORD>(command_.quietMs);
+    recovering = recovering || driver_.unhealthy_;
+    const auto quiet = static_cast<DWORD>(recovering ? std::max(command_.quietMs, InputCommand{}.quietMs) : command_.quietMs);
+    if (!quiet) return;
     const auto conflict = [] { return refusal("USER_INPUT_CONFLICT", "Someone used the mouse or keyboard just now."); };
-    const bool hooked = driver_.hooks_.running();
+    const bool hooked = !recovering && driver_.hooks_.running();
     if (hooked) {
         const auto last = driver_.counters_.lastForeign.load(std::memory_order_acquire);
         if (last && GetTickCount64() - last < quiet) throw conflict();
@@ -528,6 +667,11 @@ void Run::checkUser() const {
     info.cbSize = sizeof(info);
     if (GetLastInputInfo(&info) && GetTickCount() - info.dwTime < quiet
         && (!hooked || static_cast<LONG>(info.dwTime - driver_.installedTick_) < 0)) throw conflict();
+}
+
+void Run::checkForeign() const {
+    if (driver_.counters_.foreign.load(std::memory_order_acquire) != foreignAtStart_)
+        throw Error("USER_INPUT_CONFLICT", "Someone used the mouse or keyboard during the input.");
 }
 
 ScreenPoint Run::resolve(const InputPoint& point) const {
@@ -590,28 +734,36 @@ void Run::pause(int milliseconds) const {
 // Opens the gate and installs the monitor. Nothing before this sends anything.
 void Run::begin() {
     checkTime();
+    const bool recovering = driver_.unhealthy_ != 0;
+    foreignAtStart_ = driver_.counters_.foreign.load(std::memory_order_acquire);
     gate_();
     driver_.ensureHooks();
-    observedAtStart_ = driver_.counters_.observed.load(std::memory_order_acquire);
-    foreignAtStart_ = driver_.counters_.foreign.load(std::memory_order_acquire);
+    if (recovering) checkUser(true);
+    tag_ = driver_.nextTag();
+    driver_.counters_.observed.start(tag_);
+#ifdef DESKTOP_INPUT_FAULT_TEST
+    driver_.counters_.testFault.arm(command_.op, tag_);
+#endif
     begun_ = true;
 }
 
 void Run::send(std::vector<Event> batch) {
     if (!begun_) begin();
-    if (sent_) {
-        checkTime();
-        if (driver_.counters_.foreign.load(std::memory_order_acquire) != foreignAtStart_) {
-            Error error("USER_INPUT_CONFLICT", "Someone used the mouse or keyboard during the input.");
-            error.inputSent = true;
-            throw error;
-        }
-    }
+    checkTime();
+    checkForeign();
+    checkForeground();
+    if (textLayout_) checkLayoutText();
     std::vector<INPUT> inputs;
-    for (const auto& event : batch) inputs.push_back(event.input);
+    inputs.reserve(batch.size());
+    for (const auto& event : batch) {
+        auto& input = inputs.emplace_back(event.input);
+        if (input.type == INPUT_MOUSE) input.mi.dwExtraInfo = tag_;
+        else input.ki.dwExtraInfo = tag_;
+    }
     const auto count = SendInput(static_cast<UINT>(inputs.size()), inputs.data(), sizeof(INPUT));
     for (UINT i = 0; i < count; ++i) {
         const auto& event = batch[i];
+        expected_.add(event.input.type == INPUT_MOUSE ? InputDevice::mouse : InputDevice::keyboard);
         if (event.kind == Event::Kind::press) {
             INPUT up = event.input;
             if (up.type == INPUT_KEYBOARD) up.ki.dwFlags |= KEYEVENTF_KEYUP;
@@ -631,6 +783,7 @@ void Run::send(std::vector<Event> batch) {
         error.inputSent = true;
         throw error;
     }
+    settle();
 }
 
 void Run::reach(const ScreenPoint& point) const {
@@ -647,19 +800,19 @@ void Run::reach(const ScreenPoint& point) const {
     throw error;
 }
 
-// True once the hook has seen every tagged event of this request.
-bool Run::settle() {
+// Confirm this batch before the caller can send another one or report success.
+void Run::settle() {
     const auto until = std::min(Clock::now() + observeLimit, stopAt_);
-    const auto expected = static_cast<std::uint64_t>(events_);
-    std::uint64_t seen = 0;
     for (;;) {
-        seen = driver_.counters_.observed.load(std::memory_order_acquire) - observedAtStart_;
-        if (seen >= expected || Clock::now() >= until) break;
+        checkForeign();
+        const unsigned missing = driver_.counters_.observed.missing(expected_);
+        if (!missing) return;
+        if (Clock::now() >= until) {
+            driver_.unhealthy_ |= missing;
+            throw Error("ACTION_OUTCOME_UNKNOWN", "The input monitor could not confirm every submitted event.");
+        }
         Sleep(1);
     }
-    // A monitor that saw none of them is presumed gone and is installed again by the next request.
-    if (seen == 0 && expected > 0) driver_.reinstall_ = true;
-    return seen >= expected;
 }
 
 Event Run::move(const ScreenPoint& point) const {
@@ -692,6 +845,20 @@ Event Run::key(const Key& key, bool up) const {
     event.input = driver_.keyInput(key, up);
     event.kind = up ? Event::Kind::release : Event::Kind::press;
     event.id = key.vk;
+    return event;
+}
+
+Event Run::layoutEvent(const LayoutKey& key, bool up) const {
+    const bool scanMode = command_.textMethod == TextMethod::scanCode;
+    Event event;
+    event.input.type = INPUT_KEYBOARD;
+    event.input.ki.wVk = scanMode ? 0 : key.virtualKey;
+    event.input.ki.wScan = key.scanCode;
+    event.input.ki.dwFlags = (scanMode ? KEYEVENTF_SCANCODE : 0) | (key.extended ? KEYEVENTF_EXTENDEDKEY : 0)
+        | (up ? KEYEVENTF_KEYUP : 0);
+    event.input.ki.dwExtraInfo = driver_.tag_;
+    event.kind = up ? Event::Kind::release : Event::Kind::press;
+    event.id = key.virtualKey;
     return event;
 }
 
@@ -744,7 +911,7 @@ InputOutcome Run::pointer() {
     InputOutcome outcome;
     outcome.point = point;
     outcome.events = events_;
-    outcome.observed = settle();
+    outcome.observed = true;
     return outcome;
 }
 
@@ -774,7 +941,7 @@ InputOutcome Run::drag() {
     outcome.from = from;
     outcome.to = to;
     outcome.events = events_;
-    outcome.observed = settle();
+    outcome.observed = true;
     return outcome;
 }
 
@@ -819,13 +986,24 @@ InputOutcome Run::keyboard() {
     }
     InputOutcome outcome;
     outcome.events = events_;
-    outcome.observed = settle();
+    outcome.observed = true;
     return outcome;
 }
 
 InputOutcome Run::text() {
     checkReady(true, true);
     const auto& units = command_.text;
+    std::vector<LayoutKey> layoutKeys;
+    if (command_.textMethod != TextMethod::unicode) {
+        if (!driver_.api_.set)
+            throw refusal("PRECONDITION_FAILED", "Layout-based text requires Windows 10 version 1607 or newer.");
+        textLayout_ = focusedLayout();
+        if (!textLayout_) throw refusal("PRECONDITION_FAILED", "The focused keyboard layout is unavailable.");
+        checkLayoutText();
+        layoutKeys.reserve(units.size());
+        for (const char16_t unit : units) layoutKeys.push_back(mapTextUnit(unit, textLayout_));
+    }
+    const LayoutKey shift = textLayout_ ? mapLayoutKey(VK_SHIFT, false, textLayout_) : LayoutKey{};
     std::size_t index = 0;
     while (index < units.size()) {
         if (index > 0) {
@@ -839,7 +1017,13 @@ InputOutcome Run::text() {
         if (end < units.size() && units[end - 1] >= 0xD800 && units[end - 1] <= 0xDBFF) ++end;
         for (; index < end; ++index) {
             const char16_t unit = units[index];
-            if (unit == u'\r' || unit == u'\t') {
+            if (textLayout_) {
+                const auto& key = layoutKeys[index];
+                if (key.shift) batch.push_back(layoutEvent(shift, false));
+                batch.push_back(layoutEvent(key, false));
+                batch.push_back(layoutEvent(key, true));
+                if (key.shift) batch.push_back(layoutEvent(shift, true));
+            } else if (unit == u'\r' || unit == u'\t') {
                 const Key named{unit == u'\r' ? vk::enter : vk::tab, false};
                 batch.push_back(key(named, false));
                 batch.push_back(key(named, true));
@@ -852,7 +1036,7 @@ InputOutcome Run::text() {
     }
     InputOutcome outcome;
     outcome.events = events_;
-    outcome.observed = settle();
+    outcome.observed = true;
     return outcome;
 }
 

@@ -433,6 +433,7 @@ Json Agent::physical(const Json& request, const std::string& id, InputOp op, Req
     }
     result["inputObserved"] = outcome.observed;
     result["events"] = outcome.events;
+    if (op == InputOp::typeText) result["method"] = textMethodName(command.textMethod);
     const auto point = [](const ScreenPoint& p) { return Json{{"x", p.x}, {"y", p.y}}; };
     if (outcome.point) result["point"] = point(*outcome.point);
     if (outcome.from) result["from"] = point(*outcome.from);

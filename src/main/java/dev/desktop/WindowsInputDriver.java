@@ -79,6 +79,7 @@ final class WindowsInputDriver implements InputDriver {
     private static final int KEY_EXTENDED = 0x0001;
     private static final int KEY_UP = 0x0002;
     private static final int KEY_UNICODE = 0x0004;
+    private static final int KEY_SCAN_CODE = 0x0008;
     private static final int WHEEL_DELTA = 120;
     private static final int GA_ROOT = 2;
     private static final int GA_ROOTOWNER = 3;
@@ -92,21 +93,36 @@ final class WindowsInputDriver implements InputDriver {
     private static final int[] USER_HELD_KEYS = {0x01, 0x02, 0x04, 0x05, 0x06, 0x10, 0x11, 0x12, 0x5B, 0x5C};
     private static final long OBSERVE_MILLIS = 500;
     private static final long CURSOR_MILLIS = 200;
+    private static final int RECOVERY_QUIET_MILLIS = 500;
 
     private final ExecutorService thread = Executors.newSingleThreadExecutor(task -> {
         Thread worker = new Thread(task, "desktop-input");
         worker.setDaemon(true);
         return worker;
     });
-    // A random tag on every event this session sends. Kept positive and well away from the
-    // signatures that pen and touch drivers put in dwExtraInfo.
-    private final long tag = 0x10000L + new SecureRandom().nextInt(0x7FFE0000);
+    private final SecureRandom tags = new SecureRandom();
+    private long tag = nextTag();
     // Input thread only.
     private final Set<InputKeys.Key> held = new LinkedHashSet<>();
     private String dpiAwareness;
+    private boolean layoutTypingAvailable;
     private int ownIntegrity = -1;
     private Monitor monitor;
+    private boolean recoveryPending;
     private volatile boolean closed;
+    private HookFault hookFault;
+
+    WindowsInputDriver() { this(null); }
+
+    WindowsInputDriver(HookFault hookFault) { this.hookFault = hookFault; }
+
+    // Explicitly injected by the test-only launcher. The production CLI never selects a fault.
+    enum HookFault { MOUSE_REMOVE, KEYBOARD_REMOVE, BOTH_REMOVE, MOUSE_PARTIAL, KEYBOARD_PARTIAL }
+
+    private long nextTag() {
+        // Positive and outside the pen/touch dwExtraInfo signature range.
+        return 0x10000L + tags.nextInt(0x7FFE0000);
+    }
 
     /** One request's cancellation state, shared between the waiting caller and the input thread. */
     private static final class Job {
@@ -120,6 +136,11 @@ final class WindowsInputDriver implements InputDriver {
             boolean desktop = inputDesktopMatches();
             boolean available = !"unaware".equals(dpiAwareness) && desktop;
             result.put("available", available);
+            if (available) {
+                var methods = result.putArray("textMethods").add(InputRequest.TextMethod.UNICODE.protocolName);
+                if (layoutTypingAvailable) methods.add(InputRequest.TextMethod.VIRTUAL_KEY.protocolName)
+                        .add(InputRequest.TextMethod.SCAN_CODE.protocolName);
+            }
             if (!available) result.put("reason", desktop
                     ? "The input thread could not obtain per-monitor or system DPI awareness."
                     : "The input desktop is not this session's desktop.");
@@ -157,7 +178,7 @@ final class WindowsInputDriver implements InputDriver {
     @Override public ObjectNode execute(InputRequest request, Runnable gate, long deadline) {
         if (closed) throw InputException.refused("INPUT_UNAVAILABLE", "The input session has ended.");
         Job job = new Job();
-        Future<ObjectNode> future = thread.submit(() -> new Operation(request, gate, job).run());
+        Future<ObjectNode> future = thread.submit(() -> new Operation(request, gate, job, deadline).run());
         try {
             long remaining = deadline - System.nanoTime();
             return future.get(Math.max(0, remaining), TimeUnit.NANOSECONDS);
@@ -228,6 +249,8 @@ final class WindowsInputDriver implements InputDriver {
         if (dpiAwareness != null) return;
         String awareness = null;
         Function setContext = optional("user32", "SetThreadDpiAwarenessContext");
+        // The export and ToUnicodeEx's no-state-change flag arrived with Windows 10 1607.
+        layoutTypingAvailable = setContext != null;
         Function getContext = optional("user32", "GetThreadDpiAwarenessContext");
         Function awarenessOf = optional("user32", "GetAwarenessFromDpiAwarenessContext");
         Function equal = optional("user32", "AreDpiAwarenessContextsEqual");
@@ -371,20 +394,23 @@ final class WindowsInputDriver implements InputDriver {
         private final InputRequest request;
         private final Runnable gate;
         private final Job job;
-        private final List<Runnable> releases = new ArrayList<>();
+        private final long deadline;
         private final Set<Integer> pressedButtons = new LinkedHashSet<>();
         private final Set<InputKeys.Key> pressedKeys = new LinkedHashSet<>();
+        private final List<WinUser.INPUT> partialTextReleases = new ArrayList<>();
         private HWND window;
         private InputGeometry.Rect bounds;
         private boolean dispatched;
+        private HookFault pendingFault;
         private int events;
         private long foreignBaseline;
-        private long observedBaseline;
+        private WindowsTextLayout textLayout;
 
-        Operation(InputRequest request, Runnable gate, Job job) {
+        Operation(InputRequest request, Runnable gate, Job job, long deadline) {
             this.request = request;
             this.gate = gate;
             this.job = job;
+            this.deadline = deadline;
         }
 
         ObjectNode run() {
@@ -401,9 +427,10 @@ final class WindowsInputDriver implements InputDriver {
         /** Releases what this request pressed and what the session holds. Never gated: a release is always due. */
         private InputException fail(AgentException failure) {
             boolean released = false;
-            if (!pressedButtons.isEmpty() || !pressedKeys.isEmpty() || !held.isEmpty()) {
+            if (!pressedButtons.isEmpty() || !pressedKeys.isEmpty() || !held.isEmpty() || !partialTextReleases.isEmpty()) {
                 List<WinUser.INPUT> ups = new ArrayList<>();
                 for (int down : pressedButtons) ups.add(mouse(0, 0, 0, down << 1));
+                ups.addAll(partialTextReleases);
                 Set<InputKeys.Key> keys = new LinkedHashSet<>(pressedKeys);
                 keys.addAll(held);
                 List<InputKeys.Key> reverse = new ArrayList<>(keys);
@@ -413,7 +440,9 @@ final class WindowsInputDriver implements InputDriver {
                 pressedButtons.clear();
                 pressedKeys.clear();
                 held.clear();
+                partialTextReleases.clear();
             }
+            if (monitor != null && !monitor.observationsComplete()) monitor.invalidate();
             boolean sent = events > 0;
             if (failure instanceof InputException) return ((InputException) failure).withRelease(sent, released);
             return new InputException(failure.code(), failure.getMessage(), sent, released);
@@ -471,11 +500,11 @@ final class WindowsInputDriver implements InputDriver {
                     == value(User32.INSTANCE.GetAncestor(window, GA_ROOTOWNER));
         }
 
-        private void requireForeground() {
+        private HWND requireForeground() {
             HWND foreground = User32.INSTANCE.GetForegroundWindow();
             if (!belongs(foreground))
                 throw refused("FOREGROUND_MISMATCH", "The target window is not in the foreground.");
-            if (!request.keyboard()) return;
+            if (!request.keyboard()) return foreground;
             WinUser.GUITHREADINFO info = new WinUser.GUITHREADINFO();
             info.cbSize = info.size();
             int threadId = User32.INSTANCE.GetWindowThreadProcessId(foreground, null);
@@ -486,6 +515,7 @@ final class WindowsInputDriver implements InputDriver {
             }
             if (processOf(focus) != request.processId)
                 throw refused("FOREGROUND_MISMATCH", "The keyboard focus is not in the target process.");
+            return focus;
         }
 
         /** Buttons or modifiers that someone else holds, or recent input that is not this session's. */
@@ -496,17 +526,24 @@ final class WindowsInputDriver implements InputDriver {
                 if (!ours && User32.INSTANCE.GetAsyncKeyState(vk) < 0)
                     throw refused("USER_INPUT_CONFLICT", "A mouse button or modifier key is held down.");
             }
-            if (monitor != null && !monitor.dead) {
+            if (monitor != null && !monitor.unhealthy() && !recoveryPending) {
                 if (monitor.foreignWithin(request.quietMs))
                     throw refused("USER_INPUT_CONFLICT", "The user used the mouse or keyboard just now.");
             } else {
-                WinUser.LASTINPUTINFO last = new WinUser.LASTINPUTINFO();
-                last.cbSize = last.size();
-                if (User32.INSTANCE.GetLastInputInfo(last)) {
-                    long idle = Integer.toUnsignedLong(Kernel32.INSTANCE.GetTickCount() - last.dwTime);
-                    if (idle < request.quietMs)
-                        throw refused("USER_INPUT_CONFLICT", "The user used the mouse or keyboard just now.");
-                }
+                requireDesktopQuiet(monitor == null ? request.quietMs : Math.max(RECOVERY_QUIET_MILLIS, request.quietMs),
+                        monitor != null);
+            }
+        }
+
+        private void requireDesktopQuiet(int millis, boolean recovering) {
+            WinUser.LASTINPUTINFO last = new WinUser.LASTINPUTINFO();
+            last.cbSize = last.size();
+            if (User32.INSTANCE.GetLastInputInfo(last)) {
+                long idle = Integer.toUnsignedLong(Kernel32.INSTANCE.GetTickCount() - last.dwTime);
+                if (idle < millis)
+                    throw refused("USER_INPUT_CONFLICT", "The user used the mouse or keyboard just now.");
+            } else if (recovering) {
+                throw refused("INPUT_UNAVAILABLE", "The input monitor is recovering and recent activity could not be checked.");
             }
         }
 
@@ -560,19 +597,32 @@ final class WindowsInputDriver implements InputDriver {
             gate.run();
             owned(request.window, request.processId);
             if (request.kind != InputRequest.Kind.ACTIVATE) {
-                if (monitor == null || monitor.dead) {
-                    if (monitor != null) monitor.stop();
-                    monitor = null;
+                if (monitor == null || monitor.unhealthy()) {
+                    if (monitor != null) {
+                        recoveryPending = true;
+                        monitor.stop();
+                        long previousTag = tag;
+                        do tag = nextTag(); while (tag == previousTag);
+                    }
                     monitor = Monitor.start(tag);
                 }
                 foreignBaseline = monitor.foreign.get();
-                observedBaseline = monitor.observed.get();
+                if (recoveryPending) {
+                    requireDesktopQuiet(Math.max(RECOVERY_QUIET_MILLIS, request.quietMs), true);
+                    recoveryPending = false;
+                }
             }
             synchronized (job) {
                 if (job.cancelled) throw refused("TIMEOUT", "The request expired before any input was sent.");
                 job.dispatched = true;
             }
             dispatched = true;
+            if ((request.kind == InputRequest.Kind.DRAG && (hookFault == HookFault.MOUSE_REMOVE || hookFault == HookFault.MOUSE_PARTIAL))
+                    || (request.kind == InputRequest.Kind.TYPE_TEXT && (hookFault == HookFault.KEYBOARD_REMOVE
+                    || hookFault == HookFault.KEYBOARD_PARTIAL || hookFault == HookFault.BOTH_REMOVE))) {
+                pendingFault = hookFault;
+                hookFault = null;
+            }
         }
 
         /** Between steps: the caller gave up, or someone else used the mouse or keyboard. */
@@ -586,13 +636,53 @@ final class WindowsInputDriver implements InputDriver {
 
         private void send(List<WinUser.INPUT> batch) {
             dispatch();
-            checkpoint();
+            requireObservations();
+            HWND focus = requireForeground();
+            if (textLayout != null) textLayout.verify(focus);
+            if (pendingFault != null) injectHookFault();
             int sent = sendUnchecked(batch);
             events += sent;
             if (sent == 0 && events == 0)
                 throw new InputException("INPUT_BLOCKED", "The system did not accept the input.", false, false);
-            if (sent < batch.size())
+            if (sent < batch.size()) {
+                if (request.kind == InputRequest.Kind.TYPE_TEXT) recordPartialTextReleases(batch, sent);
                 throw refused("ACTION_OUTCOME_UNKNOWN", "Only part of the input was accepted.");
+            }
+        }
+
+        private void recordPartialTextReleases(List<WinUser.INPUT> batch, int sent) {
+            for (int i = 0; i < sent; i++) {
+                var event = batch.get(i).input.ki;
+                int flags = event.dwFlags.intValue();
+                if ((flags & KEY_UP) == 0) {
+                    partialTextReleases.add(0, keyboardEvent(event.wVk.intValue(), event.wScan.intValue(), flags | KEY_UP));
+                } else {
+                    partialTextReleases.removeIf(up -> up.input.ki.wVk.equals(event.wVk)
+                            && up.input.ki.wScan.equals(event.wScan) && up.input.ki.dwFlags.equals(event.dwFlags));
+                }
+            }
+        }
+
+        private void injectHookFault() {
+            switch (pendingFault) {
+                case MOUSE_REMOVE:
+                    monitor.removeMouseAt = monitor.mouseObserved.get() + 2;
+                    break;
+                case KEYBOARD_REMOVE:
+                    monitor.removeKeyboardAt = monitor.keyboardObserved.get() + 2;
+                    break;
+                case BOTH_REMOVE:
+                    monitor.removeMouseHook();
+                    monitor.removeKeyboardHook();
+                    break;
+                case MOUSE_PARTIAL:
+                    monitor.mouseObservationLimit = monitor.mouseObserved.get() + 2;
+                    break;
+                case KEYBOARD_PARTIAL:
+                    monitor.keyboardObservationLimit = monitor.keyboardObserved.get() + 2;
+                    break;
+            }
+            pendingFault = null;
         }
 
         /** The physical button flag for a logical button. Left and right swap with SM_SWAPBUTTON. */
@@ -619,19 +709,19 @@ final class WindowsInputDriver implements InputDriver {
         }
 
         private ObjectNode result() {
+            requireObservations();
             ObjectNode result = JsonNodeFactory.instance.objectNode().put("performed", true).put("inputSent", true)
-                    .put("inputObserved", observed()).put("effectVerified", false).put("events", events);
+                    .put("inputObserved", true).put("effectVerified", false).put("events", events);
             return result;
         }
 
-        /** True once the hook has seen every event of this request. A hook that saw none is replaced next time. */
-        private boolean observed() {
-            if (monitor == null) return false;
-            long until = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(OBSERVE_MILLIS);
-            while (monitor.observed.get() - observedBaseline < events && System.nanoTime() < until) pause(2);
-            long seen = monitor.observed.get() - observedBaseline;
-            if (seen == 0 && events > 0) monitor.dead = true;
-            return seen >= events;
+        /** Do not send another batch, or report success, until every accepted event was observed. */
+        private void requireObservations() {
+            long until = Math.min(deadline, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(OBSERVE_MILLIS));
+            if (!monitor.awaitObserved(until, this::checkpoint, () -> pause(1))) {
+                throw refused(events == 0 ? "INPUT_UNAVAILABLE" : "ACTION_OUTCOME_UNKNOWN",
+                        "The input monitor could not confirm the events. Inspect the target before retrying.");
+            }
         }
 
         private ObjectNode withPoint(ObjectNode result, String field, int[] point) {
@@ -745,6 +835,13 @@ final class WindowsInputDriver implements InputDriver {
 
         private ObjectNode type() {
             List<InputKeys.Unit> units = request.text;
+            if (request.textMethod != InputRequest.TextMethod.UNICODE) {
+                if (!layoutTypingAvailable)
+                    throw refused("PRECONDITION_FAILED", "Layout-based typing is unavailable on this version of Windows.");
+                if (!held.isEmpty())
+                    throw refused("PRECONDITION_FAILED", "Release session-held keys before layout-based typing.");
+                textLayout = WindowsTextLayout.prepare(requireForeground(), units);
+            }
             for (int start = 0, end; start < units.size(); start = end) {
                 end = Math.min(units.size(), start + InputRequest.TEXT_CHUNK);
                 // A surrogate pair goes out in one batch.
@@ -756,8 +853,16 @@ final class WindowsInputDriver implements InputDriver {
                     requireForeground();
                 }
                 List<WinUser.INPUT> batch = new ArrayList<>();
-                for (InputKeys.Unit unit : units.subList(start, end)) {
-                    if (unit.key != null) {
+                for (int index = start; index < end; index++) {
+                    InputKeys.Unit unit = units.get(index);
+                    if (textLayout != null) {
+                        WindowsTextLayout.Stroke stroke = textLayout.stroke(index);
+                        boolean scan = request.textMethod == InputRequest.TextMethod.SCAN_CODE;
+                        if (stroke.shift) batch.add(layoutKey(textLayout.shift(), scan, false));
+                        batch.add(layoutKey(stroke, scan, false));
+                        batch.add(layoutKey(stroke, scan, true));
+                        if (stroke.shift) batch.add(layoutKey(textLayout.shift(), scan, true));
+                    } else if (unit.key != null) {
                         batch.add(key(unit.key, false));
                         batch.add(key(unit.key, true));
                     } else {
@@ -780,13 +885,21 @@ final class WindowsInputDriver implements InputDriver {
             if (source.type.intValue() == INPUT_MOUSE) {
                 array[i].input.setType("mi");
                 array[i].input.mi = source.input.mi;
+                array[i].input.mi.dwExtraInfo = new ULONG_PTR(tag);
             } else {
                 array[i].input.setType("ki");
                 array[i].input.ki = source.input.ki;
+                array[i].input.ki.dwExtraInfo = new ULONG_PTR(tag);
             }
         }
         int sent = User32.INSTANCE.SendInput(new DWORD(array.length), array, array[0].size()).intValue();
-        if (monitor != null) monitor.expect(sent);
+        if (monitor != null) {
+            int mouse = 0;
+            for (int i = 0; i < sent; i++) {
+                if (array[i].type.intValue() == INPUT_MOUSE) mouse++;
+            }
+            monitor.expect(mouse, sent - mouse);
+        }
         return sent;
     }
 
@@ -799,31 +912,31 @@ final class WindowsInputDriver implements InputDriver {
         input.input.mi.mouseData = new DWORD(data & 0xFFFFFFFFL);
         input.input.mi.dwFlags = new DWORD(flags);
         input.input.mi.time = new DWORD(0);
-        input.input.mi.dwExtraInfo = new ULONG_PTR(tag);
         return input;
     }
 
     private WinUser.INPUT key(InputKeys.Key key, boolean up) {
-        WinUser.INPUT input = new WinUser.INPUT();
-        input.type = new DWORD(INPUT_KEYBOARD);
-        input.input.setType("ki");
-        input.input.ki.wVk = new WORD(key.vk);
-        input.input.ki.wScan = new WORD(Natives.INSTANCE.MapVirtualKeyW(key.vk, 0) & 0xFFFF);
-        input.input.ki.dwFlags = new DWORD((key.extended ? KEY_EXTENDED : 0) | (up ? KEY_UP : 0));
-        input.input.ki.time = new DWORD(0);
-        input.input.ki.dwExtraInfo = new ULONG_PTR(tag);
-        return input;
+        return keyboardEvent(key.vk, Natives.INSTANCE.MapVirtualKeyW(key.vk, 0) & 0xFFFF,
+                (key.extended ? KEY_EXTENDED : 0) | (up ? KEY_UP : 0));
     }
 
     private WinUser.INPUT unicode(char character, boolean up) {
+        return keyboardEvent(0, character, KEY_UNICODE | (up ? KEY_UP : 0));
+    }
+
+    private WinUser.INPUT layoutKey(WindowsTextLayout.Stroke stroke, boolean scan, boolean up) {
+        return keyboardEvent(scan ? 0 : stroke.virtualKey, stroke.scanCode,
+                (scan ? KEY_SCAN_CODE : 0) | (stroke.extended ? KEY_EXTENDED : 0) | (up ? KEY_UP : 0));
+    }
+
+    private WinUser.INPUT keyboardEvent(int virtualKey, int scanCode, int flags) {
         WinUser.INPUT input = new WinUser.INPUT();
         input.type = new DWORD(INPUT_KEYBOARD);
         input.input.setType("ki");
-        input.input.ki.wVk = new WORD(0);
-        input.input.ki.wScan = new WORD(character);
-        input.input.ki.dwFlags = new DWORD(KEY_UNICODE | (up ? KEY_UP : 0));
+        input.input.ki.wVk = new WORD(virtualKey);
+        input.input.ki.wScan = new WORD(scanCode);
+        input.input.ki.dwFlags = new DWORD(flags);
         input.input.ki.time = new DWORD(0);
-        input.input.ki.dwExtraInfo = new ULONG_PTR(tag);
         return input;
     }
 
@@ -854,19 +967,29 @@ final class WindowsInputDriver implements InputDriver {
      * events and records every other event as the user's. The callbacks only count and pass on.
      */
     static final class Monitor {
-        final AtomicLong observed = new AtomicLong();
+        private final AtomicLong mouseObserved = new AtomicLong();
+        private final AtomicLong keyboardObserved = new AtomicLong();
         final AtomicLong foreign = new AtomicLong();
-        private final AtomicLong expected = new AtomicLong();
+        private long mouseExpected;
+        private long keyboardExpected;
+        private boolean mouseMissing;
+        private boolean keyboardMissing;
+        private volatile long mouseObservationLimit = Long.MAX_VALUE;
+        private volatile long keyboardObservationLimit = Long.MAX_VALUE;
+        private volatile long removeMouseAt = Long.MAX_VALUE;
+        private volatile long removeKeyboardAt = Long.MAX_VALUE;
         private volatile long lastForeign = Long.MIN_VALUE;
-        volatile boolean dead;
+        private volatile boolean stopped;
         private final long tag;
         private volatile int threadId;
         private Thread thread;
         // Strong references keep the callbacks alive while Windows holds them.
         private WinUser.LowLevelMouseProc mouseProc;
         private WinUser.LowLevelKeyboardProc keyboardProc;
+        private WinUser.HHOOK mouseHandle;
+        private WinUser.HHOOK keyboardHandle;
 
-        private Monitor(long tag) { this.tag = tag; }
+        Monitor(long tag) { this.tag = tag; }
 
         static Monitor start(long tag) {
             Monitor monitor = new Monitor(tag);
@@ -891,19 +1014,18 @@ final class WindowsInputDriver implements InputDriver {
         private void loop(CountDownLatch ready, boolean[] installed) {
             threadId = Kernel32.INSTANCE.GetCurrentThreadId();
             var module = Kernel32.INSTANCE.GetModuleHandle(null);
-            WinUser.HHOOK[] hooks = new WinUser.HHOOK[2];
             mouseProc = (code, wParam, info) -> {
-                if (code >= 0) record((info.flags & LLMHF_INJECTED) != 0 && info.dwExtraInfo.longValue() == tag);
-                return User32.INSTANCE.CallNextHookEx(hooks[0], code, wParam, new LPARAM(Pointer.nativeValue(info.getPointer())));
+                if (code >= 0) recordMouse((info.flags & LLMHF_INJECTED) != 0 && info.dwExtraInfo.longValue() == tag);
+                return User32.INSTANCE.CallNextHookEx(null, code, wParam, new LPARAM(Pointer.nativeValue(info.getPointer())));
             };
             keyboardProc = (code, wParam, info) -> {
-                if (code >= 0) record((info.flags & LLKHF_INJECTED) != 0 && info.dwExtraInfo.longValue() == tag);
-                return User32.INSTANCE.CallNextHookEx(hooks[1], code, wParam, new LPARAM(Pointer.nativeValue(info.getPointer())));
+                if (code >= 0) recordKeyboard((info.flags & LLKHF_INJECTED) != 0 && info.dwExtraInfo.longValue() == tag);
+                return User32.INSTANCE.CallNextHookEx(null, code, wParam, new LPARAM(Pointer.nativeValue(info.getPointer())));
             };
             try {
-                hooks[0] = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL, mouseProc, module, 0);
-                hooks[1] = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL, keyboardProc, module, 0);
-                installed[0] = hooks[0] != null && hooks[1] != null;
+                mouseHandle = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_MOUSE_LL, mouseProc, module, 0);
+                keyboardHandle = User32.INSTANCE.SetWindowsHookEx(WinUser.WH_KEYBOARD_LL, keyboardProc, module, 0);
+                installed[0] = mouseHandle != null && keyboardHandle != null;
                 ready.countDown();
                 if (!installed[0]) return;
                 WinUser.MSG message = new WinUser.MSG();
@@ -911,22 +1033,70 @@ final class WindowsInputDriver implements InputDriver {
                     // Low-level hooks are called while this thread waits for messages.
                 }
             } finally {
-                if (hooks[0] != null) User32.INSTANCE.UnhookWindowsHookEx(hooks[0]);
-                if (hooks[1] != null) User32.INSTANCE.UnhookWindowsHookEx(hooks[1]);
+                stopped = true;
+                removeMouseHook();
+                removeKeyboardHook();
                 ready.countDown();
             }
         }
 
-        private void record(boolean ours) {
+        private synchronized void removeMouseHook() {
+            if (mouseHandle == null) return;
+            User32.INSTANCE.UnhookWindowsHookEx(mouseHandle);
+            mouseHandle = null;
+        }
+
+        private synchronized void removeKeyboardHook() {
+            if (keyboardHandle == null) return;
+            User32.INSTANCE.UnhookWindowsHookEx(keyboardHandle);
+            keyboardHandle = null;
+        }
+
+        void recordMouse(boolean ours) {
+            long seen = record(mouseObserved, mouseObservationLimit, ours);
+            if (seen == removeMouseAt) removeMouseHook();
+        }
+
+        void recordKeyboard(boolean ours) {
+            long seen = record(keyboardObserved, keyboardObservationLimit, ours);
+            if (seen == removeKeyboardAt) removeKeyboardHook();
+        }
+
+        private long record(AtomicLong observed, long limit, boolean ours) {
             if (ours) {
-                observed.incrementAndGet();
+                if (limit == Long.MAX_VALUE || observed.get() < limit) return observed.incrementAndGet();
             } else {
                 lastForeign = System.nanoTime();
                 foreign.incrementAndGet();
             }
+            return -1;
         }
 
-        void expect(int events) { expected.addAndGet(events); }
+        void expect(int mouse, int keyboard) {
+            mouseExpected += mouse;
+            keyboardExpected += keyboard;
+        }
+
+        boolean observationsComplete() {
+            return mouseObserved.get() >= mouseExpected && keyboardObserved.get() >= keyboardExpected;
+        }
+
+        boolean unhealthy() { return stopped || mouseMissing || keyboardMissing; }
+
+        void invalidate() {
+            mouseMissing |= mouseObserved.get() < mouseExpected;
+            keyboardMissing |= keyboardObserved.get() < keyboardExpected;
+        }
+
+        boolean awaitObserved(long until, Runnable checkpoint, Runnable wait) {
+            while (!unhealthy() && !observationsComplete() && System.nanoTime() < until) {
+                checkpoint.run();
+                wait.run();
+            }
+            if (!observationsComplete()) invalidate();
+            checkpoint.run();
+            return !unhealthy();
+        }
 
         boolean foreignWithin(int millis) {
             long last = lastForeign;

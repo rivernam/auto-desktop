@@ -45,6 +45,7 @@ public:
 
     FakeDriver() {
         state.available = true;
+        state.layoutText = true;
         state.reason.clear();
         state.dpiAwareness = "perMonitorV2";
         state.inputDesktop = true;
@@ -198,6 +199,9 @@ void parsing() {
     check(parse(with({{"text", "a\x01"}}), InputOp::typeText) == "INVALID_REQUEST", "control character");
     check(parse(with({{"text", "a\x7F"}}), InputOp::typeText) == "INVALID_REQUEST", "delete character");
     check(parse(with({{"text", "a"}, {"intervalMs", 51}}), InputOp::typeText) == "INVALID_REQUEST", "interval");
+    check(parse(with({{"text", "a"}, {"method", "clipboard"}}), InputOp::typeText) == "INVALID_REQUEST", "unavailable method");
+    check(parse(with({{"text", "a"}, {"method", "VirtualKey"}}), InputOp::typeText) == "INVALID_REQUEST", "case-sensitive method");
+    check(parse(with({{"text", "a"}, {"method", 1}}), InputOp::typeText) == "INVALID_REQUEST", "method type");
     check(typedText("a\r\nb\nc\rd\te") == u"a\rb\rc\rd\te", "line ends become Enter, tab stays Tab");
     check(typedText("\xF0\x9F\x98\x80") == u"\xD83D\xDE00", "supplementary character as a pair");
     check(parse(with({{"point", screen(1, 2)}, {"quietMs", 10001}}), InputOp::pointerMove) == "INVALID_REQUEST", "quiet");
@@ -384,8 +388,13 @@ void keyboard() {
     error(send(agent, "keyPress", with({{"keys", "Tab"}}), "k3"), "INVALID_REQUEST");
     error(send(agent, "keyDown", with({{"key", "Esc"}}), "k4"), "INVALID_REQUEST");
     error(send(agent, "typeText", with({{"text", "a\tb"}}), "k5"), "INVALID_REQUEST");
-    check(send(agent, "typeText", with({{"text", "a\r\nb"}}), "k6").at("ok") == true
+    const auto direct = send(agent, "typeText", with({{"text", "a\r\nb"}}), "k6");
+    check(direct.at("ok") == true && direct.at("result").at("method") == "unicode"
           && driver.commands.back().text == u"a\rb", "text reaches the driver normalized");
+    for (const auto method : {"virtualKey", "scanCode"}) {
+        const auto typed = send(agent, "typeText", with({{"text", "a"}, {"method", method}}), method);
+        check(typed.at("ok") == true && typed.at("result").at("method") == method, "selected text method");
+    }
     driver.keys = {vk::control};
     error(send(agent, "keyPress", with({{"keys", "Esc"}}), "k7"), "INVALID_REQUEST");
     check(send(agent, "keyUp", with({{"key", "Ctrl"}}), "k8").at("ok") == true, "keyUp of a held key");
@@ -492,14 +501,20 @@ void capabilities() {
     check(input == Json{{"available", true}, {"allowedActions", {"activate", "keyboard", "pointer"}},
                         {"dpiAwareness", "perMonitorV2"}, {"integrity", "medium"}, {"inputDesktop", true},
                         {"virtualScreen", {{"x", -1920}, {"y", 0}, {"width", 3840}, {"height", 1080}}},
-                        {"monitors", 2}, {"buttonsSwapped", false}}, "input object " + input.dump());
+                        {"monitors", 2}, {"buttonsSwapped", false},
+                        {"textMethods", {"unicode", "virtualKey", "scanCode"}}}, "input object " + input.dump());
     const auto keyboardOnly = caps({Action::keyboard}, &driver);
     check(keyboardOnly.at("operations").size() == 11 && keyboardOnly.at("operations").back() == "typeText",
           "only allowed operations");
+    driver.state.layoutText = false;
+    check(caps({Action::keyboard}, &driver).at("input").at("textMethods") == Json::array({"unicode"}),
+          "older Windows advertises only Unicode");
+    check(!caps({Action::pointer}, &driver).at("input").contains("textMethods"), "keyboard permission required");
     driver.state.available = false;
     driver.state.reason = "The input thread is DPI-unaware on a scaled display.";
-    const auto unavailable = caps({Action::pointer}, &driver);
+    const auto unavailable = caps({Action::keyboard}, &driver);
     check(unavailable.at("physicalInput") == false && unavailable.at("input").at("reason") == driver.state.reason
+          && !unavailable.at("input").contains("textMethods")
           && unavailable.at("operations").size() == 7, "unavailable input adds no operations");
     const auto missing = caps({Action::pointer}, nullptr);
     check(missing.at("input").at("available") == false && missing.at("input").contains("reason"), "no driver");

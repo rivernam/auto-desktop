@@ -1,0 +1,868 @@
+{
+    "schema":  1,
+    "tool":  "Test-PhysicalInput.ps1",
+    "startedUtc":  "2026-11-27T10:30:57.6900815Z",
+    "mode":  "interactive",
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.9818",
+                        "processorCount":  20,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-12700",
+                        "cpuNominalMhz":  2112,
+                        "monitors":  [
+                                         {
+                                             "left":  0,
+                                             "top":  0,
+                                             "right":  1920,
+                                             "bottom":  1032,
+                                             "primary":  true
+                                         }
+                                     ],
+                        "userIdleMsAtStart":  1906,
+                        "gitCommit":  "806ce11064f72504e4460c5cdc4879d1acc42da3",
+                        "jarSha256":  "57D261C2F90724B23BF526C83D2263CB3D222FCE1AA8CA63B593D077743DDFEC",
+                        "cppAgentSha256":  "56E46DA5AA5C8DE6E667B0EAA138D82AF12E88DD05A32C175059D0F6324E8159",
+                        "winFormsFixtureSha256":  "BB6C833141D11C330BF615D933A8EE2E5097113ACD24C7DBF3396702636CEC90",
+                        "swingAwtFixtureClassSha256":  "679AD3F09C3A800CB3604CA04E97B7342C5D8008876C3C5A27C23BBD59A55589",
+                        "runnerSha256":  "CC96097A3665E684588AF7993E688A5B8D86BEED3DEFBEEAD02D1CB38DC22E3D",
+                        "faultCppAgentSha256":  "D20CE5059053467B2CE76F1B731510674AFAF53C93BB387D4EF3052A7E31719A",
+                        "faultJavaLauncherSha256":  "08FEC4EF08FCBC7FC09A18FECFF15016D2462371660F874A2518D30EDA73D18D",
+                        "javaAgentRuntime":  "C:\\Program Files\\Java\\jdk-11.0.15\\bin\\java.exe",
+                        "javaAgentVersion":  "java version \"11.0.15\" 2022-04-19 LTS | Java(TM) SE Runtime Environment 18.9 (build 11.0.15+8-LTS-149) | Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.15+8-LTS-149, mixed mode)",
+                        "fixtureJavaVersion":  "openjdk version \"21.0.11\" 2026-04-21 LTS | OpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS) | OpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)"
+                    },
+    "agents":  [
+                   "Java",
+                   "Cpp"
+               ],
+    "cases":  [
+                  {
+                      "agent":  "Java",
+                      "case":  "HookMouseRemoved",
+                      "description":  "Remove just the mouse hook during a drag, stop further movement and verify recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:31:24.4307908Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  195.1
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  43.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  6.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerDrag",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  585.7,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  16.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  8.3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  1.3,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "mouse-remove",
+                                       "fixtureShiftReleased":  true,
+                                       "interruptedCursor":  [
+                                                                 681,
+                                                                 802
+                                                             ],
+                                       "dragEnd":  [
+                                                       1253,
+                                                       802
+                                                   ],
+                                       "fixtureButtons":  [
+                                                              "down left 0.500 0.500",
+                                                              "up left 0.500 0.500",
+                                                              "down left 0.099 0.500",
+                                                              "up left 0.120 0.500"
+                                                          ],
+                                       "fixtureRecoveredText":  "recovered"
+                                   },
+                      "durationMs":  4102,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "HookKeyboardRemoved",
+                      "description":  "Remove just the keyboard hook during typing, stop remaining batches and verify recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:31:30.1180146Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  210.7
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  49.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  6.1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  554.1,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  32.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  8.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  1.3,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "keyboard-remove",
+                                       "fixtureShiftReleased":  true,
+                                       "charactersBeforeStop":  16,
+                                       "fixtureRecoveredText":  "xxxxxxxxxxxxxxxxrecovered"
+                                   },
+                      "durationMs":  4096,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "HookBothRemoved",
+                      "description":  "Remove both hooks before the first text batch, then verify dispatch refusal and recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:31:35.7727753Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  210.5
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  60.1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  6.3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  550.5,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  32.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  9.3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  1.2,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "both-remove",
+                                       "fixtureShiftReleased":  true,
+                                       "charactersBeforeStop":  16,
+                                       "fixtureRecoveredText":  "xxxxxxxxxxxxxxxxrecovered"
+                                   },
+                      "durationMs":  3935,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "HookMousePartial",
+                      "description":  "Lose part of the mouse observation stream during a drag and verify release and recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:31:41.2638104Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  194.1
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  51.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  7.4,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerDrag",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  577.3,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  20.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  9.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  1.2,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "mouse-partial",
+                                       "fixtureShiftReleased":  true,
+                                       "interruptedCursor":  [
+                                                                 681,
+                                                                 802
+                                                             ],
+                                       "dragEnd":  [
+                                                       1253,
+                                                       802
+                                                   ],
+                                       "fixtureButtons":  [
+                                                              "down left 0.500 0.500",
+                                                              "up left 0.500 0.500",
+                                                              "down left 0.099 0.500",
+                                                              "up left 0.120 0.500"
+                                                          ],
+                                       "fixtureRecoveredText":  "recovered"
+                                   },
+                      "durationMs":  3919,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Java",
+                      "case":  "HookKeyboardPartial",
+                      "description":  "Lose part of a text batch observation stream and verify release and recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:31:46.7415041Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  207.8
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  54.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  6.7,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  564.8,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  35.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  11,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  1.2,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "keyboard-partial",
+                                       "fixtureShiftReleased":  true,
+                                       "charactersBeforeStop":  16,
+                                       "fixtureRecoveredText":  "xxxxxxxxxxxxxxxxrecovered"
+                                   },
+                      "durationMs":  4012,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "HookMouseRemoved",
+                      "description":  "Remove just the mouse hook during a drag, stop further movement and verify recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:31:52.3073606Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  175.5
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  26.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  0.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerDrag",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  557.4,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  12.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  2.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  0.3,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "mouse-remove",
+                                       "fixtureShiftReleased":  true,
+                                       "interruptedCursor":  [
+                                                                 681,
+                                                                 802
+                                                             ],
+                                       "dragEnd":  [
+                                                       1253,
+                                                       802
+                                                   ],
+                                       "fixtureButtons":  [
+                                                              "down left 0.500 0.500",
+                                                              "up left 0.500 0.500",
+                                                              "down left 0.099 0.500",
+                                                              "up left 0.120 0.500"
+                                                          ],
+                                       "fixtureRecoveredText":  "recovered"
+                                   },
+                      "durationMs":  3325,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "HookKeyboardRemoved",
+                      "description":  "Remove just the keyboard hook during typing, stop remaining batches and verify recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:31:57.1973603Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  177.8
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  27.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  0.7,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  517.8,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  13.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  1.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  0.4,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "keyboard-remove",
+                                       "fixtureShiftReleased":  true,
+                                       "charactersBeforeStop":  16,
+                                       "fixtureRecoveredText":  "xxxxxxxxxxxxxxxxrecovered"
+                                   },
+                      "durationMs":  3192,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "HookBothRemoved",
+                      "description":  "Remove both hooks before the first text batch, then verify dispatch refusal and recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:32:01.9523604Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  191.6
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  17,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  0.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  504.2,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  25.3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  0.4,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "both-remove",
+                                       "fixtureShiftReleased":  true,
+                                       "charactersBeforeStop":  16,
+                                       "fixtureRecoveredText":  "xxxxxxxxxxxxxxxxrecovered"
+                                   },
+                      "durationMs":  3313,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "HookMousePartial",
+                      "description":  "Lose part of the mouse observation stream during a drag and verify release and recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:32:06.5723609Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  183.2
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  25,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  1,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerDrag",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  564.8,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  14.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  2.4,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  0.4,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "mouse-partial",
+                                       "fixtureShiftReleased":  true,
+                                       "interruptedCursor":  [
+                                                                 681,
+                                                                 802
+                                                             ],
+                                       "dragEnd":  [
+                                                       1253,
+                                                       802
+                                                   ],
+                                       "fixtureButtons":  [
+                                                              "down left 0.500 0.500",
+                                                              "up left 0.500 0.500",
+                                                              "down left 0.099 0.500",
+                                                              "up left 0.120 0.500"
+                                                          ],
+                                       "fixtureRecoveredText":  "recovered"
+                                   },
+                      "durationMs":  3363,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "HookKeyboardPartial",
+                      "description":  "Lose part of a text batch observation stream and verify release and recovery.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T10:32:11.2688544Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  187.7
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  20.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  0.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "ACTION_OUTCOME_UNKNOWN",
+                                        "ms":  506.6,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  23.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  2.2,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerMove",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  0.3,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "fault":  "keyboard-partial",
+                                       "fixtureShiftReleased":  true,
+                                       "charactersBeforeStop":  16,
+                                       "fixtureRecoveredText":  "xxxxxxxxxxxxxxxxrecovered"
+                                   },
+                      "durationMs":  3234,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  }
+              ],
+    "summary":  {
+                    "PASS":  10,
+                    "FAIL":  0,
+                    "BLOCKED":  0,
+                    "NOT_RUN":  0
+                },
+    "parity":  [
+                   {
+                       "case":  "HookMouseRemoved",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "HookKeyboardRemoved",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "HookBothRemoved",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "HookMousePartial",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   },
+                   {
+                       "case":  "HookKeyboardPartial",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   }
+               ],
+    "finishedUtc":  "2026-11-27T10:32:14.5645243Z"
+}

@@ -14,6 +14,24 @@ final class InputRequest {
 
     enum Button { LEFT, RIGHT, MIDDLE }
 
+    enum TextMethod {
+        UNICODE("unicode"), VIRTUAL_KEY("virtualKey"), SCAN_CODE("scanCode");
+
+        final String protocolName;
+
+        TextMethod(String protocolName) { this.protocolName = protocolName; }
+
+        static TextMethod parse(JsonNode field) {
+            if (field == null) return UNICODE;
+            if (field.isTextual()) {
+                for (TextMethod method : values()) {
+                    if (method.protocolName.equals(field.textValue())) return method;
+                }
+            }
+            throw invalid("Invalid method.");
+        }
+    }
+
     static final class Point {
         final int x;
         final int y;
@@ -48,6 +66,7 @@ final class InputRequest {
     boolean horizontal;
     List<InputKeys.Key> keys = List.of();
     List<InputKeys.Unit> text = List.of();
+    TextMethod textMethod = TextMethod.UNICODE;
     int intervalMs;
 
     private InputRequest(Kind kind, long window, int processId, int quietMs) {
@@ -131,6 +150,7 @@ final class InputRequest {
                 JsonNode value = request.get("text");
                 if (value == null || !value.isTextual()) throw invalid("Invalid text.");
                 parsed.text = InputKeys.text(value.textValue());
+                parsed.textMethod = TextMethod.parse(request.get("method"));
                 parsed.intervalMs = integer(request, "intervalMs", 0, 0, 50);
                 break;
             }

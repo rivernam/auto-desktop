@@ -226,6 +226,7 @@ public final class Agent implements AutoCloseable {
         ArrayNode allowed = row.putArray("allowedActions");
         inputActions.stream().sorted().forEach(allowed::add);
         boolean available = row.path("available").asBoolean();
+        if (!available || !inputActions.contains("keyboard")) row.remove("textMethods");
         result.put("physicalInput", available);
         if (available) {
             ArrayNode operations = result.withArray("operations");
@@ -249,7 +250,9 @@ public final class Agent implements AutoCloseable {
             throw new AgentException("PERMISSION_DENIED", "The process and action must both be allowed.");
         InputDriver driver = input();
         actions.remember(id);
-        return driver.execute(parsed, inputGate(parsed.processId), inputDeadline());
+        ObjectNode result = driver.execute(parsed, inputGate(parsed.processId), inputDeadline());
+        if (parsed.kind == InputRequest.Kind.TYPE_TEXT) result.put("method", parsed.textMethod.protocolName);
+        return result;
     }
 
     private Runnable inputGate(int processId) {

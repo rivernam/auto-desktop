@@ -1,0 +1,392 @@
+{
+    "schema":  1,
+    "tool":  "Test-PhysicalInput.ps1",
+    "startedUtc":  "2026-11-26T14:09:30.2747203Z",
+    "mode":  "interactive",
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.9818",
+                        "processorCount":  20,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-12700",
+                        "cpuNominalMhz":  2112,
+                        "monitors":  [
+                                         {
+                                             "left":  0,
+                                             "top":  0,
+                                             "right":  1920,
+                                             "bottom":  1032,
+                                             "primary":  true
+                                         }
+                                     ],
+                        "userIdleMsAtStart":  1718,
+                        "gitCommit":  "806ce11064f72504e4460c5cdc4879d1acc42da3",
+                        "jarSha256":  "406978D60C5450ED1A62AD3162A833BAF9AC1473F842DFBE6F5C342165A39D43",
+                        "cppAgentSha256":  "42E396F0D2031BCAD24302C0071497FA29F1C2DD0697B6E104E624EA2BFBB501",
+                        "winFormsFixtureSha256":  "BB6C833141D11C330BF615D933A8EE2E5097113ACD24C7DBF3396702636CEC90",
+                        "swingAwtFixtureClassSha256":  "679AD3F09C3A800CB3604CA04E97B7342C5D8008876C3C5A27C23BBD59A55589",
+                        "runnerSha256":  "7D776D5F85060F3A95ED031F4265F35F9D7187E9B4F22A63865936B1F6FF977B",
+                        "javaAgentRuntime":  "C:\\Program Files\\Java\\jdk-11.0.15\\bin\\java.exe",
+                        "javaAgentVersion":  "java version \"11.0.15\" 2022-04-19 LTS | Java(TM) SE Runtime Environment 18.9 (build 11.0.15+8-LTS-149) | Java HotSpot(TM) 64-Bit Server VM 18.9 (build 11.0.15+8-LTS-149, mixed mode)",
+                        "fixtureJavaVersion":  "openjdk version \"21.0.11\" 2026-04-21 LTS | OpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS) | OpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)"
+                    },
+    "agents":  [
+                   "Java",
+                   "Cpp"
+               ],
+    "cases":  [
+                  {
+                      "agent":  "Java",
+                      "case":  "Performance",
+                      "description":  "Latency of pointerMove, pointerClick, clickElement, keyPress and typeText against the canvas, with the recorded state checked at the end.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T14:14:04.0028809Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  370.9
+                                    }
+                                ],
+                      "evidence":  {
+                                       "measuredSeconds":  60.016,
+                                       "cycles":  120,
+                                       "periodMs":  500,
+                                       "clicksExpected":  240,
+                                       "clicksRecorded":  240,
+                                       "charactersExpected":  3840,
+                                       "charactersRecorded":  3840,
+                                       "latencyMs":  {
+                                                         "pointerMove":  {
+                                                                             "count":  120,
+                                                                             "mean":  2.11,
+                                                                             "p50":  1.78,
+                                                                             "p95":  2.57,
+                                                                             "p99":  2.98,
+                                                                             "max":  32.18
+                                                                         },
+                                                         "pointerClick":  {
+                                                                              "count":  120,
+                                                                              "mean":  3.05,
+                                                                              "p50":  2.27,
+                                                                              "p95":  9.92,
+                                                                              "p99":  16.46,
+                                                                              "max":  20.18
+                                                                          },
+                                                         "clickElement":  {
+                                                                              "count":  120,
+                                                                              "mean":  390.8,
+                                                                              "p50":  365.84,
+                                                                              "p95":  590.09,
+                                                                              "p99":  703.31,
+                                                                              "max":  800.35
+                                                                          },
+                                                         "keyPress":  {
+                                                                          "count":  120,
+                                                                          "mean":  2.27,
+                                                                          "p50":  2.18,
+                                                                          "p95":  3.26,
+                                                                          "p99":  4.24,
+                                                                          "max":  6.25
+                                                                      },
+                                                         "typeText":  {
+                                                                          "count":  120,
+                                                                          "mean":  13.04,
+                                                                          "p50":  12.57,
+                                                                          "p95":  17.28,
+                                                                          "p99":  22.97,
+                                                                          "max":  30.05
+                                                                      }
+                                                     },
+                                       "processSamples":  [
+                                                              {
+                                                                  "elapsedSeconds":  0,
+                                                                  "cpuMs":  1296.875,
+                                                                  "workingSetBytes":  93712384,
+                                                                  "privateBytes":  80470016,
+                                                                  "threads":  29
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  5.389,
+                                                                  "cpuMs":  2359.375,
+                                                                  "workingSetBytes":  92418048,
+                                                                  "privateBytes":  78139392,
+                                                                  "threads":  31
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  10.464,
+                                                                  "cpuMs":  2703.125,
+                                                                  "workingSetBytes":  96206848,
+                                                                  "privateBytes":  81080320,
+                                                                  "threads":  31
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  15.426,
+                                                                  "cpuMs":  3109.375,
+                                                                  "workingSetBytes":  92270592,
+                                                                  "privateBytes":  76886016,
+                                                                  "threads":  31
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  20.395,
+                                                                  "cpuMs":  3515.625,
+                                                                  "workingSetBytes":  89370624,
+                                                                  "privateBytes":  73916416,
+                                                                  "threads":  30
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  25.031,
+                                                                  "cpuMs":  3812.5,
+                                                                  "workingSetBytes":  89231360,
+                                                                  "privateBytes":  73519104,
+                                                                  "threads":  29
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  30.271,
+                                                                  "cpuMs":  4140.625,
+                                                                  "workingSetBytes":  91549696,
+                                                                  "privateBytes":  75988992,
+                                                                  "threads":  28
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  35.111,
+                                                                  "cpuMs":  4421.875,
+                                                                  "workingSetBytes":  89415680,
+                                                                  "privateBytes":  73515008,
+                                                                  "threads":  28
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  40.371,
+                                                                  "cpuMs":  4812.5,
+                                                                  "workingSetBytes":  90083328,
+                                                                  "privateBytes":  74178560,
+                                                                  "threads":  28
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  45.405,
+                                                                  "cpuMs":  5171.875,
+                                                                  "workingSetBytes":  90644480,
+                                                                  "privateBytes":  74878976,
+                                                                  "threads":  28
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  50.409,
+                                                                  "cpuMs":  5484.375,
+                                                                  "workingSetBytes":  90083328,
+                                                                  "privateBytes":  73998336,
+                                                                  "threads":  28
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  55.419,
+                                                                  "cpuMs":  5796.875,
+                                                                  "workingSetBytes":  90750976,
+                                                                  "privateBytes":  76054528,
+                                                                  "threads":  28
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  60.016,
+                                                                  "cpuMs":  6015.625,
+                                                                  "workingSetBytes":  95858688,
+                                                                  "privateBytes":  80175104,
+                                                                  "threads":  28
+                                                              }
+                                                          ],
+                                       "cpuSingleCorePercent":  7.86
+                                   },
+                      "durationMs":  90074,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "Performance",
+                      "description":  "Latency of pointerMove, pointerClick, clickElement, keyPress and typeText against the canvas, with the recorded state checked at the end.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-26T14:15:34.1276677Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  208
+                                    }
+                                ],
+                      "evidence":  {
+                                       "measuredSeconds":  60.002,
+                                       "cycles":  120,
+                                       "periodMs":  500,
+                                       "clicksExpected":  240,
+                                       "clicksRecorded":  240,
+                                       "charactersExpected":  3840,
+                                       "charactersRecorded":  3840,
+                                       "latencyMs":  {
+                                                         "pointerMove":  {
+                                                                             "count":  120,
+                                                                             "mean":  0.59,
+                                                                             "p50":  0.56,
+                                                                             "p95":  0.71,
+                                                                             "p99":  0.79,
+                                                                             "max":  3.15
+                                                                         },
+                                                         "pointerClick":  {
+                                                                              "count":  120,
+                                                                              "mean":  0.98,
+                                                                              "p50":  0.67,
+                                                                              "p95":  0.95,
+                                                                              "p99":  15.21,
+                                                                              "max":  15.72
+                                                                          },
+                                                         "clickElement":  {
+                                                                              "count":  120,
+                                                                              "mean":  277.48,
+                                                                              "p50":  291.04,
+                                                                              "p95":  373.99,
+                                                                              "p99":  490.84,
+                                                                              "max":  613.93
+                                                                          },
+                                                         "keyPress":  {
+                                                                          "count":  120,
+                                                                          "mean":  0.8,
+                                                                          "p50":  0.75,
+                                                                          "p95":  1.06,
+                                                                          "p99":  1.15,
+                                                                          "max":  1.27
+                                                                      },
+                                                         "typeText":  {
+                                                                          "count":  120,
+                                                                          "mean":  5.73,
+                                                                          "p50":  5.21,
+                                                                          "p95":  8.71,
+                                                                          "p99":  13.81,
+                                                                          "max":  15.29
+                                                                      }
+                                                     },
+                                       "processSamples":  [
+                                                              {
+                                                                  "elapsedSeconds":  0,
+                                                                  "cpuMs":  250,
+                                                                  "workingSetBytes":  28246016,
+                                                                  "privateBytes":  9928704,
+                                                                  "threads":  11
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  5.056,
+                                                                  "cpuMs":  328.125,
+                                                                  "workingSetBytes":  28598272,
+                                                                  "privateBytes":  10133504,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  10.254,
+                                                                  "cpuMs":  437.5,
+                                                                  "workingSetBytes":  28606464,
+                                                                  "privateBytes":  10133504,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  15.271,
+                                                                  "cpuMs":  562.5,
+                                                                  "workingSetBytes":  28606464,
+                                                                  "privateBytes":  10133504,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  20.312,
+                                                                  "cpuMs":  656.25,
+                                                                  "workingSetBytes":  28606464,
+                                                                  "privateBytes":  10133504,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  25.294,
+                                                                  "cpuMs":  828.125,
+                                                                  "workingSetBytes":  28618752,
+                                                                  "privateBytes":  10133504,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  30.487,
+                                                                  "cpuMs":  906.25,
+                                                                  "workingSetBytes":  28606464,
+                                                                  "privateBytes":  10133504,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  35.309,
+                                                                  "cpuMs":  1031.25,
+                                                                  "workingSetBytes":  28618752,
+                                                                  "privateBytes":  10133504,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  40.325,
+                                                                  "cpuMs":  1187.5,
+                                                                  "workingSetBytes":  28618752,
+                                                                  "privateBytes":  10133504,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  45.35,
+                                                                  "cpuMs":  1296.875,
+                                                                  "workingSetBytes":  28618752,
+                                                                  "privateBytes":  10133504,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  50.289,
+                                                                  "cpuMs":  1515.625,
+                                                                  "workingSetBytes":  28639232,
+                                                                  "privateBytes":  10153984,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  55.347,
+                                                                  "cpuMs":  1609.375,
+                                                                  "workingSetBytes":  28655616,
+                                                                  "privateBytes":  10174464,
+                                                                  "threads":  12
+                                                              },
+                                                              {
+                                                                  "elapsedSeconds":  60.002,
+                                                                  "cpuMs":  1718.75,
+                                                                  "workingSetBytes":  28655616,
+                                                                  "privateBytes":  10174464,
+                                                                  "threads":  12
+                                                              }
+                                                          ],
+                                       "cpuSingleCorePercent":  2.45
+                                   },
+                      "durationMs":  79550,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  }
+              ],
+    "summary":  {
+                    "PASS":  2,
+                    "FAIL":  0,
+                    "BLOCKED":  0,
+                    "NOT_RUN":  0
+                },
+    "parity":  [
+                   {
+                       "case":  "Performance",
+                       "java":  "PASS",
+                       "cpp":  "PASS",
+                       "sameStatus":  true,
+                       "sameCodes":  true
+                   }
+               ],
+    "finishedUtc":  "2026-11-26T14:16:53.7070366Z"
+}

@@ -12,7 +12,9 @@ param(
     [ValidateSet('Java', 'Cpp', 'Both')][string]$Agent = 'Both',
     [ValidateSet('AwtButtonClick', 'AwtTextInput', 'AwtUnicodePackets', 'SwingModal', 'WinFormsListBox', 'WinFormsTab', 'DataGridView',
         'CanvasMouse', 'CanvasKeyboard', 'MultiMonitor', 'FocusChange', 'WindowObscured', 'TargetReplaced',
-        'PermissionMismatch', 'UserInputConflict', 'ReleaseOnFailure', 'Performance')]
+        'PermissionMismatch', 'UserInputConflict', 'ReleaseOnFailure', 'Performance',
+        'CanvasTextMethods',
+        'HookMouseRemoved', 'HookKeyboardRemoved', 'HookBothRemoved', 'HookMousePartial', 'HookKeyboardPartial')]
     [string[]]$Case = @('AwtButtonClick', 'AwtTextInput', 'SwingModal', 'WinFormsListBox', 'WinFormsTab', 'DataGridView',
         'CanvasMouse', 'CanvasKeyboard', 'MultiMonitor', 'FocusChange', 'WindowObscured', 'TargetReplaced',
         'PermissionMismatch', 'UserInputConflict', 'ReleaseOnFailure', 'Performance'),
@@ -32,7 +34,10 @@ param(
     [ValidateRange(1, 240)][int]$IdleWaitMinutes = 15,
     # Starts one fixture elevated through UAC for PermissionMismatch. Someone must approve the prompt.
     [switch]$IncludeElevated,
-    [ValidateRange(10, 1000)][int]$PerformanceIterations = 60
+    [ValidateRange(10, 1000)][int]$PerformanceIterations = 60,
+    [ValidateRange(60, 300)][int]$PerformanceSeconds,
+    [string]$FaultJavaClasses = 'target/test-classes',
+    [string]$FaultCppAgent
 )
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'UiaTest.Common.ps1')
@@ -44,6 +49,8 @@ $OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromP
 $Jar = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Jar)
 $CppAgent = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($CppAgent)
 $FixtureRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($FixtureRoot)
+$FaultJavaClasses = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($FaultJavaClasses)
+if ($FaultCppAgent) { $FaultCppAgent = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($FaultCppAgent) }
 $winFormsExe = Join-Path $FixtureRoot $WinForms
 $classes = Join-Path $FixtureRoot 'swing-awt'
 $implementations = if ($Agent -eq 'Both') { @('Java', 'Cpp') } else { @($Agent) }
@@ -61,12 +68,18 @@ $descriptions = [ordered]@{
     DataGridView = 'DataGridView (no UIA rows or cells): click the grid, select row and cell with keys, edit with F2, typing and Enter.'
     CanvasMouse = 'Owner-drawn canvas without accessible children: move, click, double, right and middle click, drag and both wheels in screen, window and client coordinates.'
     CanvasKeyboard = 'Canvas keyboard: Unicode text with Tab, Enter and a surrogate pair, Ctrl+Shift+K, key down and up, refusals.'
+    CanvasTextMethods = 'Default Unicode and explicit virtual-key and scan-code text. An unmappable suffix must prevent any input.'
     MultiMonitor = 'Other monitors and negative coordinates: move the fixture to every other monitor and click there. NOT_RUN with one monitor.'
     FocusChange = 'Another window takes the foreground: keyboard and pointer input to the target are refused without input; activateWindow is tried once.'
     WindowObscured = 'A topmost window that takes no focus covers part of the canvas: a click there is refused, a click beside it works.'
     TargetReplaced = 'The target exits and restarts; a window of another process is named with the old PID: refused as PERMISSION_DENIED or WINDOW_NOT_FOUND.'
     PermissionMismatch = 'An elevated target (UAC prompt, -IncludeElevated): INTEGRITY_MISMATCH before any input.'
     UserInputConflict = 'Foreign input (injected by this script without the session tag) during typing and right before a request: USER_INPUT_CONFLICT.'
+    HookMouseRemoved = 'Remove just the mouse hook during a drag, stop further movement and verify recovery.'
+    HookKeyboardRemoved = 'Remove just the keyboard hook during typing, stop remaining batches and verify recovery.'
+    HookBothRemoved = 'Remove both hooks before the first text batch, then verify dispatch refusal and recovery.'
+    HookMousePartial = 'Lose part of the mouse observation stream during a drag and verify release and recovery.'
+    HookKeyboardPartial = 'Lose part of a text batch observation stream and verify release and recovery.'
     ReleaseOnFailure = 'A drag and a held Shift are interrupted by foreign input: the button and the key are released; a key held at session end is released.'
     Performance = 'Latency of pointerMove, pointerClick, clickElement, keyPress and typeText against the canvas, with the recorded state checked at the end.'
 }
@@ -248,8 +261,9 @@ function New-PiReport {
     $environment.userIdleMsAtStart = [PiProbe]::IdleMs()
     try { $environment.gitCommit = [string](& git rev-parse HEAD 2>$null) } catch {}
     foreach ($item in @(@('jarSha256', $Jar), @('cppAgentSha256', $CppAgent), @('winFormsFixtureSha256', $winFormsExe),
-            @('swingAwtFixtureClassSha256', (Join-Path $classes 'FrameworkFixture.class')), @('runnerSha256', $PSCommandPath))) {
-        if (Test-Path -LiteralPath $item[1]) { $environment[$item[0]] = (Get-FileHash -LiteralPath $item[1]).Hash }
+            @('swingAwtFixtureClassSha256', (Join-Path $classes 'FrameworkFixture.class')), @('runnerSha256', $PSCommandPath),
+            @('faultCppAgentSha256', $FaultCppAgent), @('faultJavaLauncherSha256', (Join-Path $FaultJavaClasses 'dev/desktop/InputFaultCli.class')))) {
+        if ($item[1] -and (Test-Path -LiteralPath $item[1])) { $environment[$item[0]] = (Get-FileHash -LiteralPath $item[1]).Hash }
     }
     try {
         $java = (Get-Command $JavaExe -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
@@ -368,16 +382,17 @@ function Last-Line($target, [string]$file) { $lines = @(Get-Lines (Read-Pi $targ
 
 # --- Agent --------------------------------------------------------------------------------------
 
-function Start-PiAgent([string]$implementation, [int[]]$pids, [switch]$AllowSetValue) {
+function Start-PiAgent([string]$implementation, [int[]]$pids, [switch]$AllowSetValue, [string]$TestFault) {
     $start = New-Object Diagnostics.ProcessStartInfo
     $policy = ''
     foreach ($id in $pids) { $policy += " --allow-pid $id" }
     if ($AllowSetValue) { $policy += ' --allow-action setValue' }
     if ($implementation -eq 'Java') {
         $start.FileName = (Get-Command $JavaExe -CommandType Application | Select-Object -First 1).Source
-        $start.Arguments = (($JvmOptions -join ' ') + " -jar ""$Jar"" --backend multi$policy $allowed")
+        $entry = if ($TestFault) { " -cp ""$Jar;$FaultJavaClasses"" dev.desktop.InputFaultCli" } else { " -jar ""$Jar""" }
+        $start.Arguments = (($JvmOptions -join ' ') + "$entry --backend multi$policy $allowed")
     } else {
-        $start.FileName = $CppAgent
+        $start.FileName = if ($TestFault) { $FaultCppAgent } else { $CppAgent }
         $start.Arguments = "--backend multi$policy $allowed"
     }
     $start.UseShellExecute = $false
@@ -386,6 +401,7 @@ function Start-PiAgent([string]$implementation, [int[]]$pids, [switch]$AllowSetV
     $start.RedirectStandardOutput = $true
     $start.RedirectStandardError = $true
     $start.StandardOutputEncoding = [Text.Encoding]::UTF8
+    if ($TestFault) { $start.EnvironmentVariables['AUTO_DESKTOP_TEST_INPUT_FAULT'] = $TestFault }
     return @{ cli = (Start-Cli $start); implementation = $implementation }
 }
 
@@ -520,9 +536,9 @@ function Test-LastNear($target, [string]$file, [string]$prefix, [double[]]$expec
 }
 
 # A WinForms fixture and an agent for it, with the canvas row of a UIA snapshot.
-function Open-PiCanvas([string]$implementation) {
+function Open-PiCanvas([string]$implementation, [string]$testFault) {
     $t = Start-PiFixture 'WinForms'
-    $run = Start-PiAgent $implementation @($t.processId)
+    $run = Start-PiAgent $implementation @($t.processId) -TestFault $testFault
     $window = Get-PiWindow $run $t
     Use-PiForeground $run $t $window
     $snapshot = Get-PiSnapshot $run $window 'UIA'
@@ -758,6 +774,36 @@ function Case-CanvasKeyboard([string]$impl) {
     } finally { Stop-PiAgent $c.run }
 }
 
+function Case-CanvasTextMethods([string]$impl) {
+    $c = Open-PiCanvas $impl
+    try {
+        $caps = Send-Pi $c.run @{ op = 'getCapabilities' }
+        Require-Pi ((@($caps.result.input.textMethods) -join ',') -ceq 'unicode,virtualKey,scanCode') 'The driver advertised unexpected text methods.'
+        [void](Send-Pi $c.run @{ op = 'clickElement'; ref = $c.canvas.ref })
+        $text = ' Ab9- '
+        $emoji = [char]::ConvertFromUtf32(0x1F600)
+        $unicode = ' Ab9 ' + [char]0xD55C + [char]0xAE00 + $emoji
+        $expected = ''
+        $script:currentCase.evidence.textByMethod = [ordered]@{}
+        foreach ($method in 'unicode', 'virtualKey', 'scanCode') {
+            $value = if ($method -eq 'unicode') { $unicode } else { $text }
+            $expected += $value
+            $request = $c.keys + @{ op = 'typeText'; text = $value; quietMs = 0 }
+            if ($method -ne 'unicode') { $request.method = $method }
+            $reply = Send-Pi $c.run $request
+            Require-Pi ($reply.result.method -ceq $method -and $reply.result.inputObserved) 'The selected method or observation was missing.'
+            $typed = Wait-Pi $c.target 'canvas-text.txt' { param($v) $v -ceq $expected }
+            $script:currentCase.evidence.textByMethod[$method] = Read-Pi $c.target 'canvas-text.txt'
+            Require-Pi ($null -ne $typed) "The canvas did not record the text for $method."
+        }
+        foreach ($method in 'virtualKey', 'scanCode') {
+            $reply = Send-Pi $c.run ($c.keys + @{ op = 'typeText'; method = $method; text = ('prefix ' + $emoji); quietMs = 0 }) 'PRECONDITION_FAILED'
+            Require-Pi ($reply.error.inputSent -eq $false) 'An unrepresentable string was partially sent.'
+        }
+        Require-Pi ((Read-Pi $c.target 'canvas-text.txt') -ceq $expected) 'The fixture received an unrepresentable request.'
+    } finally { Stop-PiAgent $c.run }
+}
+
 function Case-MultiMonitor([string]$impl) {
     $monitors = @([PiProbe]::Monitors())
     if ($monitors.Count -lt 2) { throw 'NOT_RUN: this PC has one monitor.' }
@@ -915,18 +961,152 @@ function Case-ReleaseOnFailure([string]$impl) {
     } finally { Stop-PiAgent $c.run }
 }
 
+function Test-PiHookFault([string]$implementation, [string]$fault) {
+    $c = Open-PiCanvas $implementation $fault
+    try {
+        $t = $c.target
+        [void](Send-Pi $c.run @{ op = 'clickElement'; ref = $c.canvas.ref })
+        [void](Send-Pi $c.run ($c.keys + @{ op = 'keyDown'; key = 'Shift'; quietMs = 0 }))
+        Require-Pi ([PiProbe]::Down(0x10)) 'The setup did not hold Shift.'
+        $evidence = $script:currentCase.evidence
+        $evidence.fault = $fault
+        $mouseFault = $fault.StartsWith('mouse-')
+        if ($mouseFault) {
+            $start = Get-PiPoint $c.canvas.bounds 0.1 0.5
+            $end = Get-PiPoint $c.canvas.bounds 0.9 0.5
+            $op = @{ op = 'pointerDrag'; quietMs = 0; steps = 40; stepDelayMs = 30
+                from = @{ x = $start[0]; y = $start[1]; space = 'screen' }
+                to = @{ x = $end[0]; y = $end[1]; space = 'screen' } }
+        } else {
+            $op = @{ op = 'typeText'; quietMs = 0; intervalMs = 30; text = ('x' * 160) }
+        }
+        $failure = Send-Pi $c.run ($c.keys + $op) 'ACTION_OUTCOME_UNKNOWN'
+        Require-Pi ($failure.error.inputSent -eq $true -and $failure.error.released -eq $true) 'The interrupted operation did not report dispatch and release.'
+        $release = Wait-Pi $t 'canvas-keys.txt' { param($v) @(Get-Lines $v) -contains 'up ShiftKey' }
+        Require-Pi ($release -and ![PiProbe]::Down(0x10) -and ![PiProbe]::Down(1)) 'The fixture or Windows still sees a held key or button.'
+        $evidence.fixtureShiftReleased = $true
+        if ($mouseFault) {
+            $cursor = [PiProbe]::Cursor()
+            $evidence.interruptedCursor = @($cursor)
+            $evidence.dragEnd = @($end)
+            $evidence.fixtureButtons = @(Get-Lines (Read-Pi $t 'canvas-buttons.txt'))
+            Require-Pi ($cursor[0] -ne $end[0] -or $cursor[1] -ne $end[1]) 'The interrupted drag reached its endpoint.'
+            Require-Pi (@($evidence.fixtureButtons | Where-Object { $_ -like 'down left*' }).Count -eq
+                @($evidence.fixtureButtons | Where-Object { $_ -like 'up left*' }).Count) 'The fixture recorded an unmatched mouse button.'
+        } else {
+            $typed = [string](Wait-Pi $t 'canvas-text.txt' { param($v) $v.Length -gt 0 })
+            $evidence.charactersBeforeStop = $typed.Length
+            Require-Pi ($typed.Length -gt 0 -and $typed.Length -le 16 -and $typed -ceq ('x' * $typed.Length)) 'The fixture did not stop at the first text batch.'
+        }
+
+        # Cleanup itself is input. Let the driver complete its conservative desktop-idle check.
+        Require-Pi (Wait-PiIdle 1 6) 'The desktop never became quiet after the fault cleanup.'
+        $priorText = [string](Read-Pi $t 'canvas-text.txt')
+        $click = Send-Pi $c.run @{ op = 'clickElement'; ref = $c.canvas.ref; quietMs = 0; position = @{ x = 0.65; y = 0.5 } }
+        $type = Send-Pi $c.run ($c.keys + @{ op = 'typeText'; quietMs = 0; text = 'recovered' })
+        Require-Pi ($click.result.inputObserved -and $type.result.inputObserved) 'The recovered hooks did not observe both devices.'
+        Require-Pi (Test-LastNear $t 'canvas-clicks.txt' 'left single' @(0.65, 0.5)) 'The fixture did not receive the recovery click.'
+        $recovered = Wait-Pi $t 'canvas-text.txt' { param($v) $v -ceq ($priorText + 'recovered') }
+        Require-Pi ($null -ne $recovered) 'The fixture did not receive the recovery text.'
+        $evidence.fixtureRecoveredText = $recovered
+        [PiProbe]::ForeignMove()
+        $screen = Get-PiPoint $c.canvas.bounds 0.5 0.5
+        $conflict = Send-Pi $c.run ($c.keys + @{ op = 'pointerMove'; quietMs = 2000
+            point = @{ x = $screen[0]; y = $screen[1]; space = 'screen' } }) 'USER_INPUT_CONFLICT'
+        Require-Pi ($conflict.error.inputSent -eq $false) 'A recovered hook allowed input despite an external event.'
+    } finally { Stop-PiAgent $c.run }
+}
+
+function Case-HookMouseRemoved([string]$impl) { Test-PiHookFault $impl 'mouse-remove' }
+function Case-HookKeyboardRemoved([string]$impl) { Test-PiHookFault $impl 'keyboard-remove' }
+function Case-HookBothRemoved([string]$impl) { Test-PiHookFault $impl 'both-remove' }
+function Case-HookMousePartial([string]$impl) { Test-PiHookFault $impl 'mouse-partial' }
+function Case-HookKeyboardPartial([string]$impl) { Test-PiHookFault $impl 'keyboard-partial' }
+
 function Get-PiStats($values) {
     $sorted = @($values | Sort-Object)
     if (!$sorted.Count) { return $null }
     $sum = 0.0; foreach ($v in $sorted) { $sum += $v }
     return [ordered]@{ count = $sorted.Count; mean = [Math]::Round($sum / $sorted.Count, 2)
         p50 = $sorted[[int][Math]::Ceiling($sorted.Count * 0.5) - 1]; p95 = $sorted[[int][Math]::Ceiling($sorted.Count * 0.95) - 1]
+        p99 = $sorted[[int][Math]::Ceiling($sorted.Count * 0.99) - 1]
         max = $sorted[-1] }
+}
+
+function Get-PiProcessSample($process, [double]$elapsed) {
+    $process.Refresh()
+    return [ordered]@{
+        elapsedSeconds = [Math]::Round($elapsed, 3)
+        cpuMs = [Math]::Round($process.TotalProcessorTime.TotalMilliseconds, 3)
+        workingSetBytes = $process.WorkingSet64
+        privateBytes = $process.PrivateMemorySize64
+        threads = $process.Threads.Count
+    }
+}
+
+function Measure-PiSteady($c, [int]$seconds) {
+    $times = [ordered]@{}
+    foreach ($op in 'pointerMove', 'pointerClick', 'clickElement', 'keyPress', 'typeText') {
+        $times[$op] = New-Object 'Collections.Generic.List[double]'
+    }
+    $samples = New-Object 'Collections.Generic.List[object]'
+    $beforeClicks = @(Get-Lines (Read-Pi $c.target 'canvas-clicks.txt')).Count
+    $beforeText = ([string](Read-Pi $c.target 'canvas-text.txt')).Length
+    $periodMs = 500
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    $samples.Add((Get-PiProcessSample $c.run.cli 0))
+    $nextSample = 5
+    $cycles = 0
+    while ($clock.Elapsed.TotalSeconds -lt $seconds) {
+        $x = if ($cycles % 2) { 0.25 } else { 0.75 }
+        $point = Get-PiPoint $c.canvas.bounds $x 0.5
+        $screen = @{ x = $point[0]; y = $point[1]; space = 'screen' }
+        $commands = @(
+            ($c.keys + @{ op = 'pointerMove'; quietMs = 0; point = $screen })
+            ($c.keys + @{ op = 'pointerClick'; quietMs = 0; point = $screen })
+            @{ op = 'clickElement'; ref = $c.canvas.ref; quietMs = 0; position = @{ x = 0.5; y = 0.5 } }
+            ($c.keys + @{ op = 'keyPress'; quietMs = 0; keys = 'Shift' })
+            ($c.keys + @{ op = 'typeText'; quietMs = 0; text = ('x' * 32) })
+        )
+        foreach ($command in $commands) {
+            $times[$command.op].Add((Measure-PiRequest $c.run $command))
+        }
+        $cycles++
+        if ($clock.Elapsed.TotalSeconds -ge $nextSample) {
+            $samples.Add((Get-PiProcessSample $c.run.cli $clock.Elapsed.TotalSeconds))
+            $nextSample += 5
+        }
+        $remaining = [Math]::Min(($cycles * $periodMs), ($seconds * 1000)) - $clock.ElapsedMilliseconds
+        if ($remaining -gt 0) { Start-Sleep -Milliseconds $remaining }
+    }
+    $samples.Add((Get-PiProcessSample $c.run.cli $clock.Elapsed.TotalSeconds))
+    $expectedClicks = $beforeClicks + $cycles * 2
+    $expectedText = $beforeText + $cycles * 32
+    [void](Wait-Pi $c.target 'canvas-clicks.txt' { param($v) @(Get-Lines $v).Count -ge $expectedClicks } 15000)
+    [void](Wait-Pi $c.target 'canvas-text.txt' { param($v) $v.Length -ge $expectedText } 15000)
+    $evidence = $script:currentCase.evidence
+    $evidence.measuredSeconds = $samples[$samples.Count - 1].elapsedSeconds
+    $evidence.cycles = $cycles
+    $evidence.periodMs = $periodMs
+    $evidence.clicksExpected = $cycles * 2
+    $evidence.clicksRecorded = @(Get-Lines (Read-Pi $c.target 'canvas-clicks.txt')).Count - $beforeClicks
+    $evidence.charactersExpected = $cycles * 32
+    $evidence.charactersRecorded = ([string](Read-Pi $c.target 'canvas-text.txt')).Length - $beforeText
+    $evidence.latencyMs = [ordered]@{}
+    foreach ($op in $times.Keys) { $evidence.latencyMs[$op] = Get-PiStats $times[$op] }
+    $evidence.processSamples = $samples.ToArray()
+    $evidence.cpuSingleCorePercent = [Math]::Round(($samples[$samples.Count - 1].cpuMs - $samples[0].cpuMs) / ($evidence.measuredSeconds * 10), 2)
+    Require-Pi ($evidence.clicksRecorded -eq $evidence.clicksExpected -and
+        $evidence.charactersRecorded -eq $evidence.charactersExpected) 'The canvas did not record exactly the expected clicks and characters.'
 }
 
 function Case-Performance([string]$impl) {
     $c = Open-PiCanvas $impl
     try {
+        if ($PerformanceSeconds) {
+            Measure-PiSteady $c $PerformanceSeconds
+            return
+        }
         $t = $c.target
         $left = Get-PiPoint $c.canvas.bounds 0.3 0.5
         $right = Get-PiPoint $c.canvas.bounds 0.7 0.5
@@ -987,6 +1167,14 @@ if (!$Interactive) {
 if ($env:OS -ne 'Windows_NT' -or ![Environment]::UserInteractive) { throw 'An interactive Windows desktop is required.' }
 foreach ($path in @($Jar, $CppAgent, $winFormsExe, (Join-Path $classes 'FrameworkFixture.class'))) {
     if (!(Test-Path -LiteralPath $path)) { throw "Missing build output: $path" }
+}
+if (@($Case | Where-Object { $_ -like 'Hook*' }).Count) {
+    if ('Java' -in $implementations -and !(Test-Path -LiteralPath (Join-Path $FaultJavaClasses 'dev/desktop/InputFaultCli.class'))) {
+        throw 'The fault cases require the Java test launcher in -FaultJavaClasses.'
+    }
+    if ('Cpp' -in $implementations -and (!$FaultCppAgent -or !(Test-Path -LiteralPath $FaultCppAgent))) {
+        throw 'The fault cases require an explicit -FaultCppAgent test executable.'
+    }
 }
 
 Write-Host ''

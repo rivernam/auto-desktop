@@ -78,6 +78,21 @@ class InputLogicTest {
         assertEquals(1024, InputKeys.text("x".repeat(1024)).size());
     }
 
+    @Test void typedTextUsesAnExplicitMethodWithoutChangingTheDefault() {
+        ObjectNode request = targeted("typeText").put("text", "a\tb\n");
+        assertEquals("unicode", InputRequest.parse("typeText", request).textMethod.protocolName);
+        for (String method : List.of("unicode", "virtualKey", "scanCode")) {
+            InputRequest parsed = InputRequest.parse("typeText", request.put("method", method));
+            assertEquals(method, parsed.textMethod.protocolName);
+            assertSame(InputKeys.TAB, parsed.text.get(1).key);
+            assertSame(InputKeys.ENTER, parsed.text.get(3).key);
+        }
+        invalid(() -> InputRequest.parse("typeText", request.put("method", "auto")));
+        invalid(() -> InputRequest.parse("typeText", request.put("method", "VirtualKey")));
+        invalid(() -> InputRequest.parse("typeText", request.put("method", 1)));
+        invalid(() -> InputRequest.parse("typeText", request.putNull("method")));
+    }
+
     @Test void normalizedCoordinatesLandOnTheRequestedPixel() {
         int[][] screens = {{0, 1920}, {-1920, 3840}, {-1280, 3200}, {0, 1366}, {-2560, 5120}, {0, 1}, {-3, 7}};
         for (int[] screen : screens) {

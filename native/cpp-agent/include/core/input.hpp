@@ -32,6 +32,8 @@ const char* actionName(Action action);
 
 enum class Space { screen, window, client };
 enum class Button { left, right, middle };
+enum class TextMethod { unicode, virtualKey, scanCode };
+const char* textMethodName(TextMethod method);
 
 struct InputPoint {
     long x = 0, y = 0;
@@ -84,8 +86,9 @@ struct InputCommand {
     bool horizontal = false;
     // keyPress uses the whole chord; keyDown and keyUp use chord.key.
     Chord keys;
-    // typeText: '\r' stands for Enter and '\t' for Tab. Every other unit is sent as KEYEVENTF_UNICODE.
+    // typeText: '\r' stands for Enter and '\t' for Tab.
     std::u16string text;
+    TextMethod textMethod = TextMethod::unicode;
     int intervalMs = 0;
     int quietMs = 500;
     // clickElement
@@ -126,6 +129,7 @@ ElementPoint elementPoint(const Bounds& window, const std::optional<Bounds>& roo
 
 struct InputStatus {
     bool available = false;
+    bool layoutText = false;
     std::string reason = "Physical input is not supported on this platform.";
     std::string dpiAwareness = "unaware";
     std::string integrity = "medium";

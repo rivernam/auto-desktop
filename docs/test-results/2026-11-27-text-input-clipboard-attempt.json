@@ -1,0 +1,138 @@
+{
+    "schema":  1,
+    "tool":  "Test-TextInputCompatibility.ps1",
+    "mode":  "interactive",
+    "agent":  "Direct",
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.9818",
+                        "processorCount":  20,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-12700",
+                        "cpuNominalMhz":  2112,
+                        "fixtureJavaVersion":  "openjdk version \"21.0.11\" 2026-04-21 LTS | OpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS) | OpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)",
+                        "gitCommit":  "806ce11064f72504e4460c5cdc4879d1acc42da3"
+                    },
+    "startedUtc":  "2026-11-27T10:39:41.9250672Z",
+    "cases":  [
+                  {
+                      "fixture":  "AwtField",
+                      "method":  "clipboard",
+                      "sample":  "English",
+                      "status":  "BLOCKED",
+                      "targetClass":  "RichEdit20W",
+                      "focusClass":  "SunAwtFrame",
+                      "layout":  "04120412",
+                      "expectedSuffix":  " Az19 ",
+                      "reason":  "ABORT: clipboard changed before paste.",
+                      "fixtureValue":  "start"
+                  },
+                  {
+                      "fixture":  "AwtField",
+                      "method":  "clipboard",
+                      "sample":  "Korean",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier trial."
+                  },
+                  {
+                      "fixture":  "AwtField",
+                      "method":  "clipboard",
+                      "sample":  "Unicode",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier trial."
+                  },
+                  {
+                      "fixture":  "AwtArea",
+                      "method":  "clipboard",
+                      "sample":  "English",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "AwtArea",
+                      "method":  "clipboard",
+                      "sample":  "Korean",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "AwtArea",
+                      "method":  "clipboard",
+                      "sample":  "Unicode",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "Swing",
+                      "method":  "clipboard",
+                      "sample":  "English",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "Swing",
+                      "method":  "clipboard",
+                      "sample":  "Korean",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "Swing",
+                      "method":  "clipboard",
+                      "sample":  "Unicode",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "WinForms",
+                      "method":  "clipboard",
+                      "sample":  "English",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "WinForms",
+                      "method":  "clipboard",
+                      "sample":  "Korean",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "WinForms",
+                      "method":  "clipboard",
+                      "sample":  "Unicode",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "Win32",
+                      "method":  "clipboard",
+                      "sample":  "English",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "Win32",
+                      "method":  "clipboard",
+                      "sample":  "Korean",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  },
+                  {
+                      "fixture":  "Win32",
+                      "method":  "clipboard",
+                      "sample":  "Unicode",
+                      "status":  "BLOCKED",
+                      "reason":  "Input was interrupted in an earlier fixture."
+                  }
+              ],
+    "finishedUtc":  "2026-11-27T10:40:11.9050034Z",
+    "summary":  {
+                    "PASS":  0,
+                    "FAIL":  0,
+                    "BLOCKED":  15,
+                    "UNREPRESENTABLE":  0,
+                    "NOT_RUN":  0
+                }
+}

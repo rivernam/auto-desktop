@@ -43,10 +43,17 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend multi --al
 | keyPress | windowId, processId, keys | 단축키 한 번. `"Ctrl+Shift+K"`처럼 수정 키와 키 하나를 `+`로 잇는다. 수정 키를 순서대로 누르고 역순으로 뗀다. 키 하나만 써도 된다. 세션이 `keyDown`으로 누르고 있는 수정 키는 다시 누르거나 떼지 않는다. 조합의 마지막 키를 세션이 누르고 있으면 `PRECONDITION_FAILED` |
 | keyDown | windowId, processId, key | 키 하나를 누른 채 둔다. 세션이 누른 키는 `keyUp`, 입력 실패, 세션 종료 중 먼저 오는 때에 뗀다. 동시에 최대 8개 |
 | keyUp | windowId, processId, key | 이 세션이 `keyDown`으로 누른 키만 뗀다. 아니면 `PRECONDITION_FAILED` |
-| typeText | windowId, processId, text, intervalMs? | 유니코드 문자열 입력(`KEYEVENTF_UNICODE`, 1~1,024 UTF-16 단위). `\r\n`·`\n`은 Enter, `\t`는 Tab 키다. 그 밖의 제어 문자는 거부한다. 16단위씩 보내며 묶음 사이에 전경·사용자 입력을 다시 확인한다. `intervalMs`(0~50, 기본 0)는 묶음 사이 대기 |
+| typeText | windowId, processId, text, intervalMs?, method? | 문자열 입력(1~1,024 UTF-16 단위). `method`는 `unicode`(기본), `virtualKey`, `scanCode`다. `\r\n`·`\n`은 Enter, `\t`는 Tab 키다. 그 밖의 제어 문자는 거부한다. 16단위씩 보내며 묶음 사이에 전경·사용자 입력과 훅 관측을 다시 확인한다. `intervalMs`(0~50, 기본 0)는 묶음 사이 대기 |
 | clickElement | ref, button?, clicks?, position?, acceptWeakReference? | 스냅샷 요소의 현재 bounds 안을 클릭한다. `position`은 bounds 안의 비율 `{"x":0~1,"y":0~1}`(기본 중앙) |
 
 공통 선택 필드 `quietMs`(0~10,000, 기본 500)는 요청 직전 이 시간 안에 외부 입력이 있었으면 거부한다.
+
+### 문자열 입력 방식
+
+- `unicode`는 `KEYEVENTF_UNICODE`로 UTF-16 코드 단위를 보낸다. 대상의 현재 키보드 배열과 독립적이며, 대상 앱이 `VK_PACKET` 경로를 처리해야 한다.
+- `virtualKey`와 `scanCode`는 대상의 현재 키보드 배열에서 직접 표현 가능한 키를 사용한다. 입력 시작 전에 전체 문자열의 변환을 확인한다. 표현할 수 없는 문자나 조합이 하나라도 있으면 `PRECONDITION_FAILED`가 반환되며 어느 부분도 전송되지 않는다. 입력 중 배열이 바뀌면 나머지 전송을 중단한다.
+- 두 배열 기반 방식은 상태를 변경하지 않는 `ToUnicodeEx` 검증을 지원하는 Windows 10 1607 이상에서 제공한다. Caps Lock이나 누른 수정 키가 감지되면 거부한다. 직접 키로 표현할 수 없는 IME 조합과 보조 평면 문자는 이 방식으로 전송하지 않는다. 대상 앱의 IME와 키 이벤트 처리는 픽스처 상태처럼 독립적으로 확인한다.
+- `getCapabilities.input.textMethods`는 키보드 입력을 허용하고 드라이버가 사용 가능할 때 선택 가능한 방식의 이름을 반환한다. 성공한 `typeText` 응답의 `method`는 적용한 방식이다. Agent는 호출자가 선택한 방식으로만 전송한다.
 
 ### 좌표
 
@@ -91,12 +98,12 @@ Agent는 입력을 보내기 전에 아래를 차례로 확인한다. 하나라�
 
 ## 전송 중 감시와 해제
 
-입력을 허용한 세션은 첫 입력 전송 직전에 저수준 마우스·키보드 훅(`WH_MOUSE_LL`, `WH_KEYBOARD_LL`)을 전용 스레드에 설치한다. 검증 단계에서 거부된 요청은 훅을 설치하지 않는다. Agent가 보내는 이벤트에는 세션마다 무작위로 정한 `dwExtraInfo` 값을 붙인다. 훅은 이 표시가 없는 이벤트를 외부 입력으로 기록한다. 다른 프로그램이 주입한 입력도 외부 입력이다. 훅 설치 전에는 `GetLastInputInfo`로 `quietMs`를 확인한다.
+입력을 허용한 세션은 첫 입력 전송 직전에 저수준 마우스·키보드 훅(`WH_MOUSE_LL`, `WH_KEYBOARD_LL`)을 전용 스레드에 설치한다. 검증 단계에서 거부된 요청은 훅을 설치하지 않는다. Agent가 보내는 이벤트에는 세션의 난수에서 정한 `dwExtraInfo` 식별자를 붙인다. 훅은 해당 입력으로 식별되지 않는 이벤트를 외부 입력으로 기록한다. 다른 프로그램이 주입한 입력도 외부 입력이다. 훅 설치 전에는 `GetLastInputInfo`로 `quietMs`를 확인한다.
 
 - 전송 중 외부 입력이 관찰되면 남은 입력을 보내지 않고 `USER_INPUT_CONFLICT`로 끝낸다.
 - 드래그는 버튼을 누르기 전과 단계마다 hit-test와 커서 도달을 확인하고, 떼기 전에 끝점을 다시 hit-test한다. 외부 입력은 묶음마다 확인한다. 클릭은 버튼을 누르기 직전에 다시 hit-test한다.
 - 입력 장치가 요청을 받은 뒤의 모든 실패(2번 이후의 거부 포함), 예외, 기한 초과, 세션 종료 때 이 연산이 누른 버튼과 키, 세션이 `keyDown`으로 누른 키를 모두 뗀다. 해제 이벤트가 모두 받아들여지면 오류 응답에 `released: true`가 붙는다. 1번 이전의 거부(형식 오류, 허용되지 않은 PID·액션, 중복 ID)는 해제하지 않는다.
-- 보낸 이벤트가 모두 훅을 지나간 것을 확인하면 `inputObserved: true`다. 500ms 안에 확인하지 못하면 false이며 다음 요청에서 훅을 다시 설치한다.
+- 마우스와 키보드 훅은 각각 Agent의 이벤트를 센다. 다음 묶음 전송과 요청 완료 전에 제출한 이벤트가 해당 장치에서 모두 관측됐는지 확인한다. 전체 또는 일부가 누락되면 `ACTION_OUTCOME_UNKNOWN`으로 끝내고 키·버튼 해제를 시도한다. 새 요청은 훅 재설치와 최소 500ms의 보수적 데스크톱 유휴 검사를 통과한 뒤 전송한다.
 - `SendInput`이 첫 묶음에서 0을 반환하면 `INPUT_BLOCKED`(입력 없음), 일부를 보낸 뒤 실패하면 `ACTION_OUTCOME_UNKNOWN`이다.
 - 입력은 요청 기한(10초) 안에 끝나야 한다. 전송 전에 기한이 지나면 `TIMEOUT`, 전송 시작 후에는 `ACTION_OUTCOME_UNKNOWN`이다.
 
@@ -165,6 +172,8 @@ $jdk17 = 'C:\Program Files\Java\jdk-17\bin\java.exe'
 | `-Case A,B` | 일부 케이스만 실행. `AwtUnicodePackets`는 명시적으로 선택해 AWT의 물리 유니코드 입력 호환성을 확인 |
 | `-IncludeElevated` | `PermissionMismatch`를 실행한다. 관리자 권한 픽스처를 UAC로 띄우므로 사람이 승인해야 한다. 없으면 `NOT_RUN` |
 | `-PerformanceIterations N` | 성능 측정 반복 수(기본 60) |
+| `-PerformanceSeconds 60..300` | 고정 주기의 단기 성능 측정. 기본 반복형 실행과 별도로 p50·p95·p99 및 Agent CPU·메모리·스레드 표본을 기록한다. |
+| `-Case HookMouseRemoved,HookKeyboardRemoved,HookBothRemoved,HookMousePartial,HookKeyboardPartial` | 별도 테스트 실행 파일로 훅 장애를 주입한다. Java는 Maven 테스트 클래스 경로(`-FaultJavaClasses`), C++는 CMake의 `-DDESKTOP_INPUT_FAULT_TEST=ON`으로 만든 `cpp-agent-input-fault.exe`(`-FaultCppAgent`)가 필요하다. |
 | `-Interactive` 없이 | 입력과 창 없이 모든 케이스를 `NOT_RUN`으로 기록한 계획 파일만 만든다 |
 
 예상 소요 시간은 시작 대기 30초를 포함해 약 10분이다(케이스당 5~20초 × 15개 × Agent 2개, 성능 측정 Agent당 약 30초). PC가 느리면 15분까지 걸릴 수 있다. `-IncludeElevated`는 UAC 승인을 기다리므로 무인 실행에 넣지 않는다.
@@ -226,9 +235,11 @@ $r.cases | Where-Object case -eq 'Performance' | ForEach-Object { $_.agent; $_.e
 ## 미해결 문제와 제약
 
 - **AWT 텍스트 입력.** Java 11·21 AWT 픽스처의 편집 필드는 일반 `keyPress` 입력에 반응했지만 `typeText`의 유니코드 이벤트를 픽스처 값에 반영하지 않았다. 두 Agent에서 포커스와 훅 관측을 확인했다. 이 경로는 `-Case AwtUnicodePackets`로 별도 검증할 수 있다. AWT 편집 필드의 Unicode 값 변경에는 UIA 참조로 `setValue`를 호출한다. 호출자는 `setValue` 권한을 부여하고 변경 뒤 앱 상태를 확인한다.
+- **클립보드와 창 메시지.** 호환성 픽스처에서만 붙여넣기와 `WM_CHAR`를 시험한다. 클립보드는 다른 앱과 공유되고 검사와 소비 사이에 바뀔 수 있다. `WM_CHAR`는 실제 키 이벤트와 훅 관측을 거치지 않으며 AWT에서는 포커스 창과 다른 편집 컨트롤로 보내야 했다. 두 방식은 Agent 계약의 선택 항목에서 제외했다.
+- **Raw Input.** 물리 장치 이벤트를 보조 관측하는 후보로 검토했다. 프로세스별 장치 클래스 등록과 메시지 창이 필요하며, 현재의 합성 태그·이벤트 개수 검증과 동등한 관측은 입증되지 않았다. Agent에는 추가하지 않았다. [Windows Raw Input](https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input)
 - **전경 전환.** `activateWindow`는 `SetForegroundWindow`를 한 번만 부른다. Windows의 전경 잠금 규칙 때문에 거부될 수 있고, 우회 기법은 쓰지 않는다. 그때는 사용자가 창을 앞으로 가져와야 한다.
 - **외부 입력의 범위.** 세션 태그가 없는 입력은 모두 사용자 입력으로 본다. 다른 자동화 도구, 원격 제어, 펜·터치 드라이버의 합성 입력도 `USER_INPUT_CONFLICT`를 일으킨다.
-- **훅이 사라지는 경우.** Windows는 응답이 늦은 저수준 훅을 알리지 않고 제거한다. 전송한 이벤트를 일부라도 놓치면 `inputObserved`는 false다. 관측이 0건이면 다음 요청에서 훅 재설치를 시도한다. 일부 관측 뒤의 훅 손실과 재설치 전 외부 입력 감지는 보장되지 않는다. [Windows 저수준 훅](https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelkeyboardproc)
+- **훅이 사라지는 경우.** Windows는 응답이 늦은 저수준 훅을 알리지 않고 제거한다. Agent는 자체 입력 관측이 누락되면 추가 전송을 중단한다. 관측을 기다리는 동안 이미 제출한 묶음의 효과와, 해당 장치의 훅 손실 이후 복구되기까지 외부 입력 감지는 보장되지 않는다. [Windows 저수준 훅](https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelkeyboardproc)
 - **비정상 종료.** Agent가 강제 종료되거나 충돌하면 `keyDown`으로 누른 키가 눌린 채 남을 수 있다. 정상 종료(표준 입력 닫기)에서는 뗀다.
 - **입력 전송과 조작 성공.** 응답의 `performed`·`inputSent`는 입력이 시스템에 들어갔다는 뜻이고 `effectVerified`는 항상 false다. 앱 상태는 호출자가 확인한다.
 - **MSAA weak 참조.** `acceptWeakReference`는 이름·역할·식별자·bounds가 같은지만 비교한다. 같은 속성을 가진 다른 객체는 구별하지 못한다.

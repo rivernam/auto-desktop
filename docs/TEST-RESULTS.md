@@ -1,5 +1,62 @@
 # 빌드 및 시험 기록
 
+## 2026-11-27 물리 입력 호환성과 훅 복구
+
+`main`의 `806ce11`에서 시작했다. Windows 11 x64 대화형 세션에서 Java Agent는 Oracle JDK 11.0.15, AWT·Swing 픽스처는 Temurin 21.0.11, C++ Agent는 MSVC 19.44 Release를 사용했다. 각 Agent는 같은 NDJSON 계약을 별도 구현으로 처리한다.
+
+### 입력 방식과 AWT 분석
+
+직접 비교에서 영문, 한글, Greek Ω와 보조 평면 이모지 문자열의 결과를 픽스처 값으로 대조했다. Windows 키보드 배열은 `04120412`였다. [직접 비교 JSON](test-results/2026-11-27-text-input-direct.json)
+
+| 방식 | AWT TextField·TextArea | Swing·WinForms·Win32 |
+|---|---|---|
+| `KEYEVENTF_UNICODE` | 영문·한글·유니코드 각각 실패 | 세 문자열 모두 통과 |
+| Virtual Key | 영문 통과. 한글·유니코드 표본은 직접 매핑 불가 | 영문 통과. 한글·유니코드 표본은 직접 매핑 불가 |
+| Scan Code | 영문 통과. 한글·유니코드 표본은 직접 매핑 불가 | 영문 통과. 한글·유니코드 표본은 직접 매핑 불가 |
+| 클립보드 붙여넣기 | 세 문자열 모두 통과 | 세 문자열 모두 통과 |
+| `WM_CHAR` | 시험 전용으로 `RichEdit20W` 편집 자식 창에 게시해 세 문자열 통과 | 세 문자열 모두 통과 |
+
+AWT의 Win32 포커스는 `SunAwtFrame`에 있었고, 편집 컨트롤은 별도의 `RichEdit20W`였다. AWT의 키 리스너는 유니코드 패킷에서 `KEY_TYPED`를 기록했지만 실제 편집 값은 그대로였다. Java 이벤트로 변환된 이후 네이티브 편집 값에 반영되는 경로로 문제 범위를 좁혔다. 특정 OpenJDK 내부 분기나 JDK 전체의 동작으로 일반화하지 않았다. [Windows KEYBDINPUT](https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-keybdinput)
+
+두 Agent의 `typeText.method`는 `unicode`(기본), `virtualKey`, `scanCode`를 사용한다. 배열 기반 방식은 첫 전송 전에 전체 문자열을 확인한다. 매핑할 수 없는 문자가 있으면 앞의 문자도 전송하지 않는다. `WM_CHAR`는 저수준 훅의 검증 경로를 거치지 않고, 클립보드는 공유 자원이라 대상이 붙여넣는 시점의 값과 기존 데이터 보존을 일반적으로 보장하기 어렵다. 두 방식은 시험 도구에만 두었다. AWT 한글 입력은 지원되는 UIA 참조에 명시적 `setValue`를 사용하는 기존 경로가 남아 있다. 자동 Fallback은 없다. [입력 방식 계약](PHYSICAL-INPUT.md#문자열-입력-방식) · [Windows 클립보드 형식](https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-formats)
+
+클립보드 시험은 비어 있는 경우에만 합성 문자열을 올렸다. 첫 실행은 시퀀스 변경에서 보수적으로 중단됐다. 재시험에서는 Windows의 표준 텍스트 형식 합성을 고려해 잠금 중 소유자, 원본 메모리 핸들 및 형식을 확인했다. 15개 비교 모두 성공했고 각 시험 뒤 클립보드가 비어 있는 초기 상태로 돌아갔다. 채워진 클립보드 복원과 타 프로세스 변경의 장애 주입은 검증하지 않았다. [중단 원본](test-results/2026-11-27-text-input-clipboard-attempt.json) · [클립보드 재시험 JSON](test-results/2026-11-27-text-input-clipboard.json)
+
+최종 Agent 바이너리로 같은 픽스처의 45개 조합을 각각 실행했다. 두 Agent 모두 PASS 19, FAIL 6, 매핑 불가 20으로 일치했다. FAIL 6은 각 Agent의 AWT 두 컨트롤에서 세 문자열의 유니코드 패킷이 값에 반영되지 않은 결과다. 매핑 불가 20건은 `PRECONDITION_FAILED`, `inputSent: false`, 픽스처 값 유지로 확인했다. 두 Agent의 각 조합 상태와 응답 코드도 동일했다. [Java JSON](test-results/2026-11-27-text-input-java.json) · [C++ JSON](test-results/2026-11-27-text-input-cpp.json)
+
+### 훅 장애 및 안전 복구
+
+두 Agent는 마우스와 키보드의 자체 이벤트를 따로 센다. 이전 입력 묶음의 전체 관측을 확인한 뒤 다음 묶음을 전송한다. 관측이 부족하면 입력 결과를 알 수 없다고 응답하고 추가 전송을 중단한다. 복구 시 훅을 다시 설치하고 데스크톱 유휴 검사를 적용한다. 시험 빌드의 장애 선택기는 배포 실행 경로에서 분리했다.
+
+마우스 제거, 키보드 제거, 양쪽 제거, 마우스 부분 누락, 키보드 부분 누락은 두 Agent 각각 5/5 통과했다. 마우스 장애에서는 드래그가 끝점에 도달하지 않았고 픽스처가 버튼 해제를 기록했다. 문자열 장애에서는 160자 요청에서 첫 묶음 16자만 반영됐다. 모든 케이스에서 Shift 해제, 복구 후 픽스처의 클릭과 텍스트, 후속 외부 입력 차단을 확인했다. 첫 시험은 정리 입력 직후 유휴 검사에 막혔고, 실행기가 최소 1초 유휴를 확인하도록 수정한 뒤 통과했다. [장애 주입 JSON](test-results/2026-11-27-input-hook-faults.json)
+
+Raw Input은 물리 장치 입력의 독립적인 보조 관측 후보로 검토했다. 장치 클래스별 등록과 메시지 창이 필요하며, 현재 저수준 훅의 합성 태그·묶음 관측을 대체한다는 사실은 입증하지 않았다. Windows의 무통지 제거 이후 해당 장치의 관측 증거를 얻기 전까지와, 이미 제출한 한 묶음 내부는 사각지대로 남는다. 운영체제에서 해제 이벤트가 거부되거나 Agent가 강제 종료된 경우에는 키 상태를 독립적으로 확인하는 감독이 필요하다. [Windows Raw Input](https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input) · [Windows 훅 제거](https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelkeyboardproc)
+
+### 기능 회귀 및 단기 성능
+
+Windows 실기기 회귀는 Java와 C++가 각각 15 PASS·0 FAIL·0 BLOCKED·2 NOT_RUN이었다. 케이스 판정과 응답 코드 순서가 일치했다. Unicode 기본값, 두 명시적 배열 기반 방식, 매핑 불가 접미사 앞의 텍스트도 전송되지 않는 점을 WinForms 캔버스 값에서 확인했다. 모니터가 1대였고 관리자 권한 픽스처를 실행하지 않았다. Java Maven 134 PASS·4 GUI 옵션 미실행, C++ x64 CTest 3/3, 읽기 전용 NDJSON 계약은 양쪽 9/9였다. 최종 원본의 `gitCommit`은 시험 당시 작업 트리의 출발점인 `806ce11`이며, 변경 후 Agent·실행기·픽스처는 원본에 기록한 SHA-256으로 대조했다. [최종 회귀·성능 JSON](test-results/2026-11-27-input-regression-performance.json)
+
+변경 전후에 같은 PC와 작업 구성으로 Agent별 60초, 500ms 주기의 120회 반복을 실행했다. 각 실행에서 픽스처가 클릭 240건과 문자 3,840자를 기록했다. 표는 요청 왕복 지연 p50/p95/p99(ms)다. [기준선 JSON](test-results/2026-11-27-input-performance-baseline.json) · [최종 JSON](test-results/2026-11-27-input-regression-performance.json)
+
+| 명령 | Java 변경 전 → 후 | C++ 변경 전 → 후 |
+|---|---|---|
+| `pointerMove` | 1.78/2.57/2.98 → 1.51/2.17/3.07 | 0.56/0.71/0.79 → 0.58/0.77/1.13 |
+| `pointerClick` | 2.27/9.92/16.46 → 1.78/3.10/19.02 | 0.67/0.95/15.21 → 0.75/1.59/16.92 |
+| `clickElement` | 365.84/590.09/703.31 → 332.85/470.58/724.37 | 291.04/373.99/490.84 → 298.55/436.18/623.18 |
+| `keyPress` | 2.18/3.26/4.24 → 1.81/2.76/3.16 | 0.75/1.06/1.15 → 0.84/1.42/1.69 |
+| `typeText`(32자) | 12.57/17.28/22.97 → 8.96/14.86/18.87 | 5.21/8.71/13.81 → 5.53/10.87/14.44 |
+
+| Agent | CPU(논리 코어 1개 기준) | 종료 작업 집합(MiB) | 종료 전용 메모리(MiB) | 종료/최대 스레드 |
+|---|---|---|---|---|
+| Java | 7.86% → 7.06% | 91.4 → 86.5 | 76.5 → 71.7 | 28/31 → 28/31 |
+| C++ | 2.45% → 3.02% | 27.3 → 26.2 | 9.7 → 9.8 | 12/12 → 12/12 |
+
+C++에서 CPU와 `clickElement` 꼬리 지연이 증가했다. `clickElement` 측정에는 UIA 요소 재검증이 포함되며, 구현별 전후 각 1회 측정이므로 훅 대기의 독립 비용이나 장기 변화는 판정하지 않았다.
+
+### 개발 판단
+
+일반 권한 Windows 11 대화형 데스크톱을 기준으로 화면 캡처 개발을 시작할 수 있다. 캡처의 권한, 대상 범위, 실패 처리 및 개인정보 검증은 별도 범위다. 물리 입력의 남은 제약은 AWT 직접 유니코드 및 IME 의존 문자열, 공유 클립보드와 창 메시지의 보안 조건, 운영체제 해제 거부와 강제 종료, 혼합 DPI·관리자 권한 대상 검증이다.
+
 ## 2026-11-26 물리 입력 최종 검증
 
 원격 `main`의 `e942f0f`에서 시작했다. Windows 11 Pro 25H2(26200.9974), Core i7-12700, 모니터 1대에서 Oracle Java 11.0.15 x64와 MSVC 19.44 Release를 사용했다. x64 전체 Interactive 원본은 `e942f0f` 커밋 직전 작업 트리에서 생성됐다. 원본의 `gitCommit`에는 실행 당시 HEAD인 `224f0d7`이 기록돼 있으며, JAR·x64 EXE·WinForms 픽스처 SHA-256을 해당 빌드와 대조했다. 이후 좌표 변환 경계 수정(`cc93de3`)은 관련 케이스만 다시 검증했다. [x64 전체 기준선 JSON](test-results/2026-11-26-physical-input-baseline-x64.json)

@@ -318,6 +318,8 @@ InputCommand parseInputCommand(const Json& request, InputOp op) {
         const auto units = utf16Length(raw);
         if (units < 1 || units > 1024) throw invalid();
         command.text = typedText(raw);
+        command.textMethod = choice<TextMethod, 3>(request, "method", TextMethod::unicode,
+                {{{"unicode", TextMethod::unicode}, {"virtualKey", TextMethod::virtualKey}, {"scanCode", TextMethod::scanCode}}});
         command.intervalMs = static_cast<int>(integer(request, "intervalMs", 0, 0, 50));
         break;
     }
@@ -339,6 +341,14 @@ InputCommand parseInputCommand(const Json& request, InputOp op) {
     }
     }
     return command;
+}
+
+const char* textMethodName(TextMethod method) {
+    switch (method) {
+    case TextMethod::virtualKey: return "virtualKey";
+    case TextMethod::scanCode: return "scanCode";
+    default: return "unicode";
+    }
 }
 
 long long roundHalfUp(double value) { return static_cast<long long>(std::floor(value + 0.5)); }
@@ -416,6 +426,13 @@ void attachInput(Json& capabilities, InputDriver* driver, const std::set<Action>
                                   {"width", status.virtualScreen.width}, {"height", status.virtualScreen.height}}},
                {"monitors", status.monitors}, {"buttonsSwapped", status.buttonsSwapped}};
     if (!status.available) input["reason"] = status.reason;
+    if (status.available && actions.count(Action::keyboard)) {
+        input["textMethods"] = Json::array({textMethodName(TextMethod::unicode)});
+        if (status.layoutText) {
+            input["textMethods"].push_back(textMethodName(TextMethod::virtualKey));
+            input["textMethods"].push_back(textMethodName(TextMethod::scanCode));
+        }
+    }
     capabilities["physicalInput"] = status.available;
     capabilities["input"] = std::move(input);
     if (!status.available) return;

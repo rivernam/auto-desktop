@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.IntPredicate;
+import java.util.function.Supplier;
 
 /** One local foreground session. Every request and response occupies one UTF-8 line. */
 public final class Cli {
@@ -54,6 +55,11 @@ public final class Cli {
     }
 
     static int run(String[] args, InputStream input, OutputStream output) throws IOException {
+        return run(args, input, output, InputDriver::open);
+    }
+
+    static int run(String[] args, InputStream input, OutputStream output, Supplier<InputDriver> inputDriver)
+            throws IOException {
         Map<Integer, Instant> allowedPids = new HashMap<>();
         Set<Integer> trustedMsaaPids = new HashSet<>();
         Set<String> allowedActions = new HashSet<>();
@@ -137,7 +143,7 @@ public final class Cli {
         boolean physicalInput = InputRequest.ACTIONS.stream().anyMatch(allowedActions::contains);
         try (Agent agent = (selected == null ? Agent.multi(DesktopAdapters.multi(trustedMsaa), allowedProcess, allowedActions)
                 : new Agent(DesktopAdapters.label(worker, backend), selected, allowedProcess, allowedActions))
-                .withInput(physicalInput ? InputDriver.open() : null)) {
+                .withInput(physicalInput ? inputDriver.get() : null)) {
             long sequence = 0;
             while (true) {
                 String frame;

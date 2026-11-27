@@ -1,12 +1,35 @@
 // Queries the Windows input driver without sending input, installing hooks or touching any window.
 #include "windows/input_driver.hpp"
+#include "../src/windows/input_observation.hpp"
 
 #include <iostream>
 
 using namespace desktop;
 
+void checkObservations() {
+    using namespace windows;
+    InputObservations observations;
+    observations.start(123);
+    if (observations.missing({2, 4}) != (mouseObservation | keyboardObservation))
+        throw std::runtime_error("total hook loss");
+    if (!observations.record(InputDevice::mouse, 123) || !observations.record(InputDevice::mouse, 123))
+        throw std::runtime_error("current mouse events");
+    if (!observations.record(InputDevice::keyboard, 123) || !observations.record(InputDevice::keyboard, 123))
+        throw std::runtime_error("current keyboard events");
+    if (observations.missing({2, 4}) != keyboardObservation || observations.missing({4, 2}) != mouseObservation)
+        throw std::runtime_error("partial or individual hook loss was masked by the other counter");
+    if (observations.missing({2, 2}))
+        throw std::runtime_error("complete observations");
+    observations.start(124);
+    if (observations.record(InputDevice::mouse, 123) || observations.record(InputDevice::keyboard, 123))
+        throw std::runtime_error("late events credited to a new request");
+    if (observations.missing({1, 1}) != (mouseObservation | keyboardObservation))
+        throw std::runtime_error("stale counters after restart");
+}
+
 int main() {
     try {
+        checkObservations();
         const auto driver = windows::makeInputDriver();
         const auto status = driver->status();
         const Json report{{"available", status.available}, {"reason", status.reason},
