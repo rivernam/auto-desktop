@@ -18,10 +18,10 @@ constexpr std::array<std::pair<const char*, InputOp>, 10> inputOps{{
     {"keyPress", InputOp::keyPress}, {"keyDown", InputOp::keyDown}, {"keyUp", InputOp::keyUp},
     {"typeText", InputOp::typeText}}};
 
-constexpr std::array<std::pair<const char*, Action>, 7> actionNames{{
+constexpr std::array<std::pair<const char*, Action>, 8> actionNames{{
     {"invoke", Action::invoke}, {"setValue", Action::setValue}, {"defaultAction", Action::defaultAction},
     {"select", Action::select}, {"pointer", Action::pointer}, {"keyboard", Action::keyboard},
-    {"activate", Action::activate}}};
+    {"activate", Action::activate}, {"clipboard", Action::clipboard}}};
 
 struct NamedKey {
     const char* name;
@@ -140,7 +140,7 @@ bool isKeyboard(InputOp op) {
 bool isInputOperation(std::string_view op) { return parseInputOp(op).has_value(); }
 
 bool isInputAction(Action action) {
-    return action == Action::pointer || action == Action::keyboard || action == Action::activate;
+    return action == Action::pointer || action == Action::keyboard || action == Action::activate || action == Action::clipboard;
 }
 
 bool allowsInput(const std::set<Action>& actions) {
@@ -318,9 +318,14 @@ InputCommand parseInputCommand(const Json& request, InputOp op) {
         const auto units = utf16Length(raw);
         if (units < 1 || units > 1024) throw invalid();
         command.text = typedText(raw);
-        command.textMethod = choice<TextMethod, 3>(request, "method", TextMethod::unicode,
-                {{{"unicode", TextMethod::unicode}, {"virtualKey", TextMethod::virtualKey}, {"scanCode", TextMethod::scanCode}}});
+        command.textMethod = choice<TextMethod, 4>(request, "method", TextMethod::unicode,
+                {{{"unicode", TextMethod::unicode}, {"virtualKey", TextMethod::virtualKey},
+                  {"scanCode", TextMethod::scanCode}, {"clipboard", TextMethod::clipboard}}});
         command.intervalMs = static_cast<int>(integer(request, "intervalMs", 0, 0, 50));
+        if (command.textMethod == TextMethod::clipboard) {
+            if (command.intervalMs || command.text.find_first_of(u"\r\t") != std::u16string::npos) throw invalid();
+            command.clipboardTimeoutMs = static_cast<int>(integer(request, "clipboardTimeoutMs", 1000, 50, 5000));
+        }
         break;
     }
     case InputOp::clickElement: {
@@ -347,6 +352,7 @@ const char* textMethodName(TextMethod method) {
     switch (method) {
     case TextMethod::virtualKey: return "virtualKey";
     case TextMethod::scanCode: return "scanCode";
+    case TextMethod::clipboard: return "clipboard";
     default: return "unicode";
     }
 }
@@ -432,6 +438,8 @@ void attachInput(Json& capabilities, InputDriver* driver, const std::set<Action>
             input["textMethods"].push_back(textMethodName(TextMethod::virtualKey));
             input["textMethods"].push_back(textMethodName(TextMethod::scanCode));
         }
+        if (status.clipboardText && actions.count(Action::clipboard))
+            input["textMethods"].push_back(textMethodName(TextMethod::clipboard));
     }
     capabilities["physicalInput"] = status.available;
     capabilities["input"] = std::move(input);

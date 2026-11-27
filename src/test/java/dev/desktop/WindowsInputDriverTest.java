@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.jna.Pointer;
+import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef.HWND;
 import com.sun.jna.ptr.IntByReference;
@@ -43,6 +44,18 @@ class WindowsInputDriverTest {
             assertTrue(row.has("integrity") && row.has("inputDesktop") && row.has("buttonsSwapped"), row::toString);
             System.out.println("input environment: " + row);
         }
+    }
+
+    @Test void createsAndReleasesThePrivateClipboardOwnerWithoutOpeningTheClipboard() {
+        try (WindowsInputDriver driver = new WindowsInputDriver()) {
+            org.junit.jupiter.api.Assumptions.assumeTrue(driver.describe().path("available").asBoolean());
+        }
+        assertDoesNotThrow(() -> {
+            try (WindowsClipboard ignored = new WindowsClipboard(Kernel32.INSTANCE.GetCurrentProcessId(),
+                    () -> fail("Opening a private window must not start a paste."), System.nanoTime() + 1_000_000_000L)) {
+                // Construction alone needs a valid pointer-sized HWND_MESSAGE on x64.
+            }
+        });
     }
 
     @Test void refusalsSendNothingAndInstallNoHook() throws ReflectiveOperationException {

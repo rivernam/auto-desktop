@@ -139,7 +139,7 @@ final class WindowsInputDriver implements InputDriver {
             if (available) {
                 var methods = result.putArray("textMethods").add(InputRequest.TextMethod.UNICODE.protocolName);
                 if (layoutTypingAvailable) methods.add(InputRequest.TextMethod.VIRTUAL_KEY.protocolName)
-                        .add(InputRequest.TextMethod.SCAN_CODE.protocolName);
+                        .add(InputRequest.TextMethod.SCAN_CODE.protocolName).add(InputRequest.TextMethod.CLIPBOARD.protocolName);
             }
             if (!available) result.put("reason", desktop
                     ? "The input thread could not obtain per-monitor or system DPI awareness."
@@ -614,7 +614,7 @@ final class WindowsInputDriver implements InputDriver {
             }
             synchronized (job) {
                 if (job.cancelled) throw refused("TIMEOUT", "The request expired before any input was sent.");
-                job.dispatched = true;
+                if (request.textMethod != InputRequest.TextMethod.CLIPBOARD) job.dispatched = true;
             }
             dispatched = true;
             if ((request.kind == InputRequest.Kind.DRAG && (hookFault == HookFault.MOUSE_REMOVE || hookFault == HookFault.MOUSE_PARTIAL))
@@ -635,11 +635,22 @@ final class WindowsInputDriver implements InputDriver {
         }
 
         private void send(List<WinUser.INPUT> batch) {
+            send(batch, null);
+        }
+
+        private void send(List<WinUser.INPUT> batch, Runnable beforeSend) {
             dispatch();
             requireObservations();
             HWND focus = requireForeground();
             if (textLayout != null) textLayout.verify(focus);
             if (pendingFault != null) injectHookFault();
+            if (beforeSend != null) {
+                beforeSend.run();
+                synchronized (job) {
+                    if (job.cancelled) throw refused("TIMEOUT", "The request expired before any input was sent.");
+                    job.dispatched = true;
+                }
+            }
             int sent = sendUnchecked(batch);
             events += sent;
             if (sent == 0 && events == 0)
@@ -834,6 +845,7 @@ final class WindowsInputDriver implements InputDriver {
         }
 
         private ObjectNode type() {
+            if (request.textMethod == InputRequest.TextMethod.CLIPBOARD) return paste();
             List<InputKeys.Unit> units = request.text;
             if (request.textMethod != InputRequest.TextMethod.UNICODE) {
                 if (!layoutTypingAvailable)
@@ -873,6 +885,52 @@ final class WindowsInputDriver implements InputDriver {
                 send(batch);
             }
             return result();
+        }
+
+        private ObjectNode paste() {
+            if (!layoutTypingAvailable)
+                throw refused("INPUT_UNAVAILABLE", "Clipboard text requires Windows 10 version 1607 or newer.");
+            if (!held.isEmpty()) throw refused("PRECONDITION_FAILED", "Release all session-held keys before pasting.");
+            HWND focus = pasteFocus();
+            Runnable check = () -> {
+                if (System.nanoTime() >= deadline) throw refused(events == 0 ? "TIMEOUT" : "ACTION_OUTCOME_UNKNOWN",
+                        "The clipboard request deadline expired.");
+                checkpoint();
+                if (!focus.equals(pasteFocus())) throw refused("FOREGROUND_MISMATCH", "The paste target lost keyboard focus.");
+            };
+            InputKeys.Key ctrl = InputKeys.key("Ctrl");
+            InputKeys.Key v = InputKeys.key("V");
+            dispatch();
+            WindowsClipboard clipboard = new WindowsClipboard(request.processId, check, deadline);
+            try {
+                clipboard.stage(request.clipboardText);
+                send(List.of(key(ctrl, false), key(v, false), key(v, true), key(ctrl, true)), () -> {
+                    gate.run();
+                    check.run();
+                    requireQuiet();
+                    if (User32.INSTANCE.GetAsyncKeyState(v.vk) < 0)
+                        throw refused("USER_INPUT_CONFLICT", "The paste key is held down.");
+                    clipboard.arm(request.clipboardTimeoutMs);
+                });
+                requireObservations();
+                clipboard.awaitRead();
+                check.run();
+            } finally {
+                clipboard.close();
+            }
+            return result().put("clipboardRestored", true);
+        }
+
+        private HWND pasteFocus() {
+            if (value(User32.INSTANCE.GetForegroundWindow()) != request.window)
+                throw refused("FOREGROUND_MISMATCH", "Paste requires the exact target window in the foreground.");
+            WinUser.GUITHREADINFO info = new WinUser.GUITHREADINFO();
+            info.cbSize = info.size();
+            int threadId = User32.INSTANCE.GetWindowThreadProcessId(window, null);
+            if (!User32.INSTANCE.GetGUIThreadInfo(threadId, info) || info.hwndFocus == null
+                    || processOf(info.hwndFocus) != request.processId)
+                throw refused("FOREGROUND_MISMATCH", "The paste target has no verified keyboard focus.");
+            return info.hwndFocus;
         }
     }
 

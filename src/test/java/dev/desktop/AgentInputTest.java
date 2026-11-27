@@ -96,6 +96,7 @@ class AgentInputTest {
         @Override public ObjectNode describe() {
             ObjectNode row = object().put("available", available).put("dpiAwareness", "perMonitorV2");
             if (!available) row.put("reason", "No device.");
+            else row.putArray("textMethods").add("unicode").add("clipboard");
             return row;
         }
 
@@ -200,6 +201,25 @@ class AgentInputTest {
         try (Agent agent = new Agent("UIA", provider, allowed::contains, Set.of("invoke"))) {
             // A session started without physical input has no device at all.
             error("PERMISSION_DENIED", send(agent, click(42)));
+        }
+    }
+
+    @Test void clipboardTextNeedsKeyboardAndClipboardPermission() {
+        ObjectNode request = op("typeText").put("windowId", "4242").put("processId", 42)
+                .put("text", "sample").put("method", "clipboard");
+        try (Agent agent = session("keyboard")) {
+            error("PERMISSION_DENIED", send(agent, request));
+            assertTrue(device.requests.isEmpty());
+            assertEquals("[\"unicode\"]", send(agent, op("getCapabilities")).at("/result/input/textMethods").toString());
+        }
+        try (Agent agent = session("clipboard")) {
+            error("PERMISSION_DENIED", send(agent, request));
+            assertTrue(device.requests.isEmpty());
+        }
+        try (Agent agent = session("keyboard", "clipboard")) {
+            assertEquals("clipboard", send(agent, request).at("/result/method").asText());
+            assertEquals("[\"unicode\",\"clipboard\"]", send(agent, op("getCapabilities"))
+                    .at("/result/input/textMethods").toString());
         }
     }
 

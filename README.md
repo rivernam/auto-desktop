@@ -87,6 +87,8 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend multi --al
 {"id":"t1","op":"typeText","windowId":"<HWND>","processId":1234,"text":"Hello"}
 ```
 
+`typeText.method: "clipboard"`는 별도의 `--allow-action clipboard`를 켠 세션에서 비민감 Unicode 문자열을 붙여넣는다. 기존 클립보드의 보존 조건, 복원 및 오류 동작은 입력 계약에 명시되어 있다. [클립보드 입력 계약](docs/PHYSICAL-INPUT.md#클립보드-방식)
+
 실제 입력 시험은 PC를 쓰지 않을 때 `.\tools\Test-PhysicalInput.ps1 -Interactive`로 실행한다(약 10분). [계약, 검증 순서, 시험 방법과 제약](docs/PHYSICAL-INPUT.md)
 
 ## 문서

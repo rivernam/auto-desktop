@@ -15,7 +15,7 @@ final class InputRequest {
     enum Button { LEFT, RIGHT, MIDDLE }
 
     enum TextMethod {
-        UNICODE("unicode"), VIRTUAL_KEY("virtualKey"), SCAN_CODE("scanCode");
+        UNICODE("unicode"), VIRTUAL_KEY("virtualKey"), SCAN_CODE("scanCode"), CLIPBOARD("clipboard");
 
         final String protocolName;
 
@@ -46,7 +46,7 @@ final class InputRequest {
 
     /** Operation name to the action that allows it. Insertion order is the capability order. */
     static final Map<String, String> OPERATIONS = orderedOperations();
-    static final List<String> ACTIONS = List.of("activate", "keyboard", "pointer");
+    static final List<String> ACTIONS = List.of("activate", "clipboard", "keyboard", "pointer");
     static final int DEFAULT_QUIET_MS = 500;
     static final int HELD_KEY_LIMIT = 8;
     static final int TEXT_CHUNK = 16;
@@ -68,6 +68,8 @@ final class InputRequest {
     List<InputKeys.Unit> text = List.of();
     TextMethod textMethod = TextMethod.UNICODE;
     int intervalMs;
+    int clipboardTimeoutMs;
+    String clipboardText;
 
     private InputRequest(Kind kind, long window, int processId, int quietMs) {
         this.kind = kind;
@@ -152,6 +154,12 @@ final class InputRequest {
                 parsed.text = InputKeys.text(value.textValue());
                 parsed.textMethod = TextMethod.parse(request.get("method"));
                 parsed.intervalMs = integer(request, "intervalMs", 0, 0, 50);
+                if (parsed.textMethod == TextMethod.CLIPBOARD) {
+                    if (parsed.intervalMs != 0 || parsed.text.stream().anyMatch(unit -> unit.key != null))
+                        throw invalid("Clipboard text must be single-line and unpaced.");
+                    parsed.clipboardText = value.textValue();
+                    parsed.clipboardTimeoutMs = integer(request, "clipboardTimeoutMs", 1000, 50, 5000);
+                }
                 break;
             }
             default:

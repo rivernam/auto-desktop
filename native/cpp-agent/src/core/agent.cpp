@@ -366,6 +366,7 @@ Json Agent::physical(const Json& request, const std::string& id, InputOp op, Req
             || (op != InputOp::typeText && shellShortcut(modifiers, command.keys.key.vk))) throw invalid();
     }
     if (!allowedActions_.count(inputAction(op)) || !allowedProcess_(command.processId)) throw denied();
+    if (command.textMethod == TextMethod::clipboard && !allowedActions_.count(Action::clipboard)) throw denied();
     if (element) {
         const auto& target = current().capture.elements[index];
         if (!target.enabled) throw precondition("The element is disabled.");
@@ -414,9 +415,12 @@ Json Agent::physical(const Json& request, const std::string& id, InputOp op, Req
         if (weak) result["referenceStrength"] = "weak";
     }
     const auto pid = command.processId;
-    const auto outcome = driver->perform(command, [&, pid] {
+    const auto checkPolicy = [&, pid] {
         if (element && now_() >= current().expires) throw stale();
         if (!allowedProcess_(pid)) throw denied();
+    };
+    const auto outcome = driver->perform(command, {checkPolicy, [&] {
+        checkPolicy();
         try {
             deadline.beginMutation();
         } catch (Error& error) {
@@ -425,7 +429,7 @@ Json Agent::physical(const Json& request, const std::string& id, InputOp op, Req
             error.retire = false;
             throw;
         }
-    });
+    }});
     // Input reached the system. Only the application can show that it had an effect.
     if (op == InputOp::activateWindow) {
         result["foreground"] = true;
@@ -434,6 +438,7 @@ Json Agent::physical(const Json& request, const std::string& id, InputOp op, Req
     result["inputObserved"] = outcome.observed;
     result["events"] = outcome.events;
     if (op == InputOp::typeText) result["method"] = textMethodName(command.textMethod);
+    if (outcome.clipboardRestored) result["clipboardRestored"] = true;
     const auto point = [](const ScreenPoint& p) { return Json{{"x", p.x}, {"y", p.y}}; };
     if (outcome.point) result["point"] = point(*outcome.point);
     if (outcome.from) result["from"] = point(*outcome.from);

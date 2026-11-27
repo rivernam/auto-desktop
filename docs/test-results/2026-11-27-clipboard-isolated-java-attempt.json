@@ -1,0 +1,7 @@
+[
+{"case":"Empty restoration","status":"FAIL","detail":"dev.desktop.AgentException: A private clipboard owner window could not be created."},
+{"case":"Unicode restoration","status":"FAIL","detail":"dev.desktop.AgentException: A private clipboard owner window could not be created."},
+{"case":"Unsupported format","status":"FAIL","detail":"dev.desktop.AgentException: A private clipboard owner window could not be created."},
+{"case":"Timeout restores","status":"FAIL","detail":"dev.desktop.AgentException: A private clipboard owner window could not be created."},
+{"case":"External replacement","status":"FAIL","detail":"dev.desktop.AgentException: A private clipboard owner window could not be created."}
+]

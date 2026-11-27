@@ -1,0 +1,271 @@
+{
+    "schema":  1,
+    "tool":  "Test-PhysicalInput.ps1",
+    "startedUtc":  "2026-11-27T13:29:48.5674954Z",
+    "mode":  "interactive",
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.9818",
+                        "processorCount":  20,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-12700",
+                        "cpuNominalMhz":  2112,
+                        "monitors":  [
+                                         {
+                                             "left":  0,
+                                             "top":  0,
+                                             "right":  1920,
+                                             "bottom":  1032,
+                                             "primary":  true
+                                         }
+                                     ],
+                        "userIdleMsAtStart":  10813,
+                        "gitCommit":  "0a47c8ef32aadf2e2116ad5d5fd48029669587e8",
+                        "jarSha256":  "4C2AE2C598D4F05C40B130766EF80B4810519491746C55084ECC02CD705C3E35",
+                        "cppAgentSha256":  "23C6033E208128E9AA51984E9A4DD2916CA75493EC40F31214753E41D6DF1292",
+                        "winFormsFixtureSha256":  "BB6C833141D11C330BF615D933A8EE2E5097113ACD24C7DBF3396702636CEC90",
+                        "swingAwtFixtureClassSha256":  "679AD3F09C3A800CB3604CA04E97B7342C5D8008876C3C5A27C23BBD59A55589",
+                        "runnerSha256":  "CC96097A3665E684588AF7993E688A5B8D86BEED3DEFBEEAD02D1CB38DC22E3D",
+                        "faultJavaLauncherSha256":  "08FEC4EF08FCBC7FC09A18FECFF15016D2462371660F874A2518D30EDA73D18D",
+                        "javaAgentRuntime":  "C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.11.10-hotspot\\bin\\java.exe",
+                        "javaAgentVersion":  "openjdk version \"21.0.11\" 2026-04-21 LTS | OpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS) | OpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)",
+                        "fixtureJavaVersion":  "openjdk version \"21.0.11\" 2026-04-21 LTS | OpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS) | OpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)"
+                    },
+    "agents":  "Cpp",
+    "cases":  [
+                  {
+                      "agent":  "Cpp",
+                      "case":  "ReleaseOnFailure",
+                      "description":  "A drag and a held Shift are interrupted by foreign input: the button and the key are released; a key held at session end is released.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T13:29:48.5934984Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  282.9
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  27.4,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  0.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "pointerDrag",
+                                        "code":  "USER_INPUT_CONFLICT",
+                                        "ms":  742.5,
+                                        "inputSent":  true,
+                                        "released":  true
+                                    },
+                                    {
+                                        "op":  "keyUp",
+                                        "code":  "PRECONDITION_FAILED",
+                                        "ms":  0.2,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  0.5,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    }
+                                ],
+                      "evidence":  {
+
+                                   },
+                      "durationMs":  4523,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "CanvasKeyboard",
+                      "description":  "Canvas keyboard: Unicode text with Tab, Enter and a surrogate pair, Ctrl+Shift+K, key down and up, refusals.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T13:29:54.4525284Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  336
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  16.4,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  3.9,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "OK",
+                                        "ms":  3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyDown",
+                                        "code":  "OK",
+                                        "ms":  0.7,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyUp",
+                                        "code":  "OK",
+                                        "ms":  0.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "keyUp",
+                                        "code":  "PRECONDITION_FAILED",
+                                        "ms":  0.2,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "INVALID_REQUEST",
+                                        "ms":  0.1,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    },
+                                    {
+                                        "op":  "keyPress",
+                                        "code":  "INVALID_REQUEST",
+                                        "ms":  0.1,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "canvasText":  "Abc 한글 😀\tX\nZ"
+                                   },
+                      "durationMs":  1983,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  },
+                  {
+                      "agent":  "Cpp",
+                      "case":  "CanvasTextMethods",
+                      "description":  "Default Unicode and explicit virtual-key and scan-code text. An unmappable suffix must prevent any input.",
+                      "status":  "PASS",
+                      "startedUtc":  "2026-11-27T13:29:57.7673130Z",
+                      "steps":  [
+                                    {
+                                        "op":  "snapshot",
+                                        "code":  "OK",
+                                        "ms":  250.3
+                                    },
+                                    {
+                                        "op":  "getCapabilities",
+                                        "code":  "OK",
+                                        "ms":  7.5
+                                    },
+                                    {
+                                        "op":  "clickElement",
+                                        "code":  "OK",
+                                        "ms":  22.8,
+                                        "inputSent":  true,
+                                        "inputObserved":  true,
+                                        "boundsMapping":  "physical"
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  2.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  5.6,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "OK",
+                                        "ms":  5.3,
+                                        "inputSent":  true,
+                                        "inputObserved":  true
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "PRECONDITION_FAILED",
+                                        "ms":  0.4,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    },
+                                    {
+                                        "op":  "typeText",
+                                        "code":  "PRECONDITION_FAILED",
+                                        "ms":  0.3,
+                                        "inputSent":  false,
+                                        "released":  false
+                                    }
+                                ],
+                      "evidence":  {
+                                       "textByMethod":  {
+                                                            "unicode":  " Ab9 한글😀",
+                                                            "virtualKey":  " Ab9 한글😀 Ab9- ",
+                                                            "scanCode":  " Ab9 한글😀 Ab9-  Ab9- "
+                                                        }
+                                   },
+                      "durationMs":  1898,
+                      "heldAfter":  {
+                                        "leftButton":  false,
+                                        "rightButton":  false,
+                                        "middleButton":  false,
+                                        "shift":  false,
+                                        "ctrl":  false,
+                                        "alt":  false
+                                    }
+                  }
+              ],
+    "summary":  {
+                    "PASS":  3,
+                    "FAIL":  0,
+                    "BLOCKED":  0,
+                    "NOT_RUN":  0
+                },
+    "parity":  [
+
+               ],
+    "finishedUtc":  "2026-11-27T13:29:59.6843140Z"
+}

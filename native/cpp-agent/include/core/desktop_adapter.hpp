@@ -21,7 +21,7 @@ struct Error : std::runtime_error {
 };
 
 // The last three permit physical input operations, never an accessibility action.
-enum class Action { invoke, setValue, defaultAction, select, pointer, keyboard, activate };
+enum class Action { invoke, setValue, defaultAction, select, pointer, keyboard, activate, clipboard };
 
 struct Bounds {
     long x, y;

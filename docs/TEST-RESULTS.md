@@ -1,5 +1,34 @@
 # 빌드 및 시험 기록
 
+## 2026-11-27 Clipboard 기반 Unicode 입력
+
+기준 커밋은 `0a47c8e`다. Windows 11 x64 대화형 세션에서 Java Agent는 Oracle JDK 11.0.15, AWT·Swing Fixture는 Temurin 21.0.11, C++ Agent는 MSVC 19.44 Release로 실행했다. Java/JNA와 C++은 같은 [입력 계약](PHYSICAL-INPUT.md#클립보드-방식)을 각자의 Win32 구현으로 처리한다.
+
+### 기능과 안전성
+
+각 Agent는 AWT TextField/TextArea, Swing, WinForms, Win32에 영문, 한글, 기호·Ω·이모지를 보냈다. 전체 실행에서 각 Agent는 15개 조합 중 14개를 통과했다. C++의 AWT TextField 영문 한 건과 Java의 AWT TextArea 한글 한 건에서는 Ctrl+V가 전달된 뒤 Unicode 읽기 요청을 확인할 수 없었다. 모두 `ACTION_OUTCOME_UNKNOWN`으로 종료됐고 Fixture 값과 빈 클립보드 상태를 유지했다. C++ x86 Agent와 Win32 x86 Fixture 조합에서는 세 문자열 모두 정확히 일치하고 클립보드가 복원됐다. [Java 원본](test-results/2026-11-27-clipboard-agent-java.json) · [C++ 원본](test-results/2026-11-27-clipboard-agent-cpp.json) · [x86 원본](test-results/2026-11-27-clipboard-agent-x86.json)
+
+AWT 두 컨트롤의 세 문자열을 별도로 재실행해 두 Agent 각각 6/6을 확인했다. 전체 실행에서 발생한 두 읽기 기한 초과는 재실행에서 재현되지 않았다. AWT는 지원 조건을 만족하는 경우 `clipboard`로 입력할 수 있다. 기존 `unicode`의 AWT `VK_PACKET` 호환성 제약은 별도다. [Java AWT 재검증](test-results/2026-11-27-clipboard-awt-recheck-java.json) · [C++ AWT 재검증](test-results/2026-11-27-clipboard-awt-recheck-cpp.json)
+
+두 Agent의 장애 주입 10개 케이스는 모두 통과했다. 소유 창이 종료된 표준 텍스트는 나열된 형식별 바이트 해시까지 일치했다. 살아 있는 소유 창과 지원하지 않는 사용자 정의 형식은 원본 해시와 시퀀스를 유지한 채 거부했다. 50ms 잠금은 전송 전에 해제된 뒤 붙여넣기가 진행됐고, 계속 유지한 잠금에서는 키를 보내지 않았다. 200ms의 지연은 앱이 값을 반영한 뒤 확인했다. 60ms 기한을 넘긴 지연, 포커스 이동, 외부 키 입력에서는 Fixture 값을 유지하고 빈 클립보드를 복원했다. 외부 쓰기에서는 외부 토큰을 유지했다. [Java 원본](test-results/2026-11-27-clipboard-agent-java.json) · [C++ 원본](test-results/2026-11-27-clipboard-agent-cpp.json)
+
+별도의 Windows 윈도우 스테이션에서도 Java와 C++ 각각 8개 클립보드 트랜잭션 케이스를 통과했다. 여기에 재시도 여유 시간이 없는 요청의 전송 전 거부와 익명 `OpenClipboard(NULL)` 읽기 거부를 포함했다. Java x64의 메시지 전용 창 핸들 부호 확장 문제를 재현해 수정했다. Swing에서 발생한 순간 잠금은 두 구현에 전송 전 80ms 한도의 잠금 재시도를 추가하고, 50ms 잠금을 주입해 재검증했다. [JNA 최초 진단](test-results/2026-11-27-clipboard-isolated-java-attempt.json) · [순간 잠금 최초 관측](test-results/2026-11-27-clipboard-agent-java-lock-attempt.json) · [Java 격리 시험](test-results/2026-11-27-clipboard-isolated-java.json) · [C++ 격리 시험](test-results/2026-11-27-clipboard-isolated-cpp.json)
+
+### 기존 물리 입력과 x86 회귀
+
+최종 x64 Agent에서 키보드, 기존 문자열 세 방식, 마우스, 포커스 이동, 사용자 입력 충돌, 실패 시 키 해제를 각각 실행해 12/12 통과했다. JDK 11 Maven 테스트는 141개 중 137개를 실행해 실패 0건이었다. 4개 GUI 통합 테스트는 기본 빌드에서 제외된다. C++ x86 Release 빌드와 실행을 확인했다. x64·x86의 CTest는 각각 3/3 통과했다. [x64 회귀 원본](test-results/2026-11-27-clipboard-regression-x64.json) · [x86 회귀 원본](test-results/2026-11-27-clipboard-regression-x86.json)
+
+### 짧은 성능 비교
+
+Swing에서 동일한 한글·기호·이모지 문자열을 방식별 12회 입력했다. 각 요청 뒤 Fixture 전체 문자열과 빈 클립보드를 확인했다. 지연은 요청 왕복 시간, CPU 시간은 각 12회 동안의 Agent 프로세스 증가량이다. 메모리는 각 요청 뒤 표본의 중앙값이다. 작은 표본에서 p95는 최댓값과 같다. Java CPU 시간에는 실행 순서와 JVM 워밍업 영향이 포함된다.
+
+| Agent | 방식 | 지연 p50 / p95 (ms) | CPU 시간 (ms) | 작업 집합 / 전용 메모리 (MiB) |
+|---|---|---:|---:|---:|
+| Java | `unicode` | 12.05 / 14.51 | 500.00 | 117.74 / 656.27 |
+| Java | `clipboard` | 32.95 / 41.74 | 109.38 | 117.72 / 656.44 |
+| C++ | `unicode` | 8.27 / 10.56 | 15.63 | 13.31 / 7.14 |
+| C++ | `clipboard` | 34.12 / 47.00 | 31.25 | 13.32 / 7.14 |
+
 ## 2026-11-27 물리 입력 호환성과 훅 복구
 
 `main`의 `806ce11`에서 시작했다. Windows 11 x64 대화형 세션에서 Java Agent는 Oracle JDK 11.0.15, AWT·Swing 픽스처는 Temurin 21.0.11, C++ Agent는 MSVC 19.44 Release를 사용했다. 각 Agent는 같은 NDJSON 계약을 별도 구현으로 처리한다.
@@ -18,7 +47,7 @@
 
 AWT의 Win32 포커스는 `SunAwtFrame`에 있었고, 편집 컨트롤은 별도의 `RichEdit20W`였다. AWT의 키 리스너는 유니코드 패킷에서 `KEY_TYPED`를 기록했지만 실제 편집 값은 그대로였다. Java 이벤트로 변환된 이후 네이티브 편집 값에 반영되는 경로로 문제 범위를 좁혔다. 특정 OpenJDK 내부 분기나 JDK 전체의 동작으로 일반화하지 않았다. [Windows KEYBDINPUT](https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-keybdinput)
 
-두 Agent의 `typeText.method`는 `unicode`(기본), `virtualKey`, `scanCode`를 사용한다. 배열 기반 방식은 첫 전송 전에 전체 문자열을 확인한다. 매핑할 수 없는 문자가 있으면 앞의 문자도 전송하지 않는다. `WM_CHAR`는 저수준 훅의 검증 경로를 거치지 않고, 클립보드는 공유 자원이라 대상이 붙여넣는 시점의 값과 기존 데이터 보존을 일반적으로 보장하기 어렵다. 두 방식은 시험 도구에만 두었다. AWT 한글 입력은 지원되는 UIA 참조에 명시적 `setValue`를 사용하는 기존 경로가 남아 있다. 자동 Fallback은 없다. [입력 방식 계약](PHYSICAL-INPUT.md#문자열-입력-방식) · [Windows 클립보드 형식](https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-formats)
+이 비교 시점의 두 Agent에서 `typeText.method`는 `unicode`(기본), `virtualKey`, `scanCode`를 사용했다. 배열 기반 방식은 첫 전송 전에 전체 문자열을 확인한다. 매핑할 수 없는 문자가 있으면 앞의 문자도 전송하지 않는다. 이 비교에서 `WM_CHAR`와 클립보드는 시험 도구로 직접 조사했다. AWT 한글 입력은 지원되는 UIA 참조에 명시적 `setValue`를 사용하는 기존 경로가 남아 있다. 현재 계약에서 추가한 `clipboard`에는 별도 권한과 지원 조건이 적용된다. [입력 방식 계약](PHYSICAL-INPUT.md#문자열-입력-방식) · [Windows 클립보드 형식](https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-formats)
 
 클립보드 시험은 비어 있는 경우에만 합성 문자열을 올렸다. 첫 실행은 시퀀스 변경에서 보수적으로 중단됐다. 재시험에서는 Windows의 표준 텍스트 형식 합성을 고려해 잠금 중 소유자, 원본 메모리 핸들 및 형식을 확인했다. 15개 비교 모두 성공했고 각 시험 뒤 클립보드가 비어 있는 초기 상태로 돌아갔다. 채워진 클립보드 복원과 타 프로세스 변경의 장애 주입은 검증하지 않았다. [중단 원본](test-results/2026-11-27-text-input-clipboard-attempt.json) · [클립보드 재시험 JSON](test-results/2026-11-27-text-input-clipboard.json)
 

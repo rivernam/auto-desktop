@@ -1,4 +1,5 @@
 #include "windows/input_driver.hpp"
+#include "clipboard_paste.hpp"
 #include "input_observation.hpp"
 
 #include <Windows.h>
@@ -380,10 +381,10 @@ private:
     void checkPoint(const ScreenPoint& point) const;
     void hitTest(const ScreenPoint& point) const;
     bool belongs(HWND window) const;
-    void begin();
+    void begin(bool dispatch = true);
     void checkTime() const;
     void pause(int milliseconds) const;
-    void send(std::vector<Event> batch);
+    void send(std::vector<Event> batch, const std::function<void()>& beforeSend = {});
     void reach(const ScreenPoint& point) const;
     void settle();
     Event move(const ScreenPoint& point) const;
@@ -395,6 +396,8 @@ private:
     InputOutcome drag();
     InputOutcome keyboard();
     InputOutcome text();
+    InputOutcome paste();
+    HWND pasteFocus() const;
     InputOutcome activate();
 
     Driver& driver_;
@@ -444,6 +447,7 @@ public:
         const auto own = integrity(GetCurrentProcess());
         status.integrity = own ? integrityName(*own) : "untrusted";
         status.inputDesktop = onInputDesktop();
+        status.clipboardText = status.inputDesktop && status.layoutText;
         status.virtualScreen = virtualScreen();
         status.monitors = GetSystemMetrics(SM_CMONITORS);
         status.buttonsSwapped = GetSystemMetrics(SM_SWAPBUTTON) != 0;
@@ -732,11 +736,12 @@ void Run::pause(int milliseconds) const {
 }
 
 // Opens the gate and installs the monitor. Nothing before this sends anything.
-void Run::begin() {
+void Run::begin(bool dispatch) {
     checkTime();
     const bool recovering = driver_.unhealthy_ != 0;
     foreignAtStart_ = driver_.counters_.foreign.load(std::memory_order_acquire);
-    gate_();
+    if (dispatch) gate_();
+    else gate_.checkPolicy();
     driver_.ensureHooks();
     if (recovering) checkUser(true);
     tag_ = driver_.nextTag();
@@ -747,7 +752,7 @@ void Run::begin() {
     begun_ = true;
 }
 
-void Run::send(std::vector<Event> batch) {
+void Run::send(std::vector<Event> batch, const std::function<void()>& beforeSend) {
     if (!begun_) begin();
     checkTime();
     checkForeign();
@@ -760,6 +765,7 @@ void Run::send(std::vector<Event> batch) {
         if (input.type == INPUT_MOUSE) input.mi.dwExtraInfo = tag_;
         else input.ki.dwExtraInfo = tag_;
     }
+    if (beforeSend) beforeSend();
     const auto count = SendInput(static_cast<UINT>(inputs.size()), inputs.data(), sizeof(INPUT));
     for (UINT i = 0; i < count; ++i) {
         const auto& event = batch[i];
@@ -992,6 +998,7 @@ InputOutcome Run::keyboard() {
 
 InputOutcome Run::text() {
     checkReady(true, true);
+    if (command_.textMethod == TextMethod::clipboard) return paste();
     const auto& units = command_.text;
     std::vector<LayoutKey> layoutKeys;
     if (command_.textMethod != TextMethod::unicode) {
@@ -1037,6 +1044,55 @@ InputOutcome Run::text() {
     InputOutcome outcome;
     outcome.events = events_;
     outcome.observed = true;
+    return outcome;
+}
+
+HWND Run::pasteFocus() const {
+    if (GetForegroundWindow() != target())
+        throw refusal("FOREGROUND_MISMATCH", "Paste requires the exact target window in the foreground.");
+    GUITHREADINFO info{};
+    info.cbSize = sizeof(info);
+    if (!GetGUIThreadInfo(GetWindowThreadProcessId(target(), nullptr), &info) || !info.hwndFocus
+        || processOf(info.hwndFocus) != static_cast<DWORD>(command_.processId))
+        throw refusal("FOREGROUND_MISMATCH", "The paste target has no verified keyboard focus.");
+    return info.hwndFocus;
+}
+
+InputOutcome Run::paste() {
+    if (!driver_.api_.set)
+        throw refusal("INPUT_UNAVAILABLE", "Clipboard text requires Windows 10 version 1607 or newer.");
+    if (!driver_.held().empty()) throw refusal("PRECONDITION_FAILED", "Release all session-held keys before pasting.");
+    const HWND focus = pasteFocus();
+    const auto check = [this, focus] {
+        checkTime();
+        checkForeign();
+        if (pasteFocus() != focus) throw refusal("FOREGROUND_MISMATCH", "The paste target lost keyboard focus.");
+    };
+    begin(false);
+    ClipboardPaste clipboard(static_cast<DWORD>(command_.processId), check, stopAt_);
+    try {
+        clipboard.stage(command_.text);
+        const Key ctrl{vk::control, false}, v{'V', false};
+        send({key(ctrl, false), key(v, false), key(v, true), key(ctrl, true)}, [&] {
+            checkWindow();
+            check();
+            checkUser();
+            if (GetAsyncKeyState('V') & 0x8000) throw refusal("USER_INPUT_CONFLICT", "The paste key is held down.");
+            clipboard.arm(std::chrono::milliseconds(command_.clipboardTimeoutMs));
+            gate_();
+        });
+        clipboard.awaitRead();
+        check();
+    } catch (...) {
+        clipboard.restore();
+        throw;
+    }
+    clipboard.restore();
+    check();
+    InputOutcome outcome;
+    outcome.events = events_;
+    outcome.observed = true;
+    outcome.clipboardRestored = true;
     return outcome;
 }
 

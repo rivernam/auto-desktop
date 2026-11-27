@@ -1,0 +1,81 @@
+{
+    "schema":  1,
+    "tool":  "Test-TextInputCompatibility.ps1",
+    "mode":  "interactive",
+    "agent":  "Cpp",
+    "environment":  {
+                        "os":  "Microsoft Windows NT 10.0.26200.0",
+                        "is64BitOS":  true,
+                        "interactive":  true,
+                        "powerShell":  "5.1.26100.9818",
+                        "processorCount":  20,
+                        "cpu":  "12th Gen Intel(R) Core(TM) i7-12700",
+                        "cpuNominalMhz":  2112,
+                        "fixtureJavaVersion":  "openjdk version \"21.0.11\" 2026-04-21 LTS | OpenJDK Runtime Environment Temurin-21.0.11+10 (build 21.0.11+10-LTS) | OpenJDK 64-Bit Server VM Temurin-21.0.11+10 (build 21.0.11+10-LTS, mixed mode, sharing)",
+                        "gitCommit":  "0a47c8ef32aadf2e2116ad5d5fd48029669587e8",
+                        "agentSha256":  "171DBE5CA24E4D81C01187A5D7FEEC0B2D5BF27B5C61C93CD29D277CCE8D7885"
+                    },
+    "startedUtc":  "2026-11-27T13:57:46.0925227Z",
+    "cases":  [
+                  {
+                      "fixture":  "Win32",
+                      "method":  "clipboard",
+                      "sample":  "English",
+                      "status":  "PASS",
+                      "targetClass":  "Edit",
+                      "focusClass":  "Edit",
+                      "layout":  "04120412",
+                      "expectedSuffix":  " Az19 ",
+                      "clipboardFormatsBefore":  0,
+                      "agentLatencyMs":  123.1,
+                      "agentCode":  "OK",
+                      "agentInputSent":  true,
+                      "clipboardFormatsAfter":  0,
+                      "clipboardRestored":  true,
+                      "fixtureValue":  "initial fixture value Az19 "
+                  },
+                  {
+                      "fixture":  "Win32",
+                      "method":  "clipboard",
+                      "sample":  "Korean",
+                      "status":  "PASS",
+                      "targetClass":  "Edit",
+                      "focusClass":  "Edit",
+                      "layout":  "04120412",
+                      "expectedSuffix":  " 한글 ",
+                      "clipboardFormatsBefore":  0,
+                      "agentLatencyMs":  26.08,
+                      "agentCode":  "OK",
+                      "agentInputSent":  true,
+                      "clipboardFormatsAfter":  0,
+                      "clipboardRestored":  true,
+                      "fixtureValue":  "initial fixture value Az19  한글 "
+                  },
+                  {
+                      "fixture":  "Win32",
+                      "method":  "clipboard",
+                      "sample":  "Unicode",
+                      "status":  "PASS",
+                      "targetClass":  "Edit",
+                      "focusClass":  "Edit",
+                      "layout":  "04120412",
+                      "expectedSuffix":  " !@#[] Ω😀 ",
+                      "clipboardFormatsBefore":  0,
+                      "agentLatencyMs":  40.11,
+                      "agentCode":  "OK",
+                      "agentInputSent":  true,
+                      "clipboardFormatsAfter":  0,
+                      "clipboardRestored":  true,
+                      "fixtureValue":  "initial fixture value Az19  한글  !@#[] Ω😀 "
+                  }
+              ],
+    "clipboardFormatsAtStart":  0,
+    "finishedUtc":  "2026-11-27T13:57:56.7643948Z",
+    "summary":  {
+                    "PASS":  3,
+                    "FAIL":  0,
+                    "BLOCKED":  0,
+                    "UNREPRESENTABLE":  0,
+                    "NOT_RUN":  0
+                }
+}

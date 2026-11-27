@@ -93,6 +93,14 @@ class InputLogicTest {
         invalid(() -> InputRequest.parse("typeText", request.putNull("method")));
     }
 
+    @Test void clipboardTextRequiresOneUnpacedPaste() {
+        ObjectNode request = targeted("typeText").put("method", "clipboard").put("text", "A" + HIGH + LOW);
+        assertEquals("clipboard", InputRequest.parse("typeText", request).textMethod.protocolName);
+        invalid(() -> InputRequest.parse("typeText", request.deepCopy().put("text", "a\nb")));
+        invalid(() -> InputRequest.parse("typeText", request.deepCopy().put("intervalMs", 1)));
+        invalid(() -> InputRequest.parse("typeText", request.deepCopy().put("clipboardTimeoutMs", 49)));
+    }
+
     @Test void normalizedCoordinatesLandOnTheRequestedPixel() {
         int[][] screens = {{0, 1920}, {-1920, 3840}, {-1280, 3200}, {0, 1366}, {-2560, 5120}, {0, 1}, {-3, 7}};
         for (int[] screen : screens) {

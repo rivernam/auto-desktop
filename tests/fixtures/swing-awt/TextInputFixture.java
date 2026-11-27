@@ -5,6 +5,7 @@ import java.awt.TextArea;
 import java.awt.TextComponent;
 import java.awt.TextField;
 import java.awt.Window;
+import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.nio.charset.StandardCharsets;
@@ -13,9 +14,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Locale;
 import javax.swing.JFrame;
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.JTextField;
 import javax.swing.Timer;
 import javax.swing.text.JTextComponent;
+import javax.swing.text.DefaultEditorKit;
 
 /** A text-only fixture for comparing real Windows input and Java's received key events. */
 public final class TextInputFixture {
@@ -47,6 +51,7 @@ public final class TextInputFixture {
                 throw new IllegalArgumentException("Unknown fixture kind " + kind);
         }
         window.add(edit);
+        if (edit instanceof JTextField) installPasteControl((JTextField) edit, state);
         StringBuilder keys = new StringBuilder();
         edit.addKeyListener(new KeyAdapter() {
             private void record(String kind, KeyEvent event) {
@@ -76,6 +81,46 @@ public final class TextInputFixture {
             write(state, "edit-focus.txt", Boolean.toString(edit.isFocusOwner()));
             write(state, "key-events.txt", keys.toString());
         }).start();
+    }
+
+    private static void installPasteControl(JTextField edit, Path state) {
+        String name = DefaultEditorKit.pasteAction;
+        Action paste = edit.getActionMap().get(name);
+        edit.getActionMap().put(name, new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent event) {
+                Path instruction = state.resolve("paste-mode.txt");
+                if (!Files.isRegularFile(instruction)) {
+                    paste.actionPerformed(event);
+                    return;
+                }
+                try {
+                    String mode = Files.readString(instruction).trim();
+                    write(state, "paste-pending.txt", mode);
+                    if (mode.equals("hold")) return;
+                    if (mode.equals("focus")) {
+                        JFrame other = new JFrame("Clipboard fixture foreground switch");
+                        other.add(new JTextField("Other window", 20));
+                        other.pack();
+                        other.setLocationRelativeTo(edit);
+                        other.setAutoRequestFocus(true);
+                        other.setVisible(true);
+                        other.toFront();
+                        Timer close = new Timer(550, ignored -> other.dispose());
+                        close.setRepeats(false);
+                        close.start();
+                        return;
+                    }
+                    Timer delayed = new Timer(Integer.parseInt(mode), ignored -> {
+                        paste.actionPerformed(event);
+                        write(state, "paste-finished.txt", mode);
+                    });
+                    delayed.setRepeats(false);
+                    delayed.start();
+                } catch (java.io.IOException failure) {
+                    write(state, "paste-finished.txt", "instruction unreadable");
+                }
+            }
+        });
     }
 
     private static void write(Path directory, String name, String value) {

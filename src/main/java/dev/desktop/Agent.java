@@ -227,6 +227,12 @@ public final class Agent implements AutoCloseable {
         inputActions.stream().sorted().forEach(allowed::add);
         boolean available = row.path("available").asBoolean();
         if (!available || !inputActions.contains("keyboard")) row.remove("textMethods");
+        else if (!inputActions.contains("clipboard") && row.get("textMethods") instanceof ArrayNode) {
+            ArrayNode methods = (ArrayNode) row.get("textMethods");
+            for (int i = 0; i < methods.size(); i++) {
+                if ("clipboard".equals(methods.get(i).asText())) { methods.remove(i); break; }
+            }
+        }
         result.put("physicalInput", available);
         if (available) {
             ArrayNode operations = result.withArray("operations");
@@ -248,6 +254,8 @@ public final class Agent implements AutoCloseable {
         InputRequest parsed = InputRequest.parse(op, request);
         if (!actions.allows(action) || !actions.allowsProcess(parsed.processId))
             throw new AgentException("PERMISSION_DENIED", "The process and action must both be allowed.");
+        if (parsed.textMethod == InputRequest.TextMethod.CLIPBOARD && !actions.allows("clipboard"))
+            throw new AgentException("PERMISSION_DENIED", "Clipboard text also requires the clipboard action.");
         InputDriver driver = input();
         actions.remember(id);
         ObjectNode result = driver.execute(parsed, inputGate(parsed.processId), inputDeadline());

@@ -12,6 +12,7 @@
 |---|---|
 | `pointer` | `pointerMove`, `pointerClick`, `pointerDrag`, `pointerScroll`, `clickElement` |
 | `keyboard` | `keyPress`, `keyDown`, `keyUp`, `typeText` |
+| `clipboard` | `typeText`의 `clipboard` 방식에 필요한 추가 권한. `keyboard`도 필요 |
 | `activate` | `activateWindow` |
 
 ```powershell
@@ -43,7 +44,7 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend multi --al
 | keyPress | windowId, processId, keys | 단축키 한 번. `"Ctrl+Shift+K"`처럼 수정 키와 키 하나를 `+`로 잇는다. 수정 키를 순서대로 누르고 역순으로 뗀다. 키 하나만 써도 된다. 세션이 `keyDown`으로 누르고 있는 수정 키는 다시 누르거나 떼지 않는다. 조합의 마지막 키를 세션이 누르고 있으면 `PRECONDITION_FAILED` |
 | keyDown | windowId, processId, key | 키 하나를 누른 채 둔다. 세션이 누른 키는 `keyUp`, 입력 실패, 세션 종료 중 먼저 오는 때에 뗀다. 동시에 최대 8개 |
 | keyUp | windowId, processId, key | 이 세션이 `keyDown`으로 누른 키만 뗀다. 아니면 `PRECONDITION_FAILED` |
-| typeText | windowId, processId, text, intervalMs?, method? | 문자열 입력(1~1,024 UTF-16 단위). `method`는 `unicode`(기본), `virtualKey`, `scanCode`다. `\r\n`·`\n`은 Enter, `\t`는 Tab 키다. 그 밖의 제어 문자는 거부한다. 16단위씩 보내며 묶음 사이에 전경·사용자 입력과 훅 관측을 다시 확인한다. `intervalMs`(0~50, 기본 0)는 묶음 사이 대기 |
+| typeText | windowId, processId, text, intervalMs?, method?, clipboardTimeoutMs? | 문자열 입력(1~1,024 UTF-16 단위). 키 입력 방식은 `\r\n`·`\n`을 Enter, `\t`를 Tab으로 전송하고 그 밖의 제어 문자를 거부한다. 16단위씩 보내며 묶음 사이에 전경·사용자 입력과 훅 관측을 다시 확인한다. `intervalMs`(0~50, 기본 0)는 묶음 사이 대기다. `clipboard`의 입력 조건과 기한은 아래에 정의한다. |
 | clickElement | ref, button?, clicks?, position?, acceptWeakReference? | 스냅샷 요소의 현재 bounds 안을 클릭한다. `position`은 bounds 안의 비율 `{"x":0~1,"y":0~1}`(기본 중앙) |
 
 공통 선택 필드 `quietMs`(0~10,000, 기본 500)는 요청 직전 이 시간 안에 외부 입력이 있었으면 거부한다.
@@ -54,6 +55,28 @@ java -XX:+UseSerialGC -Xms16m -jar target/desktop-agent.jar --backend multi --al
 - `virtualKey`와 `scanCode`는 대상의 현재 키보드 배열에서 직접 표현 가능한 키를 사용한다. 입력 시작 전에 전체 문자열의 변환을 확인한다. 표현할 수 없는 문자나 조합이 하나라도 있으면 `PRECONDITION_FAILED`가 반환되며 어느 부분도 전송되지 않는다. 입력 중 배열이 바뀌면 나머지 전송을 중단한다.
 - 두 배열 기반 방식은 상태를 변경하지 않는 `ToUnicodeEx` 검증을 지원하는 Windows 10 1607 이상에서 제공한다. Caps Lock이나 누른 수정 키가 감지되면 거부한다. 직접 키로 표현할 수 없는 IME 조합과 보조 평면 문자는 이 방식으로 전송하지 않는다. 대상 앱의 IME와 키 이벤트 처리는 픽스처 상태처럼 독립적으로 확인한다.
 - `getCapabilities.input.textMethods`는 키보드 입력을 허용하고 드라이버가 사용 가능할 때 선택 가능한 방식의 이름을 반환한다. 성공한 `typeText` 응답의 `method`는 적용한 방식이다. Agent는 호출자가 선택한 방식으로만 전송한다.
+
+### 클립보드 방식
+
+`--allow-action keyboard --allow-action clipboard`와 대상 `--allow-pid`를 지정한 Windows 10 1607 이상 세션에서 `"method":"clipboard"`를 보낸다. `getCapabilities.input.textMethods`에 `clipboard`가 나타난다. 한 줄의 유효한 Unicode 문자열을 한 번의 `Ctrl+V`로 붙여넣는다. CR·LF·Tab 및 양수 `intervalMs`는 `INVALID_REQUEST`다. `clipboardTimeoutMs`는 붙여넣기에서 Unicode 읽기 요청을 기다리는 시간이며 50~5,000ms(기본 1,000ms)다. 다른 방식의 요청에는 영향을 주지 않는다.
+
+1. Agent는 정확한 전경 HWND와 네이티브 포커스 HWND를 기록한다. 기존 PID·무결성·입력 데스크톱·사용자 입력·저수준 훅 검사에 더해, 세션이 누른 키가 없어야 한다. 클립보드 준비 뒤 전송 직전과 읽기 대기 중에 포커스와 외부 입력을 다시 확인한다.
+2. Agent가 클립보드를 잠근 상태에서 원본을 확인한다. 빈 상태 또는 살아 있는 소유 창이 없으며 `CF_UNICODETEXT`가 첫 형식인 클립보드를 지원한다. 추가 형식은 `CF_TEXT`, `CF_OEMTEXT`, `CF_LOCALE`과 Windows 기록·동기화 제어 형식으로 제한한다. 살아 있는 소유 창은 `GetClipboardData` 호출에서 지연 렌더링을 시작해 Windows가 최대 30초 동안 응답을 기다릴 수 있으므로 거부한다. 각 형식을 복제할 수 있는 `HGLOBAL`로 읽고 전체 1MiB 이내에서 복원용 메모리를 미리 확보한다. 이미지, 파일, HTML, OLE·사용자 정의 데이터, 복제할 수 없거나 읽는 도중 시퀀스가 바뀐 형식은 거부한다. 표준 텍스트 데이터와 형식 순서를 보존한다. Windows 클립보드 이력과 소유권은 Windows가 관리한다. [Windows 지연 렌더링 대기](https://devblogs.microsoft.com/oldnewthing/20220608-00/?p=106727/)
+3. 전송할 문자열을 `CF_UNICODETEXT` 지연 렌더링으로 등록한다. `Ctrl+V`에 대한 훅 관측과 별도로 Windows의 `WM_RENDERFORMAT`을 기다린다. 클립보드를 연 창의 PID가 대상과 일치할 때 데이터를 제공한다. `OpenClipboard(NULL)`을 쓴 앱은 Windows가 읽는 창을 알려주지 않아 이 방식의 지원 범위에서 제외한다. 읽기 요청은 앱이 텍스트를 입력란에 반영했음을 확인하는 신호가 아니다. 성공 응답은 훅 관측, Unicode 데이터 제공과 원본 복원을 마쳤음을 뜻한다(`clipboardRestored: true`, `effectVerified: false`).
+4. 성공과 오류 모두에서 먼저 잠금을 다시 획득하고 Agent 소유권과 임시 데이터 식별자를 확인한다. 소유권을 잃었거나 임시 데이터가 바뀌면 외부 데이터를 유지한다. 요청 기한 안에서 복원에 최대 750ms를 사용한다. 앱이 기한 안에 데이터를 읽지 않거나 읽을 때까지 포커스나 사용자 입력 상태를 유지할 수 없는 경우를 지원하지 않는다. 이미 전달된 `Ctrl+V`는 취소할 수 없다. 앱이 뒤늦게 클립보드를 읽으면 그때의 원본 또는 나중에 복사한 데이터가 붙여넣어질 수 있다. AWT/Swing과 같이 앱 내부에 논리 포커스가 따로 있는 경우 네이티브 HWND로 내부 포커스 변경을 감지할 수 없다.
+
+Agent는 임시 데이터에 Windows 클립보드 기록 및 장치 간 동기화 제외 형식을 설정하고, 제공하기 전까지 문자열을 지연 렌더링 메모리에 보관한다. 같은 윈도우 스테이션의 다른 앱, 클립보드 관리자, 원격 세션의 복제나 메모리 덤프까지 막을 수는 없다. 입력 문자열과 기존 클립보드 모두 비민감 데이터인 경우에만 사용한다. Agent는 임시 값과 원본 값을 응답이나 진단 로그에 기록하지 않는다. 프로세스 종료, OS 오류, 장기 잠금은 복원을 막을 수 있다.
+
+| 응답 코드 | 의미 |
+|---|---|
+| `PERMISSION_DENIED` | 대상 PID 또는 `keyboard`·`clipboard` 권한이 없다. |
+| `CLIPBOARD_BUSY` | 전송 전에 최대 80ms 동안 시도했으나 클립보드 잠금을 잡지 못했다. |
+| `CLIPBOARD_UNSUPPORTED` | 안전하게 복제할 수 없는 원본 상태다. 클립보드를 비우거나 키를 보내지 않는다. |
+| `CLIPBOARD_CHANGED` | 외부가 데이터를 바꿨다. 바뀐 내용을 유지한다. |
+| `ACTION_OUTCOME_UNKNOWN` | 전송 뒤 읽기 기한이 지났거나 훅에서 전송 전체를 확인하지 못했다. 대상의 실제 값을 확인한다. |
+| `CLIPBOARD_RESTORE_FAILED` | 잠금이나 OS 오류로 복원을 확인할 수 없다. 클립보드의 실제 상태를 확인한다. |
+
+앱 상태 판정은 호출자가 별도로 읽는다. `inputSent`는 오류가 `Ctrl+V` 전후 어느 시점에 발생했는지 나타낸다. 기존 입력 오류와 기한 정책도 적용되며 어떤 오류에서도 자동 Fallback은 없다. [Windows 클립보드 형식](https://learn.microsoft.com/en-us/windows/win32/dataxchg/clipboard-formats) · [지연 렌더링](https://learn.microsoft.com/en-us/windows/win32/dataxchg/wm-renderformat) · [클립보드를 연 창](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getopenclipboardwindow)
 
 ### 좌표
 
@@ -166,6 +189,16 @@ $jdk17 = 'C:\Program Files\Java\jdk-17\bin\java.exe'
 & .\tools\Test-PhysicalInput.ps1 -Interactive -JavaExe $jdk11 -FixtureJava $jdk17 -OutputPath target\physical-input.json
 ```
 
+클립보드 시험은 비어 있는 클립보드에만 합성 데이터를 사용한다. 기존 내용이 있거나 잠겨 있으면 실행을 중단한다. 아래 명령은 각 Fixture의 실제 편집 값과 클립보드 원본을 독립적으로 비교한다. `ClipboardSafety`는 기존 표준 텍스트와 미지원 형식, 잠금, 외부 변경, 붙여넣기 지연과 Timeout, 포커스 변경, 사용자 입력 충돌을 주입한다. `ClipboardPerformanceIterations`는 Swing에서 지정한 횟수만큼 두 방식의 왕복 시간, Agent CPU 시간과 메모리를 기록한다.
+
+```powershell
+javac --release 11 -d target/text-input-fixture tests/fixtures/swing-awt/TextInputFixture.java
+& .\tools\Test-TextInputCompatibility.ps1 -Interactive -Agent Java -JavaExe $jdk11 -Method clipboard -ClipboardSafety -ClipboardPerformanceIterations 12 -OutputPath target/clipboard-java.json
+& .\tools\Test-TextInputCompatibility.ps1 -Interactive -Agent Cpp -Method clipboard -ClipboardSafety -ClipboardPerformanceIterations 12 -OutputPath target/clipboard-cpp.json
+```
+
+C++ x86 Agent와 Win32 x86 Fixture는 `-Agent Cpp -CppAgent target/cpp-agent-x86/Release/cpp-agent.exe -Fixture Win32 -Win32 target/framework-fixtures/x86/win32.exe -Method clipboard`를 지정한다.
+
 | 옵션 | 뜻 |
 |---|---|
 | `-Agent Java\|Cpp\|Both` | 시험할 Agent. 기본 `Both`(Java 다음 C++) |
@@ -234,7 +267,7 @@ $r.cases | Where-Object case -eq 'Performance' | ForEach-Object { $_.agent; $_.e
 
 ## 미해결 문제와 제약
 
-- **AWT 텍스트 입력.** Java 11·21 AWT 픽스처의 편집 필드는 일반 `keyPress` 입력에 반응했지만 `typeText`의 유니코드 이벤트를 픽스처 값에 반영하지 않았다. 두 Agent에서 포커스와 훅 관측을 확인했다. 이 경로는 `-Case AwtUnicodePackets`로 별도 검증할 수 있다. AWT 편집 필드의 Unicode 값 변경에는 UIA 참조로 `setValue`를 호출한다. 호출자는 `setValue` 권한을 부여하고 변경 뒤 앱 상태를 확인한다.
+- **AWT 텍스트 입력.** Java 11·21의 AWT 편집 필드는 일반 `keyPress` 입력에는 반응했으나 `unicode` 방식의 `VK_PACKET` 이벤트가 편집 값에 반영되지 않았다. `-Case AwtUnicodePackets`로 확인할 수 있다. `clipboard` 권한과 지원 조건을 만족하는 경우 AWT TextField/TextArea의 영문·한글·기호·이모지 붙여넣기를 확인했다. 대상의 클립보드 읽기를 기한 안에 관측하지 못하면 `ACTION_OUTCOME_UNKNOWN`을 반환한다. 지원되는 UIA 참조에 `setValue`를 명시적으로 호출하는 방법도 있다. [AWT 붙여넣기 시험](TEST-RESULTS.md#2026-11-27-clipboard-기반-unicode-입력)
 - **클립보드와 창 메시지.** 호환성 픽스처에서만 붙여넣기와 `WM_CHAR`를 시험한다. 클립보드는 다른 앱과 공유되고 검사와 소비 사이에 바뀔 수 있다. `WM_CHAR`는 실제 키 이벤트와 훅 관측을 거치지 않으며 AWT에서는 포커스 창과 다른 편집 컨트롤로 보내야 했다. 두 방식은 Agent 계약의 선택 항목에서 제외했다.
 - **Raw Input.** 물리 장치 이벤트를 보조 관측하는 후보로 검토했다. 프로세스별 장치 클래스 등록과 메시지 창이 필요하며, 현재의 합성 태그·이벤트 개수 검증과 동등한 관측은 입증되지 않았다. Agent에는 추가하지 않았다. [Windows Raw Input](https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input)
 - **전경 전환.** `activateWindow`는 `SetForegroundWindow`를 한 번만 부른다. Windows의 전경 잠금 규칙 때문에 거부될 수 있고, 우회 기법은 쓰지 않는다. 그때는 사용자가 창을 앞으로 가져와야 한다.

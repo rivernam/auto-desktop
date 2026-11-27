@@ -46,6 +46,7 @@ public:
     FakeDriver() {
         state.available = true;
         state.layoutText = true;
+        state.clipboardText = true;
         state.reason.clear();
         state.dpiAwareness = "perMonitorV2";
         state.inputDesktop = true;
@@ -199,7 +200,11 @@ void parsing() {
     check(parse(with({{"text", "a\x01"}}), InputOp::typeText) == "INVALID_REQUEST", "control character");
     check(parse(with({{"text", "a\x7F"}}), InputOp::typeText) == "INVALID_REQUEST", "delete character");
     check(parse(with({{"text", "a"}, {"intervalMs", 51}}), InputOp::typeText) == "INVALID_REQUEST", "interval");
-    check(parse(with({{"text", "a"}, {"method", "clipboard"}}), InputOp::typeText) == "INVALID_REQUEST", "unavailable method");
+    check(parse(with({{"text", "a"}, {"method", "clipboard"}}), InputOp::typeText) == "OK", "clipboard method");
+    check(parse(with({{"text", "a\nb"}, {"method", "clipboard"}}), InputOp::typeText) == "INVALID_REQUEST", "clipboard is single-line");
+    check(parse(with({{"text", "a"}, {"method", "clipboard"}, {"intervalMs", 1}}), InputOp::typeText) == "INVALID_REQUEST", "clipboard is unpaced");
+    check(parse(with({{"text", "a"}, {"method", "clipboard"}, {"clipboardTimeoutMs", 49}}), InputOp::typeText)
+          == "INVALID_REQUEST", "clipboard timeout range");
     check(parse(with({{"text", "a"}, {"method", "VirtualKey"}}), InputOp::typeText) == "INVALID_REQUEST", "case-sensitive method");
     check(parse(with({{"text", "a"}, {"method", 1}}), InputOp::typeText) == "INVALID_REQUEST", "method type");
     check(typedText("a\r\nb\nc\rd\te") == u"a\rb\rc\rd\te", "line ends become Enter, tab stays Tab");
@@ -506,6 +511,16 @@ void capabilities() {
     const auto keyboardOnly = caps({Action::keyboard}, &driver);
     check(keyboardOnly.at("operations").size() == 11 && keyboardOnly.at("operations").back() == "typeText",
           "only allowed operations");
+    Agent keyboard(surface, "clipboard-policy", [](int pid) { return pid == 123; }, {Action::keyboard}, Clock::now,
+                   nullptr, {&driver, true});
+    const Json clipboardRequest{{"windowId", "42"}, {"processId", 123}, {"text", "sample"}, {"method", "clipboard"}};
+    error(send(keyboard, "typeText", clipboardRequest, "clipboard"), "PERMISSION_DENIED");
+    Agent both(surface, "clipboard-enabled", [](int pid) { return pid == 123; }, {Action::keyboard, Action::clipboard},
+               Clock::now, nullptr, {&driver, true});
+    check(send(both, "typeText", clipboardRequest, "clipboard").at("result").at("method") == "clipboard", "clipboard opt in");
+    check(caps({Action::clipboard}, &driver).at("input").count("textMethods") == 0, "clipboard also requires keyboard");
+    check(caps({Action::keyboard, Action::clipboard}, &driver).at("input").at("textMethods").back() == "clipboard",
+          "clipboard method advertised when opted in");
     driver.state.layoutText = false;
     check(caps({Action::keyboard}, &driver).at("input").at("textMethods") == Json::array({"unicode"}),
           "older Windows advertises only Unicode");

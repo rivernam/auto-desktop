@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
         auto policy = parsePolicy(argc, argv);
         if (!policy) {
             std::cerr << "Usage: cpp-agent.exe [--allow-pid PID] "
-                         "[--allow-action invoke|setValue|defaultAction|select|pointer|keyboard|activate] "
+                         "[--allow-action invoke|setValue|defaultAction|select|pointer|keyboard|activate|clipboard] "
                          "[--backend uia|jab|msaa|multi] [--jab-dll ABSOLUTE_DLL_PATH] [--trust-msaa-identity PID]\n"
                          "Each allowed PID must identify a running process with a readable start time.\n";
             return 2;

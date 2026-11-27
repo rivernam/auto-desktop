@@ -22,7 +22,7 @@ target_link_libraries(agent-core PUBLIC Threads::Threads)
 
 if(WIN32)
     set(windows_agent_sources src/main.cpp src/windows/uia_adapter.cpp src/windows/jab_adapter.cpp src/windows/msaa_adapter.cpp
-        src/windows/input_driver.cpp src/windows/cpp-agent.manifest)
+        src/windows/input_driver.cpp src/windows/clipboard_paste.cpp src/windows/cpp-agent.manifest)
     function(add_windows_agent target)
         add_executable(${target} ${windows_agent_sources})
         target_compile_definitions(${target} PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
@@ -49,7 +49,7 @@ if(BUILD_TESTING)
         target_compile_definitions(msaa-identity-fixture PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
         target_link_libraries(msaa-identity-fixture PRIVATE oleacc oleaut32 ole32 user32 uuid)
         # Reads the input environment only. It sends no input and installs no hook.
-        add_executable(input-driver-check tests/input_driver_check.cpp src/windows/input_driver.cpp
+        add_executable(input-driver-check tests/input_driver_check.cpp src/windows/input_driver.cpp src/windows/clipboard_paste.cpp
             src/windows/cpp-agent.manifest)
         target_compile_definitions(input-driver-check PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE)
         target_link_libraries(input-driver-check PRIVATE agent-core user32 advapi32)

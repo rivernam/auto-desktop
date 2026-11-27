@@ -132,7 +132,7 @@ public final class Cli {
                     : DesktopAdapters.open(worker, backend, trustedMsaa);
         } catch (IllegalArgumentException invalid) {
             System.err.println("Usage: java -jar desktop-agent.jar [--allow-pid PID] "
-                    + "[--allow-action invoke|setValue|defaultAction|select|pointer|keyboard|activate] "
+                    + "[--allow-action invoke|setValue|defaultAction|select|pointer|keyboard|activate|clipboard] "
                     + "[--backend jna|jab|msaa|multi|powershell OR --csharp-worker ABSOLUTE_EXE_PATH] "
                     + "[--jab-dll ABSOLUTE_DLL_PATH] [--trust-msaa-identity PID]");
             System.err.println("Each allowed PID must identify a running process with a readable start time.");

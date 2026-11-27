@@ -16,6 +16,8 @@ param(
     [string]$WinForms = 'target/framework-fixtures/winforms-framework.exe',
     [string]$Win32 = 'target/framework-fixtures/win32.exe',
     [string]$OutputPath = 'target/text-input-compatibility.json',
+    [switch]$ClipboardSafety,
+    [ValidateRange(0,30)][int]$ClipboardPerformanceIterations = 0,
     [ValidateRange(5,600)][int]$CountdownSeconds = 30
 )
 
@@ -24,7 +26,7 @@ $ErrorActionPreference = 'Stop'
 $samples = [ordered]@{
     English = ' Az19 '
     Korean = ' ' + [char]0xd55c + [char]0xae00 + ' '
-    Unicode = ' ' + [char]0x03a9 + [char]::ConvertFromUtf32(0x1f600) + ' '
+    Unicode = ' !@#[] ' + [char]0x03a9 + [char]::ConvertFromUtf32(0x1f600) + ' '
 }
 $results = New-Object 'Collections.Generic.List[object]'
 $environment = Get-UiaEnvironment
@@ -42,6 +44,10 @@ $stateRoot = [IO.Path]::GetFullPath((Split-Path -Parent $OutputPath))
 if ($Agent -ne 'Direct') {
     if (!$PSBoundParameters.ContainsKey('Method')) { $Method = @('unicode','virtualKey','scanCode') }
     if ($Method -contains 'wmChar') { throw 'wmChar is available only in the direct fixture probe.' }
+}
+if (($ClipboardSafety -or $ClipboardPerformanceIterations) -and
+    ($Agent -eq 'Direct' -or 'Swing' -notin $Fixture -or 'clipboard' -notin $Method)) {
+    throw 'Clipboard safety and performance require an Agent, the Swing fixture, and the clipboard method.'
 }
 
 function Save-TextReport {
@@ -108,6 +114,7 @@ public static class TextProbe {
     [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr window, out uint pid);
     [DllImport("user32.dll")] static extern bool GetGUIThreadInfo(uint thread, ref GuiThreadInfo info);
     [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr window);
+    [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr window, IntPtr insertAfter, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] static extern IntPtr GetDlgItem(IntPtr parent, int id);
     [DllImport("user32.dll")] static extern bool EnumChildWindows(IntPtr parent, EnumWindow callback, IntPtr data);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr hwnd, StringBuilder name, int size);
@@ -150,9 +157,129 @@ public static class TextProbe {
     [DllImport("user32.dll")] static extern IntPtr SetClipboardData(uint format, IntPtr memory);
     [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern uint RegisterClipboardFormat(string name);
     [DllImport("kernel32.dll")] static extern IntPtr GlobalAlloc(uint flags, UIntPtr size);
+    [DllImport("kernel32.dll")] static extern UIntPtr GlobalSize(IntPtr memory);
     [DllImport("kernel32.dll")] static extern IntPtr GlobalLock(IntPtr memory);
     [DllImport("kernel32.dll")] static extern bool GlobalUnlock(IntPtr memory);
     [DllImport("kernel32.dll")] static extern IntPtr GlobalFree(IntPtr memory);
+
+    public static int ClipboardCount() {
+        if (!OpenClipboard(IntPtr.Zero)) return -1;
+        try { return CountClipboardFormats(); }
+        finally { CloseClipboard(); }
+    }
+
+    public static uint ClipboardSequence { get { return GetClipboardSequenceNumber(); } }
+    public static bool LockClipboard() { return OpenClipboard(IntPtr.Zero); }
+    public static void UnlockClipboard() { CloseClipboard(); }
+
+    public static Thread HoldClipboardBriefly() {
+        bool acquired = false;
+        using (var ready = new ManualResetEvent(false)) {
+            var locker = new Thread(delegate() {
+                acquired = LockClipboard();
+                ready.Set();
+                if (acquired) {
+                    try { Thread.Sleep(50); }
+                    finally { UnlockClipboard(); }
+                }
+            });
+            locker.IsBackground = true;
+            locker.Start();
+            ready.WaitOne();
+            if (!acquired) throw new InvalidOperationException("Could not briefly lock test clipboard.");
+            return locker;
+        }
+    }
+
+    public static IntPtr CreateClipboardOwner() {
+        IntPtr owner = CreateWindowEx(0,"Static","Clipboard fixture",0,0,0,0,0,
+            new IntPtr(-3),IntPtr.Zero,GetModuleHandle(null),IntPtr.Zero);
+        if (owner == IntPtr.Zero) throw new InvalidOperationException("Cannot create test clipboard owner.");
+        return owner;
+    }
+    public static void DestroyClipboardOwner(IntPtr owner) { DestroyWindow(owner); }
+
+    public static void WriteTestClipboard(IntPtr owner, string text, bool unsupported, uint expectedAgent) {
+        if (!OpenClipboard(owner)) throw new InvalidOperationException("Cannot lock test clipboard for writing.");
+        try {
+            if (expectedAgent == 0 ? CountClipboardFormats() != 0 : Pid(GetClipboardOwner()) != expectedAgent)
+                throw new InvalidOperationException("ABORT: clipboard belongs to another application.");
+            if (!EmptyClipboard()) throw new InvalidOperationException("Cannot clear test clipboard.");
+            SetClipboardBytes(13,Encoding.Unicode.GetBytes(text + "\0"));
+            if (unsupported) SetClipboardBytes(RegisterClipboardFormat("DesktopAgent.ClipboardFixture.Custom"), new byte[] {17,34,51});
+        } finally { CloseClipboard(); }
+    }
+
+    // The harness never records arbitrary clipboard data. Read raw formats only if the unique synthetic token matches.
+    public static string ReadTestClipboard(string expected, bool clear = false, IntPtr owner = default(IntPtr)) {
+        if (!OpenClipboard(owner)) return "busy";
+        try {
+            if (CountClipboardFormats() == 0) return "empty";
+            IntPtr handle = GetClipboardData(13);
+            if (handle == IntPtr.Zero || GlobalSize(handle).ToUInt64() < (ulong)((expected.Length + 1) * 2)) return "unexpected";
+            IntPtr address = GlobalLock(handle);
+            if (address == IntPtr.Zero) return "unexpected";
+            try {
+                if (Marshal.PtrToStringUni(address, expected.Length) != expected || Marshal.ReadInt16(address, expected.Length * 2) != 0)
+                    return "unexpected";
+            } finally { GlobalUnlock(handle); }
+            var formats = new List<string>();
+            using (var sha = System.Security.Cryptography.SHA256.Create()) {
+                for (uint f = EnumClipboardFormats(0); f != 0; f = EnumClipboardFormats(f)) {
+                    handle = GetClipboardData(f);
+                    var size = handle == IntPtr.Zero ? 0ul : GlobalSize(handle).ToUInt64();
+                    if (size == 0 || size > 8192) return "unexpected";
+                    address = GlobalLock(handle);
+                    if (address == IntPtr.Zero) return "unexpected";
+                    try {
+                        byte[] bytes = new byte[(int)size];
+                        Marshal.Copy(address,bytes,0,bytes.Length);
+                        formats.Add(f + ":" + Convert.ToBase64String(sha.ComputeHash(bytes)));
+                    } finally { GlobalUnlock(handle); }
+                }
+            }
+            if (clear && !EmptyClipboard()) throw new InvalidOperationException("Cannot clear verified test clipboard.");
+            return String.Join(",", formats);
+        } finally { CloseClipboard(); }
+    }
+
+    public static TaskFault StartPasteFault(string mode, string pendingFile, IntPtr frame, uint fixturePid, uint agentPid, string token) {
+        return new TaskFault(mode,pendingFile,frame,fixturePid,agentPid,token);
+    }
+
+    public sealed class TaskFault : IDisposable {
+        readonly Thread thread;
+        volatile bool stopped;
+        public string Outcome;
+
+        public TaskFault(string mode, string pendingFile, IntPtr frame, uint fixturePid, uint agentPid, string token) {
+            thread = new Thread(delegate() {
+                try {
+                    while (!stopped && !System.IO.File.Exists(pendingFile)) Thread.Sleep(2);
+                    if (stopped) return;
+                    Check(frame,fixturePid);
+                    if (mode == "Changed") {
+                        IntPtr owner = CreateClipboardOwner();
+                        try { WriteTestClipboard(owner,token,false,agentPid); }
+                        finally { DestroyClipboardOwner(owner); }
+                    } else {
+                        var keys = new[] { KeyEvent(0x87,0,0), KeyEvent(0x87,0,2) };
+                        for (int i = 0; i < keys.Length; i++) keys[i].Data.Key.Extra = UIntPtr.Zero;
+                        if (SendInput((uint)keys.Length,keys,Marshal.SizeOf(typeof(Input))) != keys.Length)
+                            throw new InvalidOperationException("Could not inject the fixture's foreign F24 key.");
+                    }
+                    Outcome = "injected";
+                } catch (Exception failure) { Outcome = failure.Message; }
+            });
+            thread.IsBackground = true;
+            thread.Start();
+        }
+
+        public void Dispose() {
+            stopped = true;
+            thread.Join(1500);
+        }
+    }
 
     static readonly UIntPtr tag = (UIntPtr)0x54455854;
     static readonly Hook keyboard = KeyboardHook;
@@ -216,6 +343,10 @@ public static class TextProbe {
     public static bool ForeignInput { get { return Volatile.Read(ref foreignCount) != foreignBaseline; } }
     public static void BeginAgent(IntPtr frame, uint process) { Check(frame,process); awaitingAgent = true; }
     public static void EndAgent(IntPtr frame, uint process) { awaitingAgent = false; Check(frame,process); }
+    public static void EndAgentWithFocusChange() {
+        awaitingAgent = false;
+        if (ForeignInput || Held()) throw new InvalidOperationException("ABORT: external mouse or keyboard input detected.");
+    }
     public static uint IdleMs() {
         var info = new LastInput { Size = (uint)Marshal.SizeOf(typeof(LastInput)) };
         return GetLastInputInfo(ref info) ? unchecked(GetTickCount() - info.Time) : 0;
@@ -225,16 +356,34 @@ public static class TextProbe {
         return false;
     }
     static uint Pid(IntPtr window) { uint pid; GetWindowThreadProcessId(window, out pid); return pid; }
-    static void Check(IntPtr frame, uint process) {
-        if (ForeignInput || Held()) throw new InvalidOperationException("ABORT: external mouse or keyboard input detected.");
-        if (Pid(frame) != process || GetForegroundWindow() != frame)
+    static void Check(IntPtr frame, uint process, bool probeBatchPending = false, bool focusSetup = false) {
+        if (ForeignInput) throw new InvalidOperationException("ABORT: external mouse or keyboard input detected by hook.");
+        if (!probeBatchPending && Held()) throw new InvalidOperationException("ABORT: a mouse button or modifier is still held.");
+        if (Pid(frame) != process || (!focusSetup && GetForegroundWindow() != frame))
             throw new InvalidOperationException("BLOCKED: the test fixture lost the foreground.");
     }
     public static bool Activate(IntPtr frame, uint process) {
         if (ForeignInput || Held()) throw new InvalidOperationException("ABORT: external mouse or keyboard input detected.");
         if (Pid(frame) != process) return false;
         if (GetForegroundWindow() != frame) SetForegroundWindow(frame);
-        return GetForegroundWindow() == frame;
+        if (WaitForForeground(frame, process, 300)) return true;
+        // Fixture setup only. A real click can activate a visible, hit-tested test window after Windows declines a focus request.
+        if (!IsWindowVisible(frame) || !SetWindowPos(frame, new IntPtr(-1), 0, 0, 0, 0, 0x0213)) return false;
+        try {
+            Click(frame, process, frame, true);
+            return WaitForForeground(frame, process, 1000);
+        } finally {
+            SetWindowPos(frame, new IntPtr(-2), 0, 0, 0, 0, 0x0213);
+        }
+    }
+    static bool WaitForForeground(IntPtr frame, uint process, int timeoutMs) {
+        int until = Environment.TickCount + timeoutMs;
+        while (GetForegroundWindow() != frame) {
+            if (ForeignInput || Held()) throw new InvalidOperationException("ABORT: external input during fixture activation.");
+            if (Pid(frame) != process || unchecked(Environment.TickCount - until) >= 0) return false;
+            Thread.Sleep(5);
+        }
+        return true;
     }
     public static IntPtr Editable(IntPtr frame, uint process, string kind) {
         Check(frame, process);
@@ -277,8 +426,8 @@ public static class TextProbe {
     static Input KeyEvent(ushort vk, ushort scan, uint flags) {
         return new Input { Type=1, Data = new InputData { Key = new Key { Vk=vk, Scan=scan, Flags=flags, Extra=tag } } };
     }
-    static void Send(Input[] inputs, IntPtr frame, uint process) {
-        Check(frame, process);
+    static void Send(Input[] inputs, IntPtr frame, uint process, bool focusSetup = false) {
+        Check(frame, process, false, focusSetup);
         int keysBefore = Volatile.Read(ref keyboardCount), mouseBefore = Volatile.Read(ref mouseCount);
         int keys = 0, mice = 0;
         foreach (var input in inputs) if (input.Type == 1) keys++; else mice++;
@@ -303,16 +452,19 @@ public static class TextProbe {
             throw new InvalidOperationException("ABORT: only " + sent + "/" + inputs.Length + " input events accepted.");
         }
         int until = Environment.TickCount + 300;
-        while (Volatile.Read(ref keyboardCount) - keysBefore < keys || Volatile.Read(ref mouseCount) - mouseBefore < mice) {
-            Check(frame, process);
+        while (Volatile.Read(ref keyboardCount) - keysBefore < keys || Volatile.Read(ref mouseCount) - mouseBefore < mice || Held()) {
+            Check(frame, process, true, focusSetup);
             if (unchecked(Environment.TickCount - until) >= 0)
-                throw new InvalidOperationException("ABORT: the probe hook did not observe every submitted event.");
+                throw new InvalidOperationException("ABORT: the probe batch did not finish with every event observed and keys released.");
             Thread.Sleep(1);
         }
-        Check(frame, process);
+        Check(frame, process, false, focusSetup);
     }
     public static void Click(IntPtr frame, uint process, IntPtr child) {
-        Check(frame, process);
+        Click(frame, process, child, false);
+    }
+    static void Click(IntPtr frame, uint process, IntPtr child, bool focusSetup) {
+        Check(frame, process, false, focusSetup);
         if (Pid(child) != process || (child != frame && !IsChild(frame, child)))
             throw new InvalidOperationException("BLOCKED: fixture editor HWND could not be scoped.");
         IntPtr dpi = SetThreadDpiAwarenessContext(new IntPtr(-4));
@@ -327,7 +479,7 @@ public static class TextProbe {
             long ny = ((long)(y - GetSystemMetrics(77)) * 65536 + GetSystemMetrics(79) - 1) / GetSystemMetrics(79);
             if (nx < 0 || ny < 0 || nx > 65535 || ny > 65535)
                 throw new InvalidOperationException("BLOCKED: editor outside the virtual screen.");
-            Send(new[] { MouseEvent((int)nx,(int)ny,0xc001), MouseEvent(0,0,2), MouseEvent(0,0,4) }, frame, process);
+            Send(new[] { MouseEvent((int)nx,(int)ny,0xc001), MouseEvent(0,0,2), MouseEvent(0,0,4) }, frame, process, focusSetup);
         } finally { if (dpi != IntPtr.Zero) SetThreadDpiAwarenessContext(dpi); }
     }
     public static void End(IntPtr frame, uint process) {
@@ -521,6 +673,7 @@ function Start-ProbeAgent([int]$ProcessId) {
     $start.RedirectStandardError = $true
     $start.StandardOutputEncoding = [Text.Encoding]::UTF8
     $arguments = " --backend multi --allow-pid $ProcessId --allow-action keyboard"
+    if ($Method -contains 'clipboard') { $arguments += ' --allow-action clipboard' }
     if ($Agent -eq 'Java') {
         $start.FileName = (Get-Command $JavaExe -CommandType Application | Select-Object -First 1).Source
         $jarPath = (Resolve-Path -LiteralPath $Jar).Path
@@ -532,19 +685,177 @@ function Start-ProbeAgent([int]$ProcessId) {
     return Start-Cli $start
 }
 
-function Send-ProbeAgent($Cli, [IntPtr]$Frame, [int]$ProcessId, [string]$Text, [string]$Mode) {
+function Send-ProbeAgent($Cli, [IntPtr]$Frame, [int]$ProcessId, [string]$Text, [string]$Mode,
+                        [int]$TimeoutMs = 0, [switch]$ExpectFocusChange) {
     # The agent classifies injected events with its own tag. The outer probe still sees physical input.
     [TextProbe]::BeginAgent($Frame,$ProcessId)
     try {
-        return Send-UiaRequest $Cli @{
+        $command = @{
             op = 'typeText'; windowId = [string]$Frame.ToInt64(); processId = $ProcessId
             text = $Text; method = $Mode; quietMs = 0
         }
-    } finally { [TextProbe]::EndAgent($Frame,$ProcessId) }
+        if ($TimeoutMs) { $command.clipboardTimeoutMs = $TimeoutMs }
+        return Send-UiaRequest $Cli $command
+    } finally {
+        if ($ExpectFocusChange) { [TextProbe]::EndAgentWithFocusChange() }
+        else { [TextProbe]::EndAgent($Frame,$ProcessId) }
+    }
+}
+
+function Test-ClipboardSafety($Cli, [IntPtr]$Frame, [int]$ProcessId, [string]$Directory) {
+    $valueFile = Join-Path $Directory 'value.txt'
+    $modeFile = Join-Path $Directory 'paste-mode.txt'
+    $pending = Join-Path $Directory 'paste-pending.txt'
+    $finished = Join-Path $Directory 'paste-finished.txt'
+    $scenarios = [ordered]@{
+        PlainText = @('OK', $true, '', 1000)
+        LiveOwner = @('CLIPBOARD_UNSUPPORTED', $false, '', 1000)
+        Unsupported = @('CLIPBOARD_UNSUPPORTED', $false, '', 1000)
+        Locked = @('CLIPBOARD_BUSY', $false, '', 1000)
+        TransientLock = @('OK', $true, '', 1000)
+        Delay = @('OK', $true, '200', 1600)
+        Timeout = @('ACTION_OUTCOME_UNKNOWN', $true, '250', 60)
+        Changed = @('CLIPBOARD_CHANGED', $true, 'hold', 1600)
+        FocusChange = @('FOREGROUND_MISMATCH', $true, 'focus', 1600)
+        UserInput = @('USER_INPUT_CONFLICT', $true, 'hold', 1600)
+    }
+    foreach ($scenario in $scenarios.Keys) {
+        $expectedCode, $expectedSent, $instruction, $timeout = $scenarios[$scenario]
+        $row = [ordered]@{ fixture = 'Swing'; method = 'clipboard'; scenario = $scenario; status = 'FAIL' }
+        $token = 'ClipboardFixture-' + [guid]::NewGuid().ToString('N')
+        $sample = $samples.Unicode
+        $before = [string](Read-ProbeFile $valueFile)
+        $clipboardOwner = [IntPtr]::Zero
+        $fault = $null
+        $shortLock = $null
+        $seeded = $false
+        try {
+            if ([TextProbe]::ClipboardCount() -ne 0) { throw 'ABORT: the test clipboard is no longer empty.' }
+            foreach ($file in $modeFile, $pending, $finished) {
+                if ([IO.File]::Exists($file)) { [IO.File]::Delete($file) }
+            }
+            if ($instruction) { [IO.File]::WriteAllText($modeFile, $instruction) }
+            if ($scenario -in 'PlainText','LiveOwner','Unsupported') {
+                $clipboardOwner = [TextProbe]::CreateClipboardOwner()
+                [TextProbe]::WriteTestClipboard($clipboardOwner, $token, ($scenario -eq 'Unsupported'), 0)
+                $seeded = $true
+                if ($scenario -eq 'PlainText') {
+                    [TextProbe]::DestroyClipboardOwner($clipboardOwner)
+                    $clipboardOwner = [IntPtr]::Zero
+                }
+            }
+            $row.clipboardBefore = [TextProbe]::ReadTestClipboard($token)
+            $row.sequenceBefore = [TextProbe]::ClipboardSequence
+            $locked = $scenario -eq 'Locked'
+            if ($locked -and ![TextProbe]::LockClipboard()) { throw 'The probe could not hold the clipboard lock.' }
+            try {
+                if ($scenario -eq 'TransientLock') { $shortLock = [TextProbe]::HoldClipboardBriefly() }
+                if ($scenario -in 'Changed','UserInput') {
+                    $fault = [TextProbe]::StartPasteFault($scenario, $pending, $Frame, $ProcessId, $Cli.Id, $token)
+                }
+                $response = Send-ProbeAgent $Cli $Frame $ProcessId $sample 'clipboard' $timeout -ExpectFocusChange:($scenario -eq 'FocusChange')
+            } finally {
+                if ($locked) { [TextProbe]::UnlockClipboard() }
+                if ($shortLock) { [void]$shortLock.Join(1000) }
+                if ($fault) { $fault.Dispose(); $row.fault = $fault.Outcome }
+            }
+            $reply = $response.reply
+            $row.agentCode = if ($reply.ok) { 'OK' } else { $reply.error.code }
+            if (!$reply.ok) { $row.agentMessage = $reply.error.message }
+            $row.agentInputSent = if ($reply.ok) { $reply.result.inputSent } else { $reply.error.inputSent }
+            $row.agentLatencyMs = [Math]::Round($response.ms,2)
+            $row.sequenceAfter = [TextProbe]::ClipboardSequence
+            $row.clipboardAfter = [TextProbe]::ReadTestClipboard($token)
+            $expectedValue = if ($expectedCode -eq 'OK') { $before + $sample } else { $before }
+            if ($scenario -in 'Delay','Timeout') {
+                $row.pasteFinished = Wait-ProbeState $finished { param($v) $v -ceq $instruction } 1500
+            }
+            if ($scenario -eq 'FocusChange') {
+                Start-Sleep -Milliseconds 600
+                if (![TextProbe]::Activate($Frame,$ProcessId)) { throw 'The fixture did not recover focus.' }
+            }
+            $row.fixtureValue = Wait-ProbeState $valueFile { param($v) $v -ceq $expectedValue } 600
+            if ($null -eq $row.fixtureValue) { $row.fixtureValue = Read-ProbeFile $valueFile }
+            $row.expectedValue = $expectedValue
+            $row.fixtureSawPaste = [IO.File]::Exists($pending)
+            $clipboardOk = switch ($scenario) {
+                'Changed' { $row.clipboardAfter -notin 'busy','unexpected','empty' -and $row.fault -eq 'injected' }
+                'PlainText' { $row.clipboardBefore -eq $row.clipboardAfter -and $row.clipboardAfter -notin 'busy','unexpected','empty' }
+                'Unsupported' { $row.clipboardBefore -eq $row.clipboardAfter -and $row.sequenceBefore -eq $row.sequenceAfter }
+                'LiveOwner' { $row.clipboardBefore -eq $row.clipboardAfter -and $row.sequenceBefore -eq $row.sequenceAfter }
+                'Locked' { $row.clipboardAfter -eq 'empty' -and $row.sequenceBefore -eq $row.sequenceAfter }
+                default { $row.clipboardAfter -eq 'empty' }
+            }
+            if ($row.agentCode -eq $expectedCode -and $row.agentInputSent -eq $expectedSent -and $clipboardOk -and
+                $row.fixtureValue -ceq $expectedValue -and (!$reply.ok -or $reply.result.clipboardRestored) -and
+                ($scenario -notin 'Delay','Timeout' -or $row.pasteFinished) -and
+                ($scenario -ne 'UserInput' -or $row.fault -eq 'injected') -and
+                (!$instruction -or $row.fixtureSawPaste)) { $row.status = 'PASS' }
+            $row.expectedCode = $expectedCode
+        } catch {
+            $row.reason = $_.Exception.GetBaseException().Message
+            if ($row.reason.StartsWith('ABORT:')) { $script:aborted = $true }
+        } finally {
+            if ($seeded -or ($scenario -eq 'Changed' -and $row.fault -eq 'injected')) {
+                try {
+                    $row.testClipboardCleanup = [TextProbe]::ReadTestClipboard($token, $true, $clipboardOwner)
+                    if ($row.testClipboardCleanup -in 'busy','unexpected') { $row.status = 'FAIL' }
+                } catch {
+                    $row.status = 'FAIL'
+                    $row.cleanupError = $_.Exception.GetBaseException().Message
+                }
+            }
+            foreach ($file in $modeFile, $pending, $finished) {
+                if ([IO.File]::Exists($file)) { [IO.File]::Delete($file) }
+            }
+            if ($clipboardOwner -ne [IntPtr]::Zero) { [TextProbe]::DestroyClipboardOwner($clipboardOwner) }
+            $results.Add($row)
+            Write-Host "[Swing / clipboard / $scenario] $($row.status)"
+        }
+        if ($script:aborted) { break }
+    }
+}
+
+function Measure-ClipboardComparison($Cli, [IntPtr]$Frame, [int]$ProcessId, [string]$ValueFile) {
+    foreach ($mode in 'unicode','clipboard') {
+        $latencies = New-Object 'Collections.Generic.List[double]'
+        $workingSet = New-Object 'Collections.Generic.List[long]'
+        $privateBytes = New-Object 'Collections.Generic.List[long]'
+        $sample = $samples.Korean + $samples.Unicode
+        $row = [ordered]@{ fixture = 'Swing'; method = $mode; scenario = 'Performance'; status = 'FAIL' }
+        try {
+            $Cli.Refresh()
+            $cpuBefore = $Cli.TotalProcessorTime.TotalMilliseconds
+            $expected = [string](Read-ProbeFile $ValueFile)
+            for ($i = 0; $i -lt $ClipboardPerformanceIterations; $i++) {
+                if ([TextProbe]::ClipboardCount() -ne 0) { throw 'ABORT: the test clipboard is no longer empty.' }
+                $response = Send-ProbeAgent $Cli $Frame $ProcessId $sample $mode
+                $latencies.Add([Math]::Round($response.ms,2))
+                if (!$response.reply.ok -or [TextProbe]::ClipboardCount() -ne 0) { throw 'Input failed or altered the clipboard.' }
+                $expected += $sample
+                if ($null -eq (Wait-ProbeState $ValueFile { param($v) $v -ceq $expected } 1000)) { throw 'Fixture value did not match.' }
+                $Cli.Refresh()
+                $workingSet.Add($Cli.WorkingSet64)
+                $privateBytes.Add($Cli.PrivateMemorySize64)
+            }
+            $row.cpuMs = $Cli.TotalProcessorTime.TotalMilliseconds - $cpuBefore
+            $row.status = 'PASS'
+        } catch {
+            $row.reason = $_.Exception.GetBaseException().Message
+            if ($row.reason.StartsWith('ABORT:')) { $script:aborted = $true }
+        } finally {
+            $row.latencyMs = $latencies.ToArray()
+            $row.workingSetBytes = $workingSet.ToArray()
+            $row.privateBytes = $privateBytes.ToArray()
+            $row.fixtureValue = Read-ProbeFile $ValueFile
+            $results.Add($row)
+        }
+        if ($script:aborted) { break }
+    }
 }
 
 $environment.fixtureJavaVersion = ((& { $ErrorActionPreference = 'Continue'; & $FixtureJava -version 2>&1 }) -join ' | ')
-try { $environment.gitCommit = [string](& git rev-parse HEAD 2>$null) } catch {}
+try { $environment.gitCommit = [string](& git -c "safe.directory=$((Get-Location).Path.Replace('\','/'))" rev-parse HEAD 2>$null) } catch {}
 if ($Agent -ne 'Direct') {
     $artifact = if ($Agent -eq 'Java') { $Jar } else { $CppAgent }
     $environment.agentSha256 = (Get-FileHash -LiteralPath $artifact).Hash
@@ -559,6 +870,18 @@ while ([TextProbe]::IdleMs() -lt $CountdownSeconds * 1000 -or [TextProbe]::Held(
 $aborted = $false
 try {
     [TextProbe]::StartMonitor()
+    if ($Method -contains 'clipboard') { $report.clipboardFormatsAtStart = [TextProbe]::ClipboardCount() }
+    if ($Method -contains 'clipboard' -and $report.clipboardFormatsAtStart -ne 0) {
+        $report.blockedReason = 'Run clipboard fixture tests with an empty, unlocked clipboard.'
+        foreach ($kind in $Fixture) {
+            foreach ($mode in $Method) {
+                foreach ($sample in $samples.Keys) {
+                    $results.Add([ordered]@{ fixture = $kind; method = $mode; sample = $sample; status = 'NOT_RUN' })
+                }
+            }
+        }
+        throw $report.blockedReason
+    }
     foreach ($kind in $Fixture) {
         $process = $null
         $cli = $null
@@ -573,8 +896,13 @@ try {
                 $process = Start-ProbeFixture $kind $directory
                 $ready = Wait-ProbeState (Join-Path $directory 'ready') { param($v) $v.Trim() -eq [string]$process.Id } 15000
                 if ($null -eq $ready) { throw 'Fixture did not start.' }
-                $process.Refresh()
-                [IntPtr]$frame = $process.MainWindowHandle
+                $windowClock = [Diagnostics.Stopwatch]::StartNew()
+                do {
+                    $process.Refresh()
+                    [IntPtr]$frame = $process.MainWindowHandle
+                    if ($frame -ne [IntPtr]::Zero) { break }
+                    Start-Sleep -Milliseconds 25
+                } while (!$process.HasExited -and $windowClock.ElapsedMilliseconds -lt 3000)
                 if ($frame -eq [IntPtr]::Zero -or ![TextProbe]::Activate($frame,$process.Id)) { throw 'Fixture did not take the foreground.' }
                 [IntPtr]$edit = [TextProbe]::Editable($frame,$process.Id,$kind)
                 if ($edit -eq [IntPtr]::Zero) { throw 'Fixture editor HWND is unavailable.' }
@@ -612,11 +940,21 @@ try {
                                 default { [TextProbe]::Type($frame,$process.Id,$text,$mode) }
                             }
                         } else {
+                            if ($mode -eq 'clipboard') {
+                                $row.clipboardFormatsBefore = [TextProbe]::ClipboardCount()
+                                if ($row.clipboardFormatsBefore -ne 0) { throw 'ABORT: the test clipboard is no longer empty.' }
+                            }
                             $response = Send-ProbeAgent $cli $frame $process.Id $text $mode
                             $reply = $response.reply
                             $row.agentLatencyMs = [Math]::Round($response.ms,2)
                             $row.agentCode = if ($reply.ok) { 'OK' } else { $reply.error.code }
+                            if (!$reply.ok) { $row.agentMessage = $reply.error.message }
                             $row.agentInputSent = if ($reply.ok) { $reply.result.inputSent } else { $reply.error.inputSent }
+                            if ($mode -eq 'clipboard') {
+                                $row.clipboardFormatsAfter = [TextProbe]::ClipboardCount()
+                                $row.clipboardRestored = $reply.ok -and $reply.result.clipboardRestored -and $row.clipboardFormatsAfter -eq 0
+                                if (!$row.clipboardRestored) { $agentStatus = 'FAIL' }
+                            }
                             if ($row.agentCode -eq 'USER_INPUT_CONFLICT') { throw 'ABORT: the agent saw external input.' }
                             if ($row.agentCode -eq 'PRECONDITION_FAILED' -and $mode -in 'virtualKey','scanCode' -and
                                 ![TextProbe]::CanType($frame,$text,$mode)) {
@@ -646,6 +984,11 @@ try {
                     $results.Add($row)
                     Write-Host "[$kind / $mode / $sample] $($row.status)"
                 }
+                Save-TextReport
+            }
+            if ($kind -eq 'Swing' -and !$startupError -and !$aborted) {
+                if ($ClipboardSafety) { Test-ClipboardSafety $cli $frame $process.Id $directory }
+                if ($ClipboardPerformanceIterations -and !$aborted) { Measure-ClipboardComparison $cli $frame $process.Id $valueFile }
                 Save-TextReport
             }
         } finally {

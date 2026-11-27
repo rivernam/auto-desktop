@@ -32,7 +32,7 @@ const char* actionName(Action action);
 
 enum class Space { screen, window, client };
 enum class Button { left, right, middle };
-enum class TextMethod { unicode, virtualKey, scanCode };
+enum class TextMethod { unicode, virtualKey, scanCode, clipboard };
 const char* textMethodName(TextMethod method);
 
 struct InputPoint {
@@ -90,6 +90,7 @@ struct InputCommand {
     std::u16string text;
     TextMethod textMethod = TextMethod::unicode;
     int intervalMs = 0;
+    int clipboardTimeoutMs = 1000;
     int quietMs = 500;
     // clickElement
     std::string ref;
@@ -130,6 +131,7 @@ ElementPoint elementPoint(const Bounds& window, const std::optional<Bounds>& roo
 struct InputStatus {
     bool available = false;
     bool layoutText = false;
+    bool clipboardText = false;
     std::string reason = "Physical input is not supported on this platform.";
     std::string dpiAwareness = "unaware";
     std::string integrity = "medium";
@@ -143,11 +145,16 @@ struct InputOutcome {
     int events = 0;
     bool observed = false;
     std::optional<ScreenPoint> point, from, to;
+    bool clipboardRestored = false;
 };
 
-// Called once, after every check and right before the first input leaves the process. It re-checks the
-// policy and the deadline and throws to refuse.
-using InputGate = std::function<void()>;
+struct InputGate {
+    // Re-check policy before publishing temporary clipboard data without reporting key dispatch.
+    std::function<void()> checkPolicy;
+    // Called once immediately before the first input leaves the process.
+    std::function<void()> dispatch;
+    void operator()() const { dispatch(); }
+};
 
 // The device side. One driver serves a whole client session, every SessionWorker of a MultiSession
 // included, so implementations are thread-safe. Errors are desktop::Error with inputSent set.

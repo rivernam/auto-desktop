@@ -1,0 +1,34 @@
+[
+  {
+    "case": "Empty restoration",
+    "status": "PASS"
+  },
+  {
+    "case": "Unicode restoration",
+    "status": "PASS"
+  },
+  {
+    "case": "Unsupported format",
+    "status": "PASS"
+  },
+  {
+    "case": "Timeout restores",
+    "status": "PASS"
+  },
+  {
+    "case": "External replacement",
+    "status": "PASS"
+  },
+  {
+    "case": "Live owner refusal",
+    "status": "PASS"
+  },
+  {
+    "case": "Insufficient remaining budget",
+    "status": "PASS"
+  },
+  {
+    "case": "Anonymous reader denied",
+    "status": "PASS"
+  }
+]
